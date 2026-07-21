@@ -36,6 +36,8 @@ jobs:
             browser-platform.js \
             browser-platform.css \
             manifest.webmanifest \
+            robots.txt \
+            sitemap.xml \
             service-worker.js \
             assets \
             "elemental run icons" \
