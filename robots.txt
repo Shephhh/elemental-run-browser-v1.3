@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://shephhh.github.io/elemental-run-browser-v1.3/sitemap.xml
