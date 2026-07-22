@@ -8,7 +8,8 @@ Original prompt: adsense kayıt oldum fakat site için github site sistemini kul
 - Search result metadata was tightened so the title/site signals use ELEMENTAL RUN and no longer include "Cyberpunk".
 - Browser leaderboard now falls back to 10 realistic nickname entries with country flags when Steam leaderboard APIs are not available.
 - Real rewarded ad integration remains wired through Google Ad Manager; activation requires the approved rewarded ad-unit path from the publisher account.
+- Google AdSense publisher metadata/script and ads.txt were added for publisher ca-pub-4666514897532022. The GitHub Pages workflow now includes ads.txt in the deployed artifact.
 
 TODO:
 - Create the GitHub repository, push master, enable GitHub Actions as the Pages source, and verify the public game URL.
-- For AdSense approval, a custom domain is strongly recommended; add ads.txt and the approved ad-unit details after Google supplies them.
+- For AdSense approval and ads.txt root compliance, a custom domain or root user Pages site is strongly recommended; add the approved Google Ad Manager rewarded ad-unit path after Google supplies it.
