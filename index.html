@@ -3441,7 +3441,7 @@
                 </div>
                 <div class="menu-board-tabs">
                     <button id="lb-tab-global" class="menu-board-tab is-active" type="button" data-scope="global">GLOBAL</button>
-                    <button id="lb-tab-friends" class="menu-board-tab" type="button" data-scope="friends">FRIENDS</button>
+                    <button id="lb-tab-friends" class="menu-board-tab" type="button" data-scope="friends">JUST ON STEAM</button>
                 </div>
                 <div id="menu-board-list" class="menu-board-list" aria-live="polite"></div>
                 <div id="menu-board-status" class="menu-board-status"></div>
@@ -5046,6 +5046,7 @@ let skyClouds = [];
             loading:     isTr ? 'Yükleniyor...' : 'Loading...',
             unavailable: isTr ? 'Steam bağlantısı yok. Liderlik tablosu yalnızca Steam sürümünde çalışır.'
                               : 'No Steam connection. Leaderboard is only available on the Steam build.',
+            friendsSteamOnly: 'Just on Steam',
             empty:       isTr ? 'Henüz kayıt yok. İlk sen ol!' : 'No entries yet. Be the first!',
             error:       isTr ? 'Liderlik tablosu yüklenemedi.' : 'Could not load the leaderboard.'
         };
@@ -5124,6 +5125,12 @@ let skyClouds = [];
 
         const shell = typeof window !== 'undefined' ? window.elementalRunShell : null;
         if (!shell || typeof shell.leaderboardTop !== 'function') {
+            if (leaderboardScope === 'friends') {
+                ui.menuBoardList.innerHTML = '';
+                ui.menuBoardStatus.textContent = leaderboardStatusText('friendsSteamOnly');
+                leaderboardBusy = false;
+                return;
+            }
             renderLeaderboardEntries(getBrowserLeaderboardEntries(leaderboardScope));
             leaderboardBusy = false;
             return;
