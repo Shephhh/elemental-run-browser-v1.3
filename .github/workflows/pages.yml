@@ -38,6 +38,7 @@ jobs:
             manifest.webmanifest \
             robots.txt \
             sitemap.xml \
+            ads.txt \
             service-worker.js \
             assets \
             "elemental run icons" \
