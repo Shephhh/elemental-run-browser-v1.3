@@ -1,8 +1,9 @@
 (function () {
   const config = Object.freeze({
     steamUrl: 'https://store.steampowered.com/app/4721080/',
-    // Add your Google Ad Manager rewarded ad-unit path to enable live ads
-    // on your own domain, for example: '/1234567/elemental_run_rewarded'.
+    // Real rewarded ads start only after you paste the approved Google Ad
+    // Manager rewarded ad-unit path, for example: '/1234567/elemental_run_rewarded'.
+    // GitHub Pages cannot invent this; it must come from the publisher account.
     googleAdManagerRewardedUnitPath: '',
     demoAdsOnLocalhost: true,
     rewardedUpgradeOffersPerDayMin: 1,

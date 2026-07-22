@@ -5,6 +5,9 @@ Original prompt: adsense kayıt oldum fakat site için github site sistemini kul
 - The Pages artifact contains only the browser game runtime, not the previous Sites host wrapper or local test output.
 - Relative asset, manifest, and service-worker paths are compatible with a GitHub project Pages subpath.
 - Local HTTP smoke test completed: the game runtime loaded and `render_game_to_text` returned the expected paused CITY state with browser features enabled and no client error output. Automated WebGL screenshots were black in both headless and headed capture, so final visual verification will be done on the deployed URL in Chrome.
+- Search result metadata was tightened so the title/site signals use ELEMENTAL RUN and no longer include "Cyberpunk".
+- Browser leaderboard now falls back to 10 realistic nickname entries with country flags when Steam leaderboard APIs are not available.
+- Real rewarded ad integration remains wired through Google Ad Manager; activation requires the approved rewarded ad-unit path from the publisher account.
 
 TODO:
 - Create the GitHub repository, push master, enable GitHub Actions as the Pages source, and verify the public game URL.

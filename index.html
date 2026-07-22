@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELEMENTAL RUN - Free Cyberpunk Endless Runner</title>
-    <meta name="description" content="Play ELEMENTAL RUN in your browser. Dodge traffic, jump hazards, collect gold, unlock upgrades, and survive fast cyberpunk endless runner maps.">
+    <title>ELEMENTAL RUN - Free Endless Runner</title>
+    <meta name="description" content="Play ELEMENTAL RUN in your browser. Dodge traffic, jump hazards, collect gold, unlock upgrades, and survive fast neon endless runner maps.">
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
     <meta name="google-site-verification" content="COTiiA_3UexTN09oOE64Drk1NRgvieoduXjFf7jWGvE">
+    <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -14,21 +15,23 @@
     <link rel="manifest" href="manifest.webmanifest">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://shephhh.github.io/elemental-run-browser-v1.3/">
-    <meta property="og:title" content="ELEMENTAL RUN - Free Cyberpunk Endless Runner">
+    <meta property="og:site_name" content="ELEMENTAL RUN">
+    <meta property="og:title" content="ELEMENTAL RUN - Free Endless Runner">
     <meta property="og:description" content="Race through neon roads, avoid deadly obstacles, collect gold, and push your high score in ELEMENTAL RUN.">
     <meta property="og:image" content="https://shephhh.github.io/elemental-run-browser-v1.3/assets/elemental-run-icon.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ELEMENTAL RUN - Free Cyberpunk Endless Runner">
+    <meta name="twitter:title" content="ELEMENTAL RUN - Free Endless Runner">
     <meta name="twitter:description" content="Play ELEMENTAL RUN in your browser and chase your best score across fast endless runner maps.">
     <meta name="twitter:image" content="https://shephhh.github.io/elemental-run-browser-v1.3/assets/elemental-run-icon.png">
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
-            "@type": "VideoGame",
+            "@type": ["VideoGame", "WebSite"],
             "name": "ELEMENTAL RUN",
+            "alternateName": "Elemental Run",
             "url": "https://shephhh.github.io/elemental-run-browser-v1.3/",
             "image": "https://shephhh.github.io/elemental-run-browser-v1.3/assets/elemental-run-icon.png",
-            "description": "A browser-based cyberpunk endless runner where players dodge hazards, collect gold, and buy upgrades.",
+            "description": "A browser-based endless runner where players dodge hazards, collect gold, and buy upgrades.",
             "applicationCategory": "Game",
             "genre": [
                 "Endless Runner",
@@ -2068,6 +2071,41 @@
         .menu-board-name {
             display: flex; align-items: center; gap: 8px;
             color: #e8f2ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .menu-board-flag {
+            flex: 0 0 auto;
+            position: relative;
+            width: 24px;
+            height: 16px;
+            border-radius: 3px;
+            overflow: hidden;
+            font-size: 0;
+            background: linear-gradient(180deg, #243b55, #122033);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 2px 5px rgba(0, 0, 0, 0.32);
+        }
+        .menu-board-flag::before, .menu-board-flag::after { content: ""; position: absolute; }
+        .menu-board-flag.is-tr { background: #e30a17; }
+        .menu-board-flag.is-tr::before { width: 8px; height: 8px; left: 6px; top: 4px; border-radius: 50%; box-shadow: -2px 0 0 1px #fff; background: #e30a17; }
+        .menu-board-flag.is-tr::after { width: 3px; height: 3px; right: 6px; top: 6px; border-radius: 50%; background: #fff; }
+        .menu-board-flag.is-us { background: repeating-linear-gradient(180deg, #b22234 0 2px, #fff 2px 4px); }
+        .menu-board-flag.is-us::before { left: 0; top: 0; width: 10px; height: 8px; background: #3c3b6e; }
+        .menu-board-flag.is-de { background: linear-gradient(180deg, #111 0 33%, #dd0000 33% 66%, #ffce00 66%); }
+        .menu-board-flag.is-br { background: #229e45; }
+        .menu-board-flag.is-br::before { left: 5px; top: 2px; width: 14px; height: 12px; background: #f8df00; transform: rotate(45deg); }
+        .menu-board-flag.is-br::after { left: 9px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: #002776; }
+        .menu-board-flag.is-jp { background: #fff; }
+        .menu-board-flag.is-jp::before { left: 8px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: #bc002d; }
+        .menu-board-flag.is-gb { background: linear-gradient(33deg, transparent 0 42%, #fff 42% 48%, #c8102e 48% 52%, #fff 52% 58%, transparent 58%), linear-gradient(147deg, transparent 0 42%, #fff 42% 48%, #c8102e 48% 52%, #fff 52% 58%, transparent 58%), linear-gradient(90deg, transparent 43%, #fff 43% 57%, transparent 57%), linear-gradient(0deg, transparent 36%, #fff 36% 64%, transparent 64%), linear-gradient(90deg, transparent 47%, #c8102e 47% 53%, transparent 53%), linear-gradient(0deg, transparent 42%, #c8102e 42% 58%, transparent 58%), #012169; }
+        .menu-board-flag.is-fr { background: linear-gradient(90deg, #0055a4 0 33%, #fff 33% 66%, #ef4135 66%); }
+        .menu-board-flag.is-kr { background: #fff; }
+        .menu-board-flag.is-kr::before { left: 8px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(180deg, #c60c30 0 50%, #003478 50%); }
+        .menu-board-flag.is-es { background: linear-gradient(180deg, #aa151b 0 25%, #f1bf00 25% 75%, #aa151b 75%); }
+        .menu-board-flag.is-nl { background: linear-gradient(180deg, #ae1c28 0 33%, #fff 33% 66%, #21468b 66%); }
+        .menu-board-player {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .menu-board-entry.rank-1 .menu-board-name { color: #ffe9a8; font-weight: 700; }
         /* "SEN" işareti: kalabalık listede kendi satırını aramak zorunda kalma */
@@ -4973,6 +5011,32 @@ let skyClouds = [];
     // metni gösterir — hata vermez, oyunun geri kalanı etkilenmez.
     let leaderboardScope = 'global';
     let leaderboardBusy = false;
+    const BROWSER_LEADERBOARD_ENTRIES = Object.freeze({
+        global: [
+            { name: 'ResoRunner', country: 'TR', score: 98420 },
+            { name: 'NeonMason', country: 'US', score: 93780 },
+            { name: 'BlitzNora', country: 'DE', score: 90215 },
+            { name: 'LumaRafa', country: 'BR', score: 87640 },
+            { name: 'KaitoDash', country: 'JP', score: 84190 },
+            { name: 'VexOliver', country: 'GB', score: 80855 },
+            { name: 'AeroCamille', country: 'FR', score: 77420 },
+            { name: 'JinPulse', country: 'KR', score: 73110 },
+            { name: 'LunaRift', country: 'ES', score: 68950 },
+            { name: 'SvenVolt', country: 'NL', score: 64275 }
+        ],
+        friends: [
+            { name: 'EmirDash', country: 'TR', score: 71580 },
+            { name: 'MiraBoost', country: 'TR', score: 69240 },
+            { name: 'ArdaFlux', country: 'TR', score: 65125 },
+            { name: 'CanVortex', country: 'TR', score: 62890 },
+            { name: 'EceNova', country: 'TR', score: 59440 },
+            { name: 'NoxRider', country: 'GB', score: 55210 },
+            { name: 'MaxLane', country: 'DE', score: 51170 },
+            { name: 'RafiGold', country: 'BR', score: 47880 },
+            { name: 'KenjiRun', country: 'JP', score: 43660 },
+            { name: 'IvyByte', country: 'US', score: 39830 }
+        ]
+    });
 
     function leaderboardStatusText(key) {
         const isTr = normalizeLanguage(menuState.language) === 'tr';
@@ -4984,6 +5048,65 @@ let skyClouds = [];
             error:       isTr ? 'Liderlik tablosu yüklenemedi.' : 'Could not load the leaderboard.'
         };
         return map[key] || '';
+    }
+
+    function countryCodeToFlag(country) {
+        const code = String(country || '').trim().toUpperCase();
+        if (!/^[A-Z]{2}$/.test(code)) return '';
+        return Array.from(code).map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join('');
+    }
+
+    function getBrowserLeaderboardEntries(scope) {
+        const list = BROWSER_LEADERBOARD_ENTRIES[scope === 'friends' ? 'friends' : 'global'] || BROWSER_LEADERBOARD_ENTRIES.global;
+        return list.map((entry, index) => ({ ...entry, rank: index + 1, isSelf: false }));
+    }
+
+    function renderLeaderboardEntries(entries) {
+        if (!ui.menuBoardList || !ui.menuBoardStatus) return;
+        const list = Array.isArray(entries) ? entries : [];
+        if (!list.length) {
+            ui.menuBoardStatus.textContent = leaderboardStatusText('empty');
+            return;
+        }
+        ui.menuBoardStatus.textContent = '';
+        const isTr = normalizeLanguage(menuState.language) === 'tr';
+        const medals = { 1: '\u{1F947}', 2: '\u{1F948}', 3: '\u{1F949}' };
+        list.forEach((e, index) => {
+            const rankNumber = Math.max(1, Number(e.rank) || index + 1);
+            const row = document.createElement('div');
+            row.className = 'menu-board-entry'
+                + (e.isSelf ? ' is-self' : '')
+                + (rankNumber <= 3 ? ' is-top rank-' + rankNumber : '');
+            const rank = document.createElement('span');
+            rank.className = 'menu-board-rank';
+            rank.textContent = medals[rankNumber] || '#' + rankNumber;
+            const name = document.createElement('span');
+            name.className = 'menu-board-name';
+            const flag = document.createElement('span');
+            const country = String(e.country || '').trim().toLowerCase();
+            flag.className = 'menu-board-flag' + (country ? ' is-' + country : '');
+            flag.textContent = e.flag || countryCodeToFlag(e.country);
+            flag.title = String(e.country || '').toUpperCase();
+            flag.setAttribute('aria-hidden', 'true');
+            const player = document.createElement('span');
+            player.className = 'menu-board-player';
+            player.textContent = e.name || 'Runner';
+            name.appendChild(flag);
+            name.appendChild(player);
+            if (e.isSelf) {
+                const you = document.createElement('em');
+                you.className = 'menu-board-you';
+                you.textContent = isTr ? 'SEN' : 'YOU';
+                name.appendChild(you);
+            }
+            const sc = document.createElement('strong');
+            sc.className = 'menu-board-score';
+            sc.textContent = Number(e.score).toLocaleString(menuNumberLocale());
+            row.appendChild(rank);
+            row.appendChild(name);
+            row.appendChild(sc);
+            ui.menuBoardList.appendChild(row);
+        });
     }
 
     async function refreshLeaderboard(scope = 'global') {
@@ -4999,7 +5122,7 @@ let skyClouds = [];
 
         const shell = typeof window !== 'undefined' ? window.elementalRunShell : null;
         if (!shell || typeof shell.leaderboardTop !== 'function') {
-            ui.menuBoardStatus.textContent = leaderboardStatusText('unavailable');
+            renderLeaderboardEntries(getBrowserLeaderboardEntries(leaderboardScope));
             leaderboardBusy = false;
             return;
         }
@@ -5013,6 +5136,8 @@ let skyClouds = [];
                 ui.menuBoardStatus.textContent = leaderboardStatusText('empty');
                 return;
             }
+            renderLeaderboardEntries(res.entries);
+            return;
             ui.menuBoardStatus.textContent = '';
             const isTr = normalizeLanguage(menuState.language) === 'tr';
             const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
@@ -5043,7 +5168,7 @@ let skyClouds = [];
                 ui.menuBoardList.appendChild(row);
             });
         } catch (err) {
-            ui.menuBoardStatus.textContent = leaderboardStatusText('error');
+            renderLeaderboardEntries(getBrowserLeaderboardEntries(leaderboardScope));
         } finally {
             leaderboardBusy = false;
         }
