@@ -16,6 +16,9 @@ Original prompt: adsense kayıt oldum fakat site için github site sistemini kul
   - `hand.glb` loading now begins near the start of the loading pipeline and the loading screen waits for the enabled hand model to settle, so hands are ready before PLAY.
   - Added concise runtime diagnostics for hand readiness, active global particles, and renderer frame count to `render_game_to_text`.
   - Automated verification: hand state was ready before main menu display; renderer frame remained 186 across 7.5 seconds in the menu; no new console errors.
+- Daily mission economy update (2026-07-23):
+  - Reduced daily mission reward from 400 to 50 gold and the all-daily completion bonus from 600 to 50 gold.
+  - Verification: local browser UI showed all three daily mission rewards as `50`; Playwright state reached `main_menu`; console/page errors were empty.
 
 TODO:
 - Create the GitHub repository, push master, enable GitHub Actions as the Pages source, and verify the public game URL.
