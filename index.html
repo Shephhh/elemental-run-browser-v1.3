@@ -3267,7 +3267,234 @@
             45% { transform: scale(1.08); }
         }
     </style>
-    <link rel="stylesheet" href="progression-ui.css">
+    <style id="progression-ui-live">
+        #menu-dialog-layer.menu-dialog-layer {
+            background: radial-gradient(circle at 50% 38%, rgba(38,103,154,.13), transparent 42%), rgba(2,7,16,.82);
+            backdrop-filter: blur(7px) saturate(.88);
+            -webkit-backdrop-filter: blur(7px) saturate(.88);
+        }
+        #menu-dialog-layer .menu-dialog {
+            overflow: hidden;
+            border-color: rgba(111,205,255,.28) !important;
+            box-shadow: 0 28px 80px rgba(0,0,0,.68), 0 0 0 1px rgba(120,220,255,.04), inset 0 1px 0 rgba(255,255,255,.06) !important;
+        }
+        #menu-dialog-layer .menu-dialog::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 2px;
+            pointer-events: none;
+            background: linear-gradient(90deg, transparent, #5bd6ff 28%, #4be7c4 68%, transparent);
+            opacity: .9;
+        }
+        #menu-dialog-layer .menu-dialog-head {
+            position: sticky;
+            z-index: 4;
+            top: 0;
+            margin: -2px -2px 18px;
+            padding: 18px 20px 15px;
+            border-bottom: 1px solid rgba(112,188,236,.15);
+            background: linear-gradient(180deg, rgba(17,27,45,.98), rgba(12,20,34,.94));
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+        #menu-dialog-layer .menu-dialog-title { font-size: 18px; letter-spacing: 1.8px; }
+        #menu-dialog-layer .menu-dialog-close { width: 38px; height: 38px; font-size: 17px; }
+        .menu-leaderboard-dialog {
+            width: min(650px, calc(100vw - 34px));
+            max-height: min(820px, calc(100vh - 34px));
+            padding: 2px 22px 22px;
+        }
+        .menu-leaderboard-dialog .menu-board-tabs { margin: 0 0 14px; }
+        .menu-leaderboard-dialog .menu-board-tab {
+            min-height: 38px;
+            border-radius: 10px;
+            color: #c9ebff;
+            background: linear-gradient(90deg, rgba(58,152,211,.18), rgba(75,231,196,.1));
+            border-color: rgba(104,201,255,.38);
+            cursor: default;
+        }
+        .menu-board-list { gap: 7px; }
+        .menu-board-entry {
+            box-sizing: border-box;
+            min-height: 42px;
+            padding: 8px 14px;
+            grid-template-columns: 46px minmax(0,1fr) minmax(88px,auto);
+            border-radius: 10px;
+            background: linear-gradient(90deg, rgba(20,34,54,.82), rgba(10,17,30,.84));
+            transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+        }
+        .menu-board-entry:hover {
+            transform: translateX(3px);
+            border-color: rgba(105,206,255,.5);
+            background: linear-gradient(90deg, rgba(27,52,79,.9), rgba(12,23,39,.9));
+        }
+        .menu-board-entry.is-top { min-height: 48px; }
+        .menu-board-entry.rank-1 {
+            min-height: 54px;
+            border-color: rgba(255,211,105,.42);
+            box-shadow: inset 4px 0 0 #f2c14e, 0 8px 22px rgba(0,0,0,.2);
+        }
+        .menu-board-entry.rank-2 { border-color: rgba(211,229,245,.3); box-shadow: inset 4px 0 0 #c9d6e2; }
+        .menu-board-entry.rank-3 { border-color: rgba(224,145,70,.32); box-shadow: inset 4px 0 0 #cd7f32; }
+        .menu-board-entry.is-top .menu-board-rank {
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.06);
+        }
+        .menu-board-entry.rank-1 .menu-board-rank {
+            color: #201704;
+            background: linear-gradient(145deg, #fff0a7, #e6ad31);
+            box-shadow: 0 0 18px rgba(242,193,78,.32);
+        }
+        .menu-board-entry.rank-2 .menu-board-rank { color: #101820; background: linear-gradient(145deg, #f3f8fc, #9fb1c0); }
+        .menu-board-entry.rank-3 .menu-board-rank { color: #1f1007; background: linear-gradient(145deg, #efb272, #9f5825); }
+        .menu-board-score { justify-self: end; padding-left: 12px; letter-spacing: .35px; }
+        .menu-board-status:not(:empty) {
+            margin-top: 14px;
+            padding: 9px 12px;
+            border-radius: 9px;
+            border: 1px solid rgba(117,181,225,.18);
+            background: rgba(8,16,29,.66);
+        }
+        .menu-upgrades-dialog {
+            width: min(1080px, calc(100vw - 34px));
+            max-height: calc(100vh - 32px);
+            padding: 2px 20px 20px;
+            overflow-y: auto !important;
+            scrollbar-color: rgba(91,214,255,.55) rgba(8,15,27,.6);
+            scrollbar-width: thin;
+        }
+        .menu-upgrades-dialog::-webkit-scrollbar { width: 8px; }
+        .menu-upgrades-dialog::-webkit-scrollbar-track { background: rgba(8,15,27,.6); }
+        .menu-upgrades-dialog::-webkit-scrollbar-thumb { border-radius: 8px; background: linear-gradient(#5bd6ff, #4be7c4); }
+        .menu-upgrade-grid { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+        .menu-upgrade-card {
+            min-height: 180px;
+            grid-template-rows: auto auto 1fr;
+            gap: 10px;
+            padding: 15px 14px 13px;
+            border-radius: 13px !important;
+        }
+        .menu-upgrade-card:hover {
+            border-color: rgba(100,209,255,.44) !important;
+            box-shadow: 0 15px 34px rgba(0,0,0,.34), 0 0 24px rgba(91,214,255,.11), inset 0 0 0 1px rgba(255,255,255,.04) !important;
+        }
+        .menu-upgrade-card:has(.menu-upgrade-buy:not(:disabled):not(.is-disabled):not([aria-disabled="true"])) { border-color: rgba(75,231,196,.42) !important; }
+        .menu-upgrade-card:has(.menu-upgrade-buy:not(:disabled):not(.is-disabled):not([aria-disabled="true"]))::after {
+            content: "";
+            position: absolute;
+            width: 7px;
+            height: 7px;
+            top: 12px;
+            right: 12px;
+            border-radius: 50%;
+            background: #63f6c8;
+            box-shadow: 0 0 12px rgba(99,246,200,.9);
+        }
+        .menu-upgrade-head { flex-direction: row; align-items: center; justify-content: space-between; text-align: left; gap: 10px; }
+        .menu-upgrade-title-wrap { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; }
+        .menu-upgrade-icon { width: 46px; height: 46px; flex-basis: 46px; border-radius: 10px; }
+        .menu-upgrade-icon svg { width: 25px; height: 25px; }
+        .menu-upgrade-name { gap: 3px; }
+        .menu-upgrade-title { font-size: 12px; letter-spacing: .75px; }
+        .menu-upgrade-tag {
+            display: block;
+            max-width: 135px;
+            color: rgba(164,192,218,.76);
+            font-family: Rajdhani, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.05;
+            letter-spacing: .3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .menu-upgrade-value,
+        .menu-upgrade-card.is-glide .menu-upgrade-value,
+        .menu-upgrade-card.is-doublejump .menu-upgrade-value,
+        .menu-upgrade-card.is-magnet .menu-upgrade-value,
+        .menu-upgrade-card.is-revive .menu-upgrade-value {
+            flex: 0 0 auto;
+            font-size: clamp(16px, 1.45vw, 21px);
+            white-space: nowrap;
+        }
+        .menu-upgrade-steps { gap: 6px; }
+        .menu-upgrade-steps span { height: 9px; }
+        .menu-upgrade-buy { min-height: 42px; padding: 8px 10px; font-size: 11px; letter-spacing: .45px; }
+        .menu-upgrade-buy:not(:disabled):not(.is-disabled):not([aria-disabled="true"]) {
+            background: linear-gradient(135deg, rgba(74,211,255,.3), rgba(75,231,196,.2)) !important;
+            border-color: rgba(100,226,218,.52) !important;
+            color: #efffff !important;
+        }
+        .menu-daily-dialog { width: min(660px, calc(100vw - 34px)); padding: 2px 22px 20px; }
+        .menu-daily-streak { margin: 0 0 14px; }
+        .menu-daily-streak .menu-daily-info {
+            min-height: 48px;
+            margin: 0;
+            padding: 10px 14px;
+            border-radius: 12px;
+            border-color: rgba(93,207,255,.26);
+            background: radial-gradient(circle at 12% 0%, rgba(242,193,78,.14), transparent 38%), linear-gradient(90deg, rgba(19,35,55,.86), rgba(10,18,31,.86));
+        }
+        .menu-daily-list { gap: 9px; }
+        .menu-daily-row {
+            min-height: 64px;
+            padding: 11px 13px;
+            border-radius: 12px;
+            border-left-width: 1px;
+            background: linear-gradient(90deg, rgba(18,33,52,.82), rgba(9,17,30,.84));
+            box-shadow: inset 3px 0 0 rgba(79,163,227,.65);
+        }
+        .menu-daily-row:hover { border-color: rgba(108,196,251,.5); background: linear-gradient(90deg, rgba(24,47,72,.9), rgba(11,23,39,.9)); }
+        .menu-daily-row.is-done { border-color: rgba(230,181,71,.42); box-shadow: inset 3px 0 0 #f2c14e; }
+        .menu-daily-row.is-claimable { border-color: rgba(242,193,78,.68); box-shadow: inset 3px 0 0 #f2c14e, 0 0 20px rgba(242,193,78,.12); }
+        .menu-daily-mark { width: 30px; height: 30px; flex-basis: 30px; border-color: rgba(117,185,231,.48); background: rgba(7,15,28,.55); }
+        .menu-daily-row .menu-daily-info { gap: 8px; }
+        .menu-daily-text { color: #eef7ff; font-size: 15px; font-weight: 700; }
+        .menu-daily-count { padding: 2px 7px; border-radius: 7px; background: rgba(5,13,24,.5); }
+        .menu-daily-bar { height: 9px; border: 1px solid rgba(120,180,225,.1); background: rgba(2,8,16,.72); }
+        .menu-daily-claim { min-width: 92px; height: 38px; border-radius: 10px; animation: dailyClaimGlow 1.8s ease-in-out infinite; }
+        .menu-daily-reset { margin: 14px 0 0; padding: 9px 12px; border-top: 1px solid rgba(111,177,221,.13); color: rgba(160,192,221,.82); text-align: right; }
+        @keyframes dailyClaimGlow {
+            0%, 100% { box-shadow: 0 0 12px rgba(242,193,78,.16); }
+            50% { box-shadow: 0 0 22px rgba(242,193,78,.34); }
+        }
+        @media (max-width: 1120px) {
+            .menu-upgrades-dialog { width: min(920px, calc(100vw - 24px)); }
+            .menu-upgrade-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+        }
+        @media (max-width: 860px) {
+            .menu-upgrades-dialog { width: min(760px, calc(100vw - 24px)); }
+            .menu-upgrade-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+        }
+        @media (max-width: 560px) {
+            #menu-dialog-layer .menu-dialog-head { margin-bottom: 12px; padding: 14px 14px 12px; }
+            .menu-leaderboard-dialog, .menu-daily-dialog, .menu-upgrades-dialog {
+                width: calc(100vw - 18px);
+                max-height: calc(100vh - 18px);
+                padding: 2px 10px 14px;
+            }
+            .menu-upgrade-grid { grid-template-columns: 1fr; gap: 9px; }
+            .menu-upgrade-card { min-height: 166px; }
+            .menu-board-entry { grid-template-columns: 38px minmax(0,1fr) minmax(72px,auto); gap: 8px; padding-inline: 9px; }
+            .menu-board-flag { width: 21px; height: 14px; }
+            .menu-daily-row { gap: 9px; padding: 10px; }
+            .menu-daily-text { font-size: 13px; }
+            .menu-daily-reward { min-width: 48px; font-size: 11px; }
+            .menu-daily-claim { min-width: 72px; font-size: 10px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .menu-board-entry, .menu-upgrade-card, .menu-daily-row, .menu-daily-claim {
+                transition: none !important;
+                animation: none !important;
+            }
+        }
+    </style>
 </head>
 <body>
 
