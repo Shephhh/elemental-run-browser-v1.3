@@ -10242,6 +10242,16 @@ nextSnowballX = 0;
         scoreRealDelta = realDelta;
         currentFrameScale = getFrameScale(realDelta);
         pollGamepadInput(realDelta);
+
+        // WEB PERF: Ana menü opak bir CSS arka planıyla tüm canvas'ı kapatıyor. Buna rağmen
+        // eskiden şehir, gölgeler, parçacıklar ve post-processing 60 FPS çizilmeye devam
+        // ediyordu. Menüde yalnızca giriş ve ses karışımı canlı kalmalı; oyun dünyası son
+        // karesinde güvenle donabilir. PLAY sonrası ilk normal kare eksiksiz render edilir.
+        if (mainMenuVisible) {
+            updateAudioMix();
+            return;
+        }
+
         const fps = 1 / Math.max(rawDelta, 0.0001);
         smoothedFps += (fps - smoothedFps) * 0.08;
         const qualityRenderDistance = getQualityPreset().renderDistance;
@@ -10431,6 +10441,15 @@ nextSnowballX = 0;
                 rewardedDeathOfferReady,
                 rewardedAdBusy,
                 browserBuild: isBrowserBuild(),
+                hands: {
+                    enabled: !!menuState.handsEnabled,
+                    requested: viewmodelGlbRequested,
+                    settled: viewmodelGlbSettled,
+                    ready: viewmodelGlbReady,
+                    visible: !!(viewmodelRig && viewmodelRig.visible)
+                },
+                activeGlobalParticles: pData.reduce((count, particle) => count + (particle.life > 0 ? 1 : 0), 0),
+                renderFrame: renderer && renderer.info ? renderer.info.render.frame : 0,
                 rewardBoosts: {
                     scoreActive: isRewardBoostActive('score'),
                     scoreRemainingMs: Math.max(0, getRewardBoostUntil('score') - Date.now()),
@@ -11715,6 +11734,9 @@ if (renderer && dirLight) {
 
         const tasks = [
             { func: () => initResources(), text: () => tr('loading') },
+            // Eller varsayılan açık. 18 MB hand.glb isteğini yükleme hattının başında
+            // başlat; dünya hazırlanırken ağ indirme/GLTF ayrıştırma paralel ilerlesin.
+            { func: () => createViewmodelHands(), text: () => tr('preparing') },
             { func: () => initCoinResources(), text: () => tr('preparing') },
             { func: () => initGlobalParticles(), text: () => tr('preparing') },
             { func: () => initNatureResources(), text: () => tr('preparing') },
@@ -11743,6 +11765,8 @@ if (renderer && dirLight) {
     let viewmodelRig = null;
     let viewmodelGlbPivot = null;
     let viewmodelGlbRequested = false; // hand.glb tembel yükleniyor (bkz. ensureViewmodelHandModel)
+    let viewmodelGlbSettled = false;
+    let viewmodelGlbReady = false;
     let viewmodelLeftHandGroup = null, viewmodelRightHandGroup = null;
     let viewmodelBobTimer = 0;
     let vmSpeedSmooth = 0, vmSwayX = 0, vmSwayRoll = 0, vmJumpSmooth = 0, vmSlideSmooth = 0, vmCadenceSpeed = 0, vmRunBlend = 0;
@@ -11877,6 +11901,7 @@ if (renderer && dirLight) {
                 });
                 viewmodelHands.add(pivot);
                 viewmodelGlbPivot = pivot;
+                viewmodelGlbReady = true;
 
                 // İLK-KARE HITCH FIX (2026-07-19): el shader programı + 3× 2048² doku eskiden
                 // İLK overlay karesinde (= koşunun ilk karesi) derlenip yükleniyordu → eller
@@ -11892,12 +11917,17 @@ if (renderer && dirLight) {
                     viewmodelRig.visible = prevVis;
                     pivot.scale.setScalar(prevScale);
                 } catch (e) { console.warn('hand warm render hata', e); }
+                viewmodelGlbSettled = true;
             }, undefined, (err) => {
                 viewmodelGlbRequested = false; // yükleme başarısızsa tekrar denenebilsin
+                viewmodelGlbReady = false;
+                viewmodelGlbSettled = true;
                 console.warn('hand.glb yüklenemedi', err);
             });
         } catch (e) {
             viewmodelGlbRequested = false;
+            viewmodelGlbReady = false;
+            viewmodelGlbSettled = true;
             console.warn('viewmodel GLTFLoader hata', e);
         }
     }
@@ -12069,9 +12099,11 @@ if (renderer && dirLight) {
     function waitForVehicleGlbsThenFinish() {
         const waitStart = performance.now();
         const tick = () => {
-            const settled = carGlbSettled && trainGlbSettled && motorGlbSettled;
-            if (!settled && performance.now() - waitStart < 20000) {
-                updateLoading(100, tr('loadingWorld'), '3D');
+            const vehiclesSettled = carGlbSettled && trainGlbSettled && motorGlbSettled;
+            const handsSettled = !menuState.handsEnabled || viewmodelGlbSettled;
+            const settled = vehiclesSettled && handsSettled;
+            if (!settled && performance.now() - waitStart < 45000) {
+                updateLoading(100, tr('loadingWorld'), handsSettled ? '3D' : 'HANDS 3D');
                 setTimeout(tick, 100);
                 return;
             }
@@ -17974,15 +18006,31 @@ function createHeadlightBeam() {
     }
 
     function updateGlobalParticles(delta) {
-        let activeCount = 0; const positions = globalParticleMesh.geometry.attributes.position.array;
+        if (!globalParticleMesh || !globalParticleMesh.geometry) return;
+        let bufferDirty = false;
+        const positions = globalParticleMesh.geometry.attributes.position.array;
+        const frameScale = Math.max(0, Math.min(3, delta * 60));
         for(let i=0; i<MAX_PARTICLES; i++) {
             if (pData[i].life > 0) {
                 pData[i].life -= delta * 1.5; 
-                if (pData[i].life <= 0) { positions[i*3+1] = -1000; } 
-                else { pData[i].vy -= 0.02; positions[i*3] += pData[i].vx; positions[i*3+1] += pData[i].vy; positions[i*3+2] += pData[i].vz; activeCount++; }
+                if (pData[i].life <= 0) {
+                    // Son canlı slot burada ölürse de GPU buffer'ı mutlaka güncellenmeli.
+                    // Önceki activeCount koşulu bu son upload'u atlıyor, parçacık ekranda
+                    // donuyor ve sonraki patlamada "yeniden doğmuş" gibi görünüyordu.
+                    positions[i*3] = 0;
+                    positions[i*3+1] = -1000;
+                    positions[i*3+2] = 0;
+                    bufferDirty = true;
+                } else {
+                    pData[i].vy -= 0.02 * frameScale;
+                    positions[i*3] += pData[i].vx * frameScale;
+                    positions[i*3+1] += pData[i].vy * frameScale;
+                    positions[i*3+2] += pData[i].vz * frameScale;
+                    bufferDirty = true;
+                }
             }
         }
-        if (activeCount > 0) globalParticleMesh.geometry.attributes.position.needsUpdate = true;
+        if (bufferDirty) globalParticleMesh.geometry.attributes.position.needsUpdate = true;
     }
 
     function createDollarSignGeometry(size = 1.0, material = null) {
