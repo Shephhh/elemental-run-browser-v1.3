@@ -19,6 +19,11 @@ Original prompt: adsense kayıt oldum fakat site için github site sistemini kul
 - Daily mission economy update (2026-07-23):
   - Reduced daily mission reward from 400 to 50 gold and the all-daily completion bonus from 600 to 50 gold.
   - Verification: local browser UI showed all three daily mission rewards as `50`; Playwright state reached `main_menu`; console/page errors were empty.
+- Daily mission manual claim update (2026-07-23):
+  - Completed daily missions no longer grant wallet gold automatically.
+  - Finished, unclaimed missions now show a `50 CLAIM` / `50 AL` button in the Daily panel; gold is added only when the player presses it.
+  - The all-daily bonus is granted only when the final completed mission reward is claimed, so bonus gold is also player-collected.
+  - Verification: seeded browser saves confirmed wallet stayed at `0` before claim, changed to `50` after a single mission claim, and produced no console/page errors.
 
 TODO:
 - Create the GitHub repository, push master, enable GitHub Actions as the Pages source, and verify the public game URL.

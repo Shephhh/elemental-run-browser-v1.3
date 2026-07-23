@@ -1977,6 +1977,29 @@
         }
         .menu-daily-coin { color: #f2c14e; font-size: 11px; text-shadow: 0 0 8px rgba(242, 193, 78, 0.8); }
         .menu-daily-row.is-done .menu-daily-reward { color: #6f8fb0; text-decoration: line-through; }
+        .menu-daily-row.is-claimable .menu-daily-reward { text-decoration: none; }
+        .menu-daily-claim {
+            min-width: 78px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            border: 1px solid rgba(242, 193, 78, 0.75);
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(242, 193, 78, 0.25), rgba(217, 126, 43, 0.32));
+            color: #ffe08a;
+            font-family: Orbitron, sans-serif;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 0 14px rgba(242, 193, 78, 0.22);
+        }
+        .menu-daily-claim:hover, .menu-daily-claim:focus-visible {
+            color: #fff5c2;
+            border-color: #ffe08a;
+            filter: brightness(1.12);
+        }
         .menu-daily-badge {
             position: absolute;
             top: 6px;
@@ -4881,19 +4904,23 @@ let skyClouds = [];
             if (m.progress >= m.target) {
                 m.progress = m.target;
                 m.done = true;
-                awardDailyMission(m);
+                renderDailyMissions();
             }
         });
         if (changed) saveMainMenuState();
     }
 
-    function awardDailyMission(m) {
-        if (m.rewarded) return;
+    function dailyMissionClaimText() {
+        return normalizeLanguage(menuState.language) === 'tr' ? 'AL' : 'CLAIM';
+    }
+
+    function claimDailyMissionReward(m) {
+        if (!m || !m.done || m.rewarded) return;
         m.rewarded = true;
         menuState.walletCoins = Math.max(0, Math.floor(menuState.walletCoins) || 0) + DAILY_MISSION_REWARD;
 
         const data = menuState.dailyMissions;
-        if (data && data.missions.length && data.missions.every((x) => x.done)) {
+        if (data && data.missions.length && data.missions.every((x) => x.done && x.rewarded)) {
             menuState.walletCoins += DAILY_ALL_BONUS;
             unlockAchievement('dailyAll');
             bumpDailyStreak();
@@ -4932,7 +4959,9 @@ let skyClouds = [];
         data.missions.forEach((m) => {
             const pct = Math.max(0, Math.min(100, Math.round((m.progress / m.target) * 100)));
             const row = document.createElement('div');
-            row.className = 'menu-daily-row' + (m.done ? ' is-done' : '');
+            row.className = 'menu-daily-row'
+                + (m.done ? ' is-done' : '')
+                + (m.done && !m.rewarded ? ' is-claimable' : '');
 
             // Sol: durum ikonu (tamamlandıysa tik, değilse hedef halkası)
             const mark = document.createElement('span');
@@ -4964,9 +4993,23 @@ let skyClouds = [];
             info.appendChild(bar);
 
             // Sağ: ödül rozeti — görevin neden yapıldığı görünür olsun.
-            const reward = document.createElement('strong');
-            reward.className = 'menu-daily-reward';
-            reward.innerHTML = `<span class="menu-daily-coin">●</span>${DAILY_MISSION_REWARD}`;
+            let reward;
+            if (m.done && !m.rewarded) {
+                reward = document.createElement('button');
+                reward.type = 'button';
+                reward.className = 'menu-daily-reward menu-daily-claim';
+                reward.innerHTML = `<span class="menu-daily-coin">●</span>${DAILY_MISSION_REWARD} ${dailyMissionClaimText()}`;
+                reward.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    playUiConfirmSound();
+                    claimDailyMissionReward(m);
+                });
+            } else {
+                reward = document.createElement('strong');
+                reward.className = 'menu-daily-reward';
+                reward.innerHTML = `<span class="menu-daily-coin">●</span>${DAILY_MISSION_REWARD}`;
+            }
 
             row.appendChild(mark);
             row.appendChild(info);
