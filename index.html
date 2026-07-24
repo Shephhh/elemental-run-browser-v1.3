@@ -3374,7 +3374,8 @@
         .menu-upgrade-grid { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
         .menu-upgrade-card {
             min-height: 180px;
-            grid-template-rows: auto auto 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 10px;
             padding: 15px 14px 13px;
             border-radius: 13px !important;
@@ -3400,13 +3401,13 @@
         .menu-upgrade-icon { width: 46px; height: 46px; flex-basis: 46px; border-radius: 10px; }
         .menu-upgrade-icon svg { width: 25px; height: 25px; }
         .menu-upgrade-name { gap: 3px; }
-        .menu-upgrade-title { font-size: 12px; letter-spacing: .75px; }
+        .menu-upgrade-title { font-size: 13px; letter-spacing: .75px; }
         .menu-upgrade-tag {
             display: block;
             max-width: 135px;
             color: rgba(164,192,218,.76);
             font-family: Rajdhani, sans-serif;
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
             line-height: 1.05;
             letter-spacing: .3px;
@@ -3425,11 +3426,53 @@
         }
         .menu-upgrade-steps { gap: 6px; }
         .menu-upgrade-steps span { height: 9px; }
-        .menu-upgrade-buy { min-height: 42px; padding: 8px 10px; font-size: 11px; letter-spacing: .45px; }
+        .menu-upgrade-buy { min-height: 42px; padding: 8px 10px; font-size: 12px; letter-spacing: .45px; }
         .menu-upgrade-buy:not(:disabled):not(.is-disabled):not([aria-disabled="true"]) {
             background: linear-gradient(135deg, rgba(74,211,255,.3), rgba(75,231,196,.2)) !important;
             border-color: rgba(100,226,218,.52) !important;
             color: #efffff !important;
+        }
+        .menu-upgrade-card:not(:has(.menu-upgrade-ad:not([hidden]))) .menu-upgrade-buy { margin-top: auto; }
+        .menu-upgrade-card:has(.menu-upgrade-ad:not([hidden])) .menu-upgrade-ad { margin-top: auto; }
+        .menu-upgrade-ad {
+            order: 20;
+            width: 100%;
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 7px 10px;
+            border: 1px solid rgba(255,221,120,.5);
+            border-radius: 10px;
+            background: rgba(58,42,13,.58);
+            color: #ffe28a;
+            font-family: Orbitron, Rajdhani, sans-serif;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .45px;
+            line-height: 1;
+        }
+        .menu-upgrade-ad[hidden] { display: none !important; }
+        .menu-upgrade-ad-icon {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 18px;
+            display: grid;
+            place-items: center;
+        }
+        .menu-upgrade-ad-icon svg { width: 18px; height: 18px; }
+        .menu-upgrade-ad-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .menu-upgrade-buy {
+            order: 30;
+            margin-top: 0;
         }
         .menu-daily-dialog { width: min(660px, calc(100vw - 34px)); padding: 2px 22px 20px; }
         .menu-daily-streak { margin: 0 0 14px; }
