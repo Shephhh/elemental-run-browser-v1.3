@@ -4762,6 +4762,13 @@ let skyClouds = [];
     let sharedWindGeometry = null;
     let sharedWindMaterial = null;
     const ui = {};
+    function spendWalletCoins(cost, sourceElement = null) {
+        const safeCost = Math.max(0, Math.floor(cost) || 0);
+        menuState.walletCoins = Math.max(0, (Math.floor(menuState.walletCoins) || 0) - safeCost);
+        if (safeCost > 0 && window.ElementalFeedback) {
+            window.ElementalFeedback.transaction(safeCost, 'spend', sourceElement);
+        }
+    }
     const MAIN_MENU_STORAGE_KEY = 'elemental-run-steam-menu-state-v1';
     const BROWSER_SAVE_INTEGRITY_VERSION = 1;
     const BROWSER_SAVE_INTEGRITY_PEPPER = 'er-browser-v13-s4f3-run';
@@ -5185,20 +5192,28 @@ let skyClouds = [];
         return normalizeLanguage(menuState.language) === 'tr' ? 'AL' : 'CLAIM';
     }
 
-    function claimDailyMissionReward(m) {
+    function claimDailyMissionReward(m, sourceElement = null) {
         if (!m || !m.done || m.rewarded) return;
         m.rewarded = true;
         menuState.walletCoins = Math.max(0, Math.floor(menuState.walletCoins) || 0) + DAILY_MISSION_REWARD;
 
         const data = menuState.dailyMissions;
+        let grantedAmount = DAILY_MISSION_REWARD;
         if (data && data.missions.length && data.missions.every((x) => x.done && x.rewarded)) {
             menuState.walletCoins += DAILY_ALL_BONUS;
+            grantedAmount += DAILY_ALL_BONUS;
             unlockAchievement('dailyAll');
             bumpDailyStreak();
         }
+        const claimedRow = sourceElement && sourceElement.closest ? sourceElement.closest('.menu-daily-row') : null;
+        if (claimedRow) {
+            claimedRow.classList.add('is-reward-claimed');
+            setTimeout(() => claimedRow.classList.remove('is-reward-claimed'), 700);
+        }
+        if (window.ElementalFeedback) window.ElementalFeedback.transaction(grantedAmount, 'gain', sourceElement);
         saveMainMenuState();
         updateMainMenuStats();
-        renderDailyMissions();
+        setTimeout(() => renderDailyMissions(), 260);
     }
 
     // Seri: yalnızca dünkü gün tamamlandıysa artar; bir gün atlanırsa 1'e döner.
@@ -5274,7 +5289,7 @@ let skyClouds = [];
                     e.preventDefault();
                     e.stopPropagation();
                     playUiConfirmSound();
-                    claimDailyMissionReward(m);
+                    claimDailyMissionReward(m, e.currentTarget);
                 });
             } else {
                 reward = document.createElement('strong');
@@ -5315,9 +5330,10 @@ let skyClouds = [];
                 : `Resets in: ${timeUntilMidnightText()}`;
         }
         if (ui.menuDailyBadge) {
-            ui.menuDailyBadge.textContent = `${doneCount}/${data.missions.length}`;
-            ui.menuDailyBadge.hidden = false;
-            ui.menuDailyBadge.classList.toggle('is-complete', doneCount === data.missions.length);
+            const claimableCount = data.missions.filter((m) => m.done && !m.rewarded).length;
+            ui.menuDailyBadge.textContent = '!';
+            ui.menuDailyBadge.hidden = claimableCount === 0;
+            ui.menuDailyBadge.classList.toggle('is-complete', claimableCount > 0);
         }
     }
 
@@ -8872,7 +8888,13 @@ let skyClouds = [];
             updateUpgradeCards();
             return;
         }
-        menuState.walletCoins = Math.max(0, Math.floor(menuState.walletCoins) - cost);
+        const sourceButton = {
+            scoreMultiplier: ui.scoreUpgradeBtn,
+            coinMultiplier: ui.coinUpgradeBtn,
+            jumpHeight: ui.jumpUpgradeBtn,
+            speed: ui.speedUpgradeBtn
+        }[upgradeKey] || null;
+        spendWalletCoins(cost, sourceButton);
         menuState.upgrades = {
             ...(menuState.upgrades || {}),
             [upgradeKey]: level + 1
@@ -8908,7 +8930,7 @@ let skyClouds = [];
             updateUpgradeCards();
             return;
         }
-        menuState.walletCoins = Math.max(0, Math.floor(menuState.walletCoins) - GLIDE_UPGRADE_COST);
+        spendWalletCoins(GLIDE_UPGRADE_COST, ui.glideUpgradeBtn);
         menuState.upgrades = {
             ...(menuState.upgrades || {}),
             glide: true
@@ -8929,7 +8951,7 @@ let skyClouds = [];
             updateUpgradeCards();
             return;
         }
-        menuState.walletCoins = Math.max(0, Math.floor(menuState.walletCoins) - DOUBLE_JUMP_UPGRADE_COST);
+        spendWalletCoins(DOUBLE_JUMP_UPGRADE_COST, ui.doubleJumpUpgradeBtn);
         menuState.upgrades = {
             ...(menuState.upgrades || {}),
             doubleJump: true
@@ -8951,7 +8973,7 @@ let skyClouds = [];
             updateUpgradeCards();
             return;
         }
-        menuState.walletCoins = Math.max(0, Math.floor(menuState.walletCoins) - REVIVE_UPGRADE_COST);
+        spendWalletCoins(REVIVE_UPGRADE_COST, ui.reviveUpgradeBtn);
         menuState.upgrades = {
             ...(menuState.upgrades || {}),
             revive: true
@@ -8972,7 +8994,7 @@ let skyClouds = [];
             updateUpgradeCards();
             return;
         }
-        menuState.walletCoins = Math.max(0, Math.floor(menuState.walletCoins) - TIME_SLOW_UPGRADE_COST);
+        spendWalletCoins(TIME_SLOW_UPGRADE_COST, ui.timeSlowUpgradeBtn);
         menuState.upgrades = {
             ...(menuState.upgrades || {}),
             timeSlow: true
@@ -8993,7 +9015,7 @@ let skyClouds = [];
             updateUpgradeCards();
             return;
         }
-        menuState.walletCoins = Math.max(0, Math.floor(menuState.walletCoins) - MAGNET_UPGRADE_COST);
+        spendWalletCoins(MAGNET_UPGRADE_COST, ui.magnetUpgradeBtn);
         menuState.upgrades = {
             ...(menuState.upgrades || {}),
             magnet: true
@@ -9024,6 +9046,7 @@ let skyClouds = [];
     }
 
     function performRebirth() {
+        const rebirthCost = getNextRebirthTier()?.cost || Math.max(0, Math.floor(menuState.walletCoins) || 0);
         rebirthConfirmArmed = false;
         // Koşu sırasında da rebirth yapılabilir: canlı yetenek state'ini kapat,
         // yoksa sıfırlanmış bir yetenek aktif kalmaya devam eder.
@@ -9031,6 +9054,7 @@ let skyClouds = [];
         forceEndMagnet();
         reviveAvailable = false;
         menuState.rebirthLevel = getRebirthLevel() + 1;
+        spendWalletCoins(rebirthCost, ui.rebirthUpgradeBtn);
         menuState.walletCoins = 0;
         menuState.bestScore = 0;
         menuState.bestCoins = 0;
@@ -9189,6 +9213,7 @@ let skyClouds = [];
     }
 
     function showMainMenu(resetRun = false) {
+        if (window.ElementalFeedback) window.ElementalFeedback.hide(true);
         rewardedDeathPending = false;
         pendingRewardedDeathMessage = '';
         hideRewardedContinueOverlay();
@@ -9243,6 +9268,7 @@ let skyClouds = [];
     function beginRunFromMainMenu(resetRun = true) {
         if (resetRun) resetGame({ startPaused: true, skipImmediateRender: true });
         hideMainMenu();
+        if (window.ElementalFeedback) window.ElementalFeedback.show(normalizeLanguage(menuState.language));
         runStartedFromMenu = true;
         menuState.runCount += 1;
         saveMainMenuState();
