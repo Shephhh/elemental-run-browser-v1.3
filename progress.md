@@ -4,11 +4,16 @@ Original prompt: adsense kayıt oldum fakat site için github site sistemini kul
 - The workflow checks out Git LFS assets so GLB models and MP3 audio are included in the deployed game.
 - The Pages artifact contains only the browser game runtime, not the previous Sites host wrapper or local test output.
 - Relative asset, manifest, and service-worker paths are compatible with a GitHub project Pages subpath.
-- Local HTTP smoke test completed: the game runtime loaded and `render_game_to_text` returned the expected paused CITY state with browser features enabled and no client error output. Automated WebGL screenshots were black in both headless and headed capture, so final visual verification will be done on the deployed URL in Chrome.
+- Local HTTP smoke test completed: the game runtime loaded and `render_game_to_text` returned the expected paused CITY state with browser features enabled and no client error output.
+- Public repository created at https://github.com/Shephhh/elemental-run-browser-v1.3.
+- GitHub Pages was enabled with GitHub Actions and the deployment completed successfully.
+- Live game verified at https://shephhh.github.io/elemental-run-browser-v1.3/: the v1.3 main menu rendered correctly, the PLAY action entered the game, and no game-origin console errors were reported.
 - Search result metadata was tightened so the title/site signals use ELEMENTAL RUN and no longer include "Cyberpunk".
 - Browser leaderboard now falls back to 10 realistic nickname entries with country flags when Steam leaderboard APIs are not available.
 - Real rewarded ad integration remains wired through Google Ad Manager; activation requires the approved rewarded ad-unit path from the publisher account.
 - Google AdSense publisher metadata/script and ads.txt were added for publisher ca-pub-4666514897532022. The GitHub Pages workflow now includes ads.txt in the deployed artifact.
+- AdSense setup was advanced in the browser: shephhh.github.io was verified, review was requested, Auto ads were switched ON, and Google's 3-choice CMP consent message was selected. A separate public root GitHub Pages repo, Shephhh/shephhh.github.io, now serves root ads.txt at https://shephhh.github.io/ads.txt.
+- Google Ad Manager signup is currently blocked by Google's message: "Google is reviewing your AdSense account application. As soon as you receive an email indicating approval, you can sign in to Ad Manager." Real rewarded ads cannot be activated until AdSense approval allows Ad Manager access and a rewarded ad unit path can be created.
 - Browser leaderboard friends tab was removed entirely; the browser leaderboard now shows only the global board.
 - Web runtime optimization (2026-07-23):
   - Fixed the global one-shot particle pool's final-frame GPU upload. Expired particles are now hidden immediately instead of freezing on screen and appearing again on a later spawn.
@@ -25,11 +30,31 @@ Original prompt: adsense kayıt oldum fakat site için github site sistemini kul
   - The all-daily bonus is granted only when the final completed mission reward is claimed, so bonus gold is also player-collected.
   - Verification: seeded browser saves confirmed wallet stayed at `0` before claim, changed to `50` after a single mission claim, and produced no console/page errors.
 - Particle pool and progression UI update (2026-07-23):
-  - Removed routine yellow/blue square bursts from coin pickup and traversal pads while keeping rewards, sounds, rings, arrows, and movement behavior.
-  - The global Points mesh is now disabled whenever no live slot remains and re-enabled only by an intentional effect, preventing stale colored slots from reappearing after later world/buffer updates.
-  - Refined Leaderboard with a distinct top-three podium and aligned top 10, Upgrades with a responsive dense 4/3/2/1-column grid, and Daily Missions with clearer streak/objective/progress/reward hierarchy.
-  - Desktop and 390x844 browser screenshots passed visual inspection. A real 190-score run collected a coin with `activeGlobalParticles: 0` and no console/page errors.
+  - Removed the routine yellow/blue square `Points` bursts from coin pickup, regular jump pads, the sky launch pad, and water bounce caps. Their sounds, rings, arrows, rewards, and movement behavior are unchanged.
+  - The shared particle mesh now becomes invisible whenever the pool has no live slots and is re-enabled only by an intentional effect. This prevents stale colored slots from reappearing after world rebases or later buffer uploads.
+  - Redesigned Leaderboard with a stronger top-three podium, aligned scores, fully visible top 10, and responsive mobile rows.
+  - Redesigned Upgrades as a denser responsive 4/3/2/1-column grid with clearer icons, descriptions, progression steps, available-state accents, and no desktop scroll at 1440x900.
+  - Redesigned Daily Missions with clearer streak summary, objective/progress/reward hierarchy, stronger claim state, and mobile-safe layout.
+  - Verification: desktop and 390x844 screenshots were visually inspected with no overflow or console errors. A real 190-score city run collected a coin while `activeGlobalParticles` remained `0`; no yellow/blue square burst reappeared.
+- Upgrade purchase alignment update (2026-07-24):
+  - Upgrade cards now use a vertical flex layout so every purchase button sits on the same baseline within its row, including cards with no progress bar.
+  - Rewarded upgrade ad buttons, when visible in the browser build, sit above the main purchase button and no longer push the main purchase button out of alignment.
+  - Slightly increased upgrade title, tag, and purchase button text size for readability.
+  - Applied to local browser source, the packaged desktop v1.3 `app.asar`, and the live GitHub Pages site.
+  - Verification: local browser, extracted desktop package, mobile viewport, and live Pages measurements all showed matching per-row purchase button bottoms with no console/page errors.
+- Progression feedback and control onboarding update (2026-07-24):
+  - Daily Missions now shows the same red circular `!` alert language as Upgrades whenever at least one completed reward is waiting to be claimed; it clears after the reward is collected.
+  - Claiming a daily reward produces a short gold-coin burst, floating reward value, row highlight, and wallet pulse. The all-daily bonus is included in the displayed gain when applicable.
+  - Every gold-funded upgrade purchase now shows the deducted amount, a restrained coin-drain burst, wallet shake, and a brief success highlight on the purchased card. Rewarded-ad upgrades do not show a false gold deduction.
+  - Pressing PLAY shows a five-second, non-interactive WASD / Space / mouse control card. The copy is localized for every supported language, respects reduced-motion preferences, and scales without overflow at 390px mobile width.
+  - Effects use short-lived DOM nodes only and do not add work to the Three.js render loop.
+  - Applied to the local browser build, packaged desktop v1.3 `app.asar`, and live GitHub Pages in commit `4159695`.
+  - Verification covered real daily claim and upgrade purchase flows, automatic five-second dismissal, English/Turkish localization, desktop/mobile layouts, packaged desktop extraction, and the deployed site; no new console/page errors were reported.
 
 TODO:
-- Create the GitHub repository, push master, enable GitHub Actions as the Pages source, and verify the public game URL.
 - For AdSense approval and ads.txt root compliance, a custom domain or root user Pages site is strongly recommended; add the approved Google Ad Manager rewarded ad-unit path after Google supplies it.
+2026-07-24 - Upgrade language + onboarding layout fix
+- Fixed upgrade panel language leakage so English/non-TR UI no longer shows Turkish upgrade tag text, and upgrade costs now use the active menu number locale.
+- Reworked the play-start how-to card into a compact top-right rectangle with WASD, E, SPACE, an OR divider line, and a mouse icon.
+- Applied the same index.html update to the desktop v1.3 app.asar and kept a timestamped app.asar backup.
+- Verified with a Playwright smoke test: upgradeHasTurkish=false, the onboarding card appears in the top-right and hides after 5 seconds, with no browser console errors.

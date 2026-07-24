@@ -2120,7 +2120,7 @@
         .menu-board-flag.is-br::after { left: 9px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: #002776; }
         .menu-board-flag.is-jp { background: #fff; }
         .menu-board-flag.is-jp::before { left: 8px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: #bc002d; }
-        .menu-board-flag.is-gb { background: linear-gradient(33deg, transparent 0 42%, #fff 42% 48%, #c8102e 48% 52%, #fff 52% 58%, transparent 58%), linear-gradient(147deg, transparent 0 42%, #fff 42% 48%, #c8102e 48% 52%, #fff 52% 58%, transparent 58%), linear-gradient(90deg, transparent 43%, #fff 43% 57%, transparent 57%), linear-gradient(0deg, transparent 36%, #fff 36% 64%, transparent 64%), linear-gradient(90deg, transparent 47%, #c8102e 47% 53%, transparent 53%), linear-gradient(0deg, transparent 42%, #c8102e 42% 58%, transparent 58%), #012169; }
+        .menu-board-flag.is-gb { background: linear-gradient(90deg, transparent 43%, #fff 43% 57%, transparent 57%), linear-gradient(0deg, transparent 36%, #fff 36% 64%, transparent 64%), linear-gradient(90deg, transparent 47%, #c8102e 47% 53%, transparent 53%), linear-gradient(0deg, transparent 42%, #c8102e 42% 58%, transparent 58%), #012169; }
         .menu-board-flag.is-fr { background: linear-gradient(90deg, #0055a4 0 33%, #fff 33% 66%, #ef4135 66%); }
         .menu-board-flag.is-kr { background: #fff; }
         .menu-board-flag.is-kr::before { left: 8px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(180deg, #c60c30 0 50%, #003478 50%); }
@@ -3266,17 +3266,24 @@
             0%, 100% { transform: scale(1); }
             45% { transform: scale(1.08); }
         }
-    </style>
-    <style id="progression-ui-live">
+
+        /* ===================== Progression UI refinement ===================== */
+        /* Leaderboard, upgrades and daily missions share the same material
+           language while keeping distinct information hierarchy. */
         #menu-dialog-layer.menu-dialog-layer {
-            background: radial-gradient(circle at 50% 38%, rgba(38,103,154,.13), transparent 42%), rgba(2,7,16,.82);
-            backdrop-filter: blur(7px) saturate(.88);
-            -webkit-backdrop-filter: blur(7px) saturate(.88);
+            background:
+                radial-gradient(circle at 50% 38%, rgba(38, 103, 154, 0.13), transparent 42%),
+                rgba(2, 7, 16, 0.82);
+            backdrop-filter: blur(7px) saturate(0.88);
+            -webkit-backdrop-filter: blur(7px) saturate(0.88);
         }
         #menu-dialog-layer .menu-dialog {
             overflow: hidden;
-            border-color: rgba(111,205,255,.28) !important;
-            box-shadow: 0 28px 80px rgba(0,0,0,.68), 0 0 0 1px rgba(120,220,255,.04), inset 0 1px 0 rgba(255,255,255,.06) !important;
+            border-color: rgba(111, 205, 255, 0.28) !important;
+            box-shadow:
+                0 28px 80px rgba(0, 0, 0, 0.68),
+                0 0 0 1px rgba(120, 220, 255, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
         }
         #menu-dialog-layer .menu-dialog::before {
             content: "";
@@ -3285,7 +3292,7 @@
             height: 2px;
             pointer-events: none;
             background: linear-gradient(90deg, transparent, #5bd6ff 28%, #4be7c4 68%, transparent);
-            opacity: .9;
+            opacity: 0.9;
         }
         #menu-dialog-layer .menu-dialog-head {
             position: sticky;
@@ -3293,85 +3300,127 @@
             top: 0;
             margin: -2px -2px 18px;
             padding: 18px 20px 15px;
-            border-bottom: 1px solid rgba(112,188,236,.15);
-            background: linear-gradient(180deg, rgba(17,27,45,.98), rgba(12,20,34,.94));
+            border-bottom: 1px solid rgba(112, 188, 236, 0.15);
+            background: linear-gradient(180deg, rgba(17, 27, 45, 0.98), rgba(12, 20, 34, 0.94));
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
         }
-        #menu-dialog-layer .menu-dialog-title { font-size: 18px; letter-spacing: 1.8px; }
-        #menu-dialog-layer .menu-dialog-close { width: 38px; height: 38px; font-size: 17px; }
+        #menu-dialog-layer .menu-dialog-title {
+            font-size: 18px;
+            letter-spacing: 1.8px;
+        }
+        #menu-dialog-layer .menu-dialog-close {
+            width: 38px;
+            height: 38px;
+            font-size: 17px;
+        }
+
+        /* Leaderboard: stronger podium, aligned score column and readable rows. */
         .menu-leaderboard-dialog {
             width: min(650px, calc(100vw - 34px));
             max-height: min(820px, calc(100vh - 34px));
             padding: 2px 22px 22px;
         }
-        .menu-leaderboard-dialog .menu-board-tabs { margin: 0 0 14px; }
+        .menu-leaderboard-dialog .menu-board-tabs {
+            margin: 0 0 14px;
+        }
         .menu-leaderboard-dialog .menu-board-tab {
             min-height: 38px;
             border-radius: 10px;
             color: #c9ebff;
-            background: linear-gradient(90deg, rgba(58,152,211,.18), rgba(75,231,196,.1));
-            border-color: rgba(104,201,255,.38);
+            background:
+                linear-gradient(90deg, rgba(58, 152, 211, 0.18), rgba(75, 231, 196, 0.1));
+            border-color: rgba(104, 201, 255, 0.38);
             cursor: default;
         }
-        .menu-board-list { gap: 7px; }
+        .menu-board-list {
+            gap: 7px;
+        }
         .menu-board-entry {
             box-sizing: border-box;
             min-height: 42px;
             padding: 8px 14px;
-            grid-template-columns: 46px minmax(0,1fr) minmax(88px,auto);
+            grid-template-columns: 46px minmax(0, 1fr) minmax(88px, auto);
             border-radius: 10px;
-            background: linear-gradient(90deg, rgba(20,34,54,.82), rgba(10,17,30,.84));
+            background:
+                linear-gradient(90deg, rgba(20, 34, 54, 0.82), rgba(10, 17, 30, 0.84));
             transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
         }
         .menu-board-entry:hover {
             transform: translateX(3px);
-            border-color: rgba(105,206,255,.5);
-            background: linear-gradient(90deg, rgba(27,52,79,.9), rgba(12,23,39,.9));
+            border-color: rgba(105, 206, 255, 0.5);
+            background:
+                linear-gradient(90deg, rgba(27, 52, 79, 0.9), rgba(12, 23, 39, 0.9));
         }
-        .menu-board-entry.is-top { min-height: 48px; }
+        .menu-board-entry.is-top {
+            min-height: 48px;
+        }
         .menu-board-entry.rank-1 {
             min-height: 54px;
-            border-color: rgba(255,211,105,.42);
-            box-shadow: inset 4px 0 0 #f2c14e, 0 8px 22px rgba(0,0,0,.2);
+            border-color: rgba(255, 211, 105, 0.42);
+            box-shadow: inset 4px 0 0 #f2c14e, 0 8px 22px rgba(0, 0, 0, 0.2);
         }
-        .menu-board-entry.rank-2 { border-color: rgba(211,229,245,.3); box-shadow: inset 4px 0 0 #c9d6e2; }
-        .menu-board-entry.rank-3 { border-color: rgba(224,145,70,.32); box-shadow: inset 4px 0 0 #cd7f32; }
+        .menu-board-entry.rank-2 {
+            border-color: rgba(211, 229, 245, 0.3);
+            box-shadow: inset 4px 0 0 #c9d6e2;
+        }
+        .menu-board-entry.rank-3 {
+            border-color: rgba(224, 145, 70, 0.32);
+            box-shadow: inset 4px 0 0 #cd7f32;
+        }
         .menu-board-entry.is-top .menu-board-rank {
             display: grid;
             place-items: center;
             width: 30px;
             height: 30px;
             border-radius: 50%;
-            background: rgba(255,255,255,.06);
+            background: rgba(255, 255, 255, 0.06);
         }
         .menu-board-entry.rank-1 .menu-board-rank {
             color: #201704;
             background: linear-gradient(145deg, #fff0a7, #e6ad31);
-            box-shadow: 0 0 18px rgba(242,193,78,.32);
+            box-shadow: 0 0 18px rgba(242, 193, 78, 0.32);
         }
-        .menu-board-entry.rank-2 .menu-board-rank { color: #101820; background: linear-gradient(145deg, #f3f8fc, #9fb1c0); }
-        .menu-board-entry.rank-3 .menu-board-rank { color: #1f1007; background: linear-gradient(145deg, #efb272, #9f5825); }
-        .menu-board-score { justify-self: end; padding-left: 12px; letter-spacing: .35px; }
+        .menu-board-entry.rank-2 .menu-board-rank {
+            color: #101820;
+            background: linear-gradient(145deg, #f3f8fc, #9fb1c0);
+        }
+        .menu-board-entry.rank-3 .menu-board-rank {
+            color: #1f1007;
+            background: linear-gradient(145deg, #efb272, #9f5825);
+        }
+        .menu-board-score {
+            justify-self: end;
+            padding-left: 12px;
+            letter-spacing: 0.35px;
+        }
         .menu-board-status:not(:empty) {
             margin-top: 14px;
             padding: 9px 12px;
             border-radius: 9px;
-            border: 1px solid rgba(117,181,225,.18);
-            background: rgba(8,16,29,.66);
+            border: 1px solid rgba(117, 181, 225, 0.18);
+            background: rgba(8, 16, 29, 0.66);
         }
+
+        /* Upgrades: denser cards expose more choices without sacrificing detail. */
         .menu-upgrades-dialog {
             width: min(1080px, calc(100vw - 34px));
             max-height: calc(100vh - 32px);
             padding: 2px 20px 20px;
             overflow-y: auto !important;
-            scrollbar-color: rgba(91,214,255,.55) rgba(8,15,27,.6);
+            scrollbar-color: rgba(91, 214, 255, 0.55) rgba(8, 15, 27, 0.6);
             scrollbar-width: thin;
         }
         .menu-upgrades-dialog::-webkit-scrollbar { width: 8px; }
-        .menu-upgrades-dialog::-webkit-scrollbar-track { background: rgba(8,15,27,.6); }
-        .menu-upgrades-dialog::-webkit-scrollbar-thumb { border-radius: 8px; background: linear-gradient(#5bd6ff, #4be7c4); }
-        .menu-upgrade-grid { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+        .menu-upgrades-dialog::-webkit-scrollbar-track { background: rgba(8, 15, 27, 0.6); }
+        .menu-upgrades-dialog::-webkit-scrollbar-thumb {
+            border-radius: 8px;
+            background: linear-gradient(#5bd6ff, #4be7c4);
+        }
+        .menu-upgrade-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
         .menu-upgrade-card {
             min-height: 180px;
             display: flex;
@@ -3381,10 +3430,15 @@
             border-radius: 13px !important;
         }
         .menu-upgrade-card:hover {
-            border-color: rgba(100,209,255,.44) !important;
-            box-shadow: 0 15px 34px rgba(0,0,0,.34), 0 0 24px rgba(91,214,255,.11), inset 0 0 0 1px rgba(255,255,255,.04) !important;
+            border-color: rgba(100, 209, 255, 0.44) !important;
+            box-shadow:
+                0 15px 34px rgba(0, 0, 0, 0.34),
+                0 0 24px rgba(91, 214, 255, 0.11),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
         }
-        .menu-upgrade-card:has(.menu-upgrade-buy:not(:disabled):not(.is-disabled):not([aria-disabled="true"])) { border-color: rgba(75,231,196,.42) !important; }
+        .menu-upgrade-card:has(.menu-upgrade-buy:not(:disabled):not(.is-disabled):not([aria-disabled="true"])) {
+            border-color: rgba(75, 231, 196, 0.42) !important;
+        }
         .menu-upgrade-card:has(.menu-upgrade-buy:not(:disabled):not(.is-disabled):not([aria-disabled="true"]))::after {
             content: "";
             position: absolute;
@@ -3394,23 +3448,47 @@
             right: 12px;
             border-radius: 50%;
             background: #63f6c8;
-            box-shadow: 0 0 12px rgba(99,246,200,.9);
+            box-shadow: 0 0 12px rgba(99, 246, 200, 0.9);
         }
-        .menu-upgrade-head { flex-direction: row; align-items: center; justify-content: space-between; text-align: left; gap: 10px; }
-        .menu-upgrade-title-wrap { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; }
-        .menu-upgrade-icon { width: 46px; height: 46px; flex-basis: 46px; border-radius: 10px; }
-        .menu-upgrade-icon svg { width: 25px; height: 25px; }
-        .menu-upgrade-name { gap: 3px; }
-        .menu-upgrade-title { font-size: 13px; letter-spacing: .75px; }
+        .menu-upgrade-head {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            text-align: left;
+            gap: 10px;
+        }
+        .menu-upgrade-title-wrap {
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+        }
+        .menu-upgrade-icon {
+            width: 46px;
+            height: 46px;
+            flex-basis: 46px;
+            border-radius: 10px;
+        }
+        .menu-upgrade-icon svg {
+            width: 25px;
+            height: 25px;
+        }
+        .menu-upgrade-name {
+            gap: 3px;
+        }
+        .menu-upgrade-title {
+            font-size: 13px;
+            letter-spacing: 0.75px;
+        }
         .menu-upgrade-tag {
             display: block;
             max-width: 135px;
-            color: rgba(164,192,218,.76);
-            font-family: Rajdhani, sans-serif;
+            color: rgba(164, 192, 218, 0.76);
+            font-family: 'Rajdhani', sans-serif;
             font-size: 12px;
             font-weight: 700;
             line-height: 1.05;
-            letter-spacing: .3px;
+            letter-spacing: 0.3px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -3424,16 +3502,29 @@
             font-size: clamp(16px, 1.45vw, 21px);
             white-space: nowrap;
         }
-        .menu-upgrade-steps { gap: 6px; }
-        .menu-upgrade-steps span { height: 9px; }
-        .menu-upgrade-buy { min-height: 42px; padding: 8px 10px; font-size: 12px; letter-spacing: .45px; }
+        .menu-upgrade-steps {
+            gap: 6px;
+        }
+        .menu-upgrade-steps span {
+            height: 9px;
+        }
+        .menu-upgrade-buy {
+            min-height: 42px;
+            padding: 8px 10px;
+            font-size: 12px;
+            letter-spacing: 0.45px;
+        }
         .menu-upgrade-buy:not(:disabled):not(.is-disabled):not([aria-disabled="true"]) {
-            background: linear-gradient(135deg, rgba(74,211,255,.3), rgba(75,231,196,.2)) !important;
-            border-color: rgba(100,226,218,.52) !important;
+            background: linear-gradient(135deg, rgba(74, 211, 255, 0.3), rgba(75, 231, 196, 0.2)) !important;
+            border-color: rgba(100, 226, 218, 0.52) !important;
             color: #efffff !important;
         }
-        .menu-upgrade-card:not(:has(.menu-upgrade-ad:not([hidden]))) .menu-upgrade-buy { margin-top: auto; }
-        .menu-upgrade-card:has(.menu-upgrade-ad:not([hidden])) .menu-upgrade-ad { margin-top: auto; }
+        .menu-upgrade-card:not(:has(.menu-upgrade-ad:not([hidden]))) .menu-upgrade-buy {
+            margin-top: auto;
+        }
+        .menu-upgrade-card:has(.menu-upgrade-ad:not([hidden])) .menu-upgrade-ad {
+            margin-top: auto;
+        }
         .menu-upgrade-ad {
             order: 20;
             width: 100%;
@@ -3445,17 +3536,19 @@
             box-sizing: border-box;
             margin: 0;
             padding: 7px 10px;
-            border: 1px solid rgba(255,221,120,.5);
+            border: 1px solid rgba(255, 221, 120, 0.5);
             border-radius: 10px;
-            background: rgba(58,42,13,.58);
+            background: rgba(58, 42, 13, 0.58);
             color: #ffe28a;
-            font-family: Orbitron, Rajdhani, sans-serif;
+            font-family: 'Orbitron', 'Rajdhani', sans-serif;
             font-size: 11px;
             font-weight: 900;
-            letter-spacing: .45px;
+            letter-spacing: 0.45px;
             line-height: 1;
         }
-        .menu-upgrade-ad[hidden] { display: none !important; }
+        .menu-upgrade-ad[hidden] {
+            display: none !important;
+        }
         .menu-upgrade-ad-icon {
             width: 18px;
             height: 18px;
@@ -3463,7 +3556,10 @@
             display: grid;
             place-items: center;
         }
-        .menu-upgrade-ad-icon svg { width: 18px; height: 18px; }
+        .menu-upgrade-ad-icon svg {
+            width: 18px;
+            height: 18px;
+        }
         .menu-upgrade-ad-label {
             min-width: 0;
             overflow: hidden;
@@ -3474,68 +3570,484 @@
             order: 30;
             margin-top: 0;
         }
-        .menu-daily-dialog { width: min(660px, calc(100vw - 34px)); padding: 2px 22px 20px; }
-        .menu-daily-streak { margin: 0 0 14px; }
+
+        /* Daily missions: summary, objective, progress and claim are visually distinct. */
+        .menu-daily-dialog {
+            width: min(660px, calc(100vw - 34px));
+            padding: 2px 22px 20px;
+        }
+        .menu-daily-streak {
+            margin: 0 0 14px;
+        }
         .menu-daily-streak .menu-daily-info {
             min-height: 48px;
             margin: 0;
             padding: 10px 14px;
             border-radius: 12px;
-            border-color: rgba(93,207,255,.26);
-            background: radial-gradient(circle at 12% 0%, rgba(242,193,78,.14), transparent 38%), linear-gradient(90deg, rgba(19,35,55,.86), rgba(10,18,31,.86));
+            border-color: rgba(93, 207, 255, 0.26);
+            background:
+                radial-gradient(circle at 12% 0%, rgba(242, 193, 78, 0.14), transparent 38%),
+                linear-gradient(90deg, rgba(19, 35, 55, 0.86), rgba(10, 18, 31, 0.86));
         }
-        .menu-daily-list { gap: 9px; }
+        .menu-daily-list {
+            gap: 9px;
+        }
         .menu-daily-row {
             min-height: 64px;
             padding: 11px 13px;
             border-radius: 12px;
             border-left-width: 1px;
-            background: linear-gradient(90deg, rgba(18,33,52,.82), rgba(9,17,30,.84));
-            box-shadow: inset 3px 0 0 rgba(79,163,227,.65);
+            background: linear-gradient(90deg, rgba(18, 33, 52, 0.82), rgba(9, 17, 30, 0.84));
+            box-shadow: inset 3px 0 0 rgba(79, 163, 227, 0.65);
         }
-        .menu-daily-row:hover { border-color: rgba(108,196,251,.5); background: linear-gradient(90deg, rgba(24,47,72,.9), rgba(11,23,39,.9)); }
-        .menu-daily-row.is-done { border-color: rgba(230,181,71,.42); box-shadow: inset 3px 0 0 #f2c14e; }
-        .menu-daily-row.is-claimable { border-color: rgba(242,193,78,.68); box-shadow: inset 3px 0 0 #f2c14e, 0 0 20px rgba(242,193,78,.12); }
-        .menu-daily-mark { width: 30px; height: 30px; flex-basis: 30px; border-color: rgba(117,185,231,.48); background: rgba(7,15,28,.55); }
-        .menu-daily-row .menu-daily-info { gap: 8px; }
-        .menu-daily-text { color: #eef7ff; font-size: 15px; font-weight: 700; }
-        .menu-daily-count { padding: 2px 7px; border-radius: 7px; background: rgba(5,13,24,.5); }
-        .menu-daily-bar { height: 9px; border: 1px solid rgba(120,180,225,.1); background: rgba(2,8,16,.72); }
-        .menu-daily-claim { min-width: 92px; height: 38px; border-radius: 10px; animation: dailyClaimGlow 1.8s ease-in-out infinite; }
-        .menu-daily-reset { margin: 14px 0 0; padding: 9px 12px; border-top: 1px solid rgba(111,177,221,.13); color: rgba(160,192,221,.82); text-align: right; }
+        .menu-daily-row:hover {
+            border-color: rgba(108, 196, 251, 0.5);
+            background: linear-gradient(90deg, rgba(24, 47, 72, 0.9), rgba(11, 23, 39, 0.9));
+        }
+        .menu-daily-row.is-done {
+            border-color: rgba(230, 181, 71, 0.42);
+            box-shadow: inset 3px 0 0 #f2c14e;
+        }
+        .menu-daily-row.is-claimable {
+            border-color: rgba(242, 193, 78, 0.68);
+            box-shadow:
+                inset 3px 0 0 #f2c14e,
+                0 0 20px rgba(242, 193, 78, 0.12);
+        }
+        .menu-daily-mark {
+            width: 30px;
+            height: 30px;
+            flex-basis: 30px;
+            border-color: rgba(117, 185, 231, 0.48);
+            background: rgba(7, 15, 28, 0.55);
+        }
+        .menu-daily-row .menu-daily-info {
+            gap: 8px;
+        }
+        .menu-daily-text {
+            color: #eef7ff;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .menu-daily-count {
+            padding: 2px 7px;
+            border-radius: 7px;
+            background: rgba(5, 13, 24, 0.5);
+        }
+        .menu-daily-bar {
+            height: 9px;
+            border: 1px solid rgba(120, 180, 225, 0.1);
+            background: rgba(2, 8, 16, 0.72);
+        }
+        .menu-daily-claim {
+            min-width: 92px;
+            height: 38px;
+            border-radius: 10px;
+            animation: dailyClaimGlow 1.8s ease-in-out infinite;
+        }
+        .menu-daily-reset {
+            margin: 14px 0 0;
+            padding: 9px 12px;
+            border-top: 1px solid rgba(111, 177, 221, 0.13);
+            color: rgba(160, 192, 221, 0.82);
+            text-align: right;
+        }
         @keyframes dailyClaimGlow {
-            0%, 100% { box-shadow: 0 0 12px rgba(242,193,78,.16); }
-            50% { box-shadow: 0 0 22px rgba(242,193,78,.34); }
+            0%, 100% { box-shadow: 0 0 12px rgba(242, 193, 78, 0.16); }
+            50% { box-shadow: 0 0 22px rgba(242, 193, 78, 0.34); }
         }
+
         @media (max-width: 1120px) {
-            .menu-upgrades-dialog { width: min(920px, calc(100vw - 24px)); }
-            .menu-upgrade-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+            .menu-upgrades-dialog {
+                width: min(920px, calc(100vw - 24px));
+            }
+            .menu-upgrade-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
         }
         @media (max-width: 860px) {
-            .menu-upgrades-dialog { width: min(760px, calc(100vw - 24px)); }
-            .menu-upgrade-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .menu-upgrades-dialog {
+                width: min(760px, calc(100vw - 24px));
+            }
+            .menu-upgrade-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
         }
         @media (max-width: 560px) {
-            #menu-dialog-layer .menu-dialog-head { margin-bottom: 12px; padding: 14px 14px 12px; }
-            .menu-leaderboard-dialog, .menu-daily-dialog, .menu-upgrades-dialog {
+            #menu-dialog-layer .menu-dialog-head {
+                margin-bottom: 12px;
+                padding: 14px 14px 12px;
+            }
+            .menu-leaderboard-dialog,
+            .menu-daily-dialog,
+            .menu-upgrades-dialog {
                 width: calc(100vw - 18px);
                 max-height: calc(100vh - 18px);
                 padding: 2px 10px 14px;
             }
-            .menu-upgrade-grid { grid-template-columns: 1fr; gap: 9px; }
-            .menu-upgrade-card { min-height: 166px; }
-            .menu-board-entry { grid-template-columns: 38px minmax(0,1fr) minmax(72px,auto); gap: 8px; padding-inline: 9px; }
-            .menu-board-flag { width: 21px; height: 14px; }
-            .menu-daily-row { gap: 9px; padding: 10px; }
-            .menu-daily-text { font-size: 13px; }
-            .menu-daily-reward { min-width: 48px; font-size: 11px; }
-            .menu-daily-claim { min-width: 72px; font-size: 10px; }
+            .menu-upgrade-grid {
+                grid-template-columns: 1fr;
+                gap: 9px;
+            }
+            .menu-upgrade-card {
+                min-height: 166px;
+            }
+            .menu-board-entry {
+                grid-template-columns: 38px minmax(0, 1fr) minmax(72px, auto);
+                gap: 8px;
+                padding-inline: 9px;
+            }
+            .menu-board-flag {
+                width: 21px;
+                height: 14px;
+            }
+            .menu-daily-row {
+                gap: 9px;
+                padding: 10px;
+            }
+            .menu-daily-text {
+                font-size: 13px;
+            }
+            .menu-daily-reward {
+                min-width: 48px;
+                font-size: 11px;
+            }
+            .menu-daily-claim {
+                min-width: 72px;
+                font-size: 10px;
+            }
         }
         @media (prefers-reduced-motion: reduce) {
-            .menu-board-entry, .menu-upgrade-card, .menu-daily-row, .menu-daily-claim {
+            .menu-board-entry,
+            .menu-upgrade-card,
+            .menu-daily-row,
+            .menu-daily-claim {
                 transition: none !important;
                 animation: none !important;
             }
+        }
+    </style>
+    <style id="progression-feedback-and-onboarding">
+        /* Lightweight DOM feedback: no WebGL particles, no extra render-loop work. */
+        .menu-daily-badge {
+            width: 26px;
+            height: 26px;
+            min-width: 26px;
+            padding: 0;
+            top: 5px;
+            right: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.9);
+            background: #e52232;
+            color: #fff;
+            font: 900 17px/1 Rajdhani, sans-serif;
+            box-shadow: 0 0 0 3px rgba(229,34,50,.2), 0 0 18px rgba(229,34,50,.8);
+            animation: daily-alert-pulse 1.7s ease-in-out infinite;
+            z-index: 3;
+        }
+        .menu-daily-badge[hidden] { display: none; }
+        .menu-daily-badge.is-complete { background: #e52232; color: #fff; border-color: rgba(255,255,255,.9); }
+        @keyframes daily-alert-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 3px rgba(229,34,50,.2), 0 0 16px rgba(229,34,50,.72); }
+            50% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(229,34,50,.08), 0 0 22px rgba(229,34,50,.94); }
+        }
+
+        #wallet-feedback-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 10050;
+            overflow: hidden;
+            pointer-events: none;
+            contain: layout style paint;
+        }
+        .wallet-fx-coin {
+            position: fixed;
+            left: var(--fx-x);
+            top: var(--fx-y);
+            width: 13px;
+            height: 13px;
+            margin: -7px;
+            border-radius: 50%;
+            border: 2px solid #fff1a6;
+            background: radial-gradient(circle at 35% 30%, #fffbd0 0 16%, #ffd85e 19% 52%, #e88b20 56% 100%);
+            box-shadow: 0 0 10px rgba(255,207,70,.85);
+            animation: wallet-coin-gain var(--fx-dur, .72s) cubic-bezier(.16,.72,.25,1) forwards;
+            animation-delay: var(--fx-delay, 0ms);
+            will-change: transform, opacity;
+        }
+        .wallet-fx-coin.is-spend {
+            border-color: #ffbe69;
+            filter: saturate(.8);
+            animation-name: wallet-coin-spend;
+        }
+        .wallet-fx-value {
+            position: fixed;
+            left: var(--fx-x);
+            top: var(--fx-y);
+            transform: translate(-50%, -50%);
+            font: 900 clamp(18px, 2vw, 27px)/1 Orbitron, Rajdhani, sans-serif;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            color: #ffe37a;
+            text-shadow: 0 2px 2px #301c00, 0 0 18px rgba(255,210,72,.9);
+            animation: wallet-value-gain .95s cubic-bezier(.16,.72,.25,1) forwards;
+            will-change: transform, opacity;
+        }
+        .wallet-fx-value.is-spend {
+            color: #ff9b67;
+            text-shadow: 0 2px 2px #2c0800, 0 0 17px rgba(255,99,61,.76);
+            animation-name: wallet-value-spend;
+        }
+        .coin-stat.is-wallet-gain {
+            animation: wallet-gain-pulse .72s ease-out;
+        }
+        .coin-stat.is-wallet-spend {
+            animation: wallet-spend-pulse .56s ease-out;
+        }
+        .menu-upgrade-card.is-purchase-success {
+            animation: upgrade-purchase-success .58s ease-out;
+        }
+        .menu-daily-row.is-reward-claimed {
+            animation: daily-reward-claimed .7s ease-out;
+        }
+        @keyframes wallet-coin-gain {
+            0% { opacity: 0; transform: translate(0,0) scale(.35) rotate(0); }
+            18% { opacity: 1; }
+            72% { opacity: 1; transform: translate(var(--fx-dx), var(--fx-dy)) scale(1) rotate(300deg); }
+            100% { opacity: 0; transform: translate(var(--fx-dx), calc(var(--fx-dy) - 18px)) scale(.4) rotate(420deg); }
+        }
+        @keyframes wallet-coin-spend {
+            0% { opacity: 0; transform: translate(0,0) scale(1.15) rotate(0); }
+            12% { opacity: 1; }
+            100% { opacity: 0; transform: translate(var(--fx-dx), var(--fx-dy)) scale(.25) rotate(-300deg); }
+        }
+        @keyframes wallet-value-gain {
+            0% { opacity: 0; transform: translate(-50%, -15%) scale(.7); }
+            18%, 68% { opacity: 1; transform: translate(-50%, -85%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -145%) scale(.92); }
+        }
+        @keyframes wallet-value-spend {
+            0% { opacity: 0; transform: translate(-50%, -35%) scale(.85); }
+            18%, 58% { opacity: 1; transform: translate(-50%, -90%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -132%) scale(.82); }
+        }
+        @keyframes wallet-gain-pulse {
+            0%,100% { transform: scale(1); filter: none; }
+            38% { transform: scale(1.07); filter: brightness(1.5) drop-shadow(0 0 12px rgba(255,214,72,.75)); }
+        }
+        @keyframes wallet-spend-pulse {
+            0%,100% { transform: translateX(0); filter: none; }
+            18% { transform: translateX(-4px); filter: brightness(.75) saturate(.65); }
+            36% { transform: translateX(4px); }
+            54% { transform: translateX(-2px); }
+            72% { transform: translateX(2px); }
+        }
+        @keyframes upgrade-purchase-success {
+            0%,100% { filter: none; }
+            35% { filter: brightness(1.45); box-shadow: inset 0 0 0 2px rgba(255,176,94,.75), 0 0 25px rgba(255,104,54,.3); }
+        }
+        @keyframes daily-reward-claimed {
+            0%,100% { filter: none; }
+            35% { filter: brightness(1.45); box-shadow: inset 0 0 0 2px rgba(255,221,105,.82), 0 0 26px rgba(255,207,70,.4); }
+        }
+
+        #how-to-play-overlay {
+            position: fixed;
+            right: clamp(14px, 2.2vw, 34px);
+            top: clamp(62px, 8vh, 92px);
+            z-index: 12020;
+            width: min(310px, calc(100vw - 28px));
+            transform: translate(18px, -8px) scale(.97);
+            opacity: 0;
+            pointer-events: none;
+            isolation: isolate;
+            contain: layout paint style;
+            color: #eaf8ff;
+            transition: opacity .28s ease, transform .38s cubic-bezier(.2,.8,.2,1);
+        }
+        #how-to-play-overlay.is-visible {
+            opacity: 1;
+            transform: translate(0, 0) scale(1);
+        }
+        #how-to-play-overlay.is-leaving {
+            opacity: 0;
+            transform: translate(18px, -12px) scale(.985);
+        }
+        .how-to-play-card {
+            position: relative;
+            padding: 12px 14px 14px;
+            border: 1px solid rgba(118,219,255,.5);
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(5,15,27,.9), rgba(7,20,34,.78));
+            box-shadow: 0 16px 38px rgba(0,0,0,.34), inset 0 0 24px rgba(69,190,255,.06);
+            backdrop-filter: blur(9px);
+            overflow: hidden;
+        }
+        .how-to-play-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(110deg, transparent 12%, rgba(98,220,255,.08) 46%, transparent 70%);
+            transform: translateX(-100%);
+            animation: how-to-shine 2.4s ease-out .25s 1;
+        }
+        .how-to-play-title {
+            position: relative;
+            margin-bottom: 9px;
+            text-align: center;
+            font: 800 12px/1 Orbitron, Rajdhani, sans-serif;
+            letter-spacing: 1.7px;
+            color: #8de8ff;
+            text-shadow: 0 0 14px rgba(91,214,255,.45);
+        }
+        .how-to-play-controls {
+            position: relative;
+            display: grid;
+            gap: 8px;
+        }
+        .how-to-key-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            align-items: center;
+            gap: 8px;
+        }
+        .how-to-control {
+            min-width: 0;
+            min-height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 6px 7px;
+        }
+        .how-to-control.is-keys {
+            min-height: 64px;
+            border: 1px solid rgba(127,190,225,.13);
+            background: rgba(4,16,30,.34);
+        }
+        .how-to-control.is-single {
+            flex-direction: column;
+            min-width: 58px;
+            border: 1px solid rgba(127,190,225,.13);
+            background: rgba(4,16,30,.28);
+        }
+        .how-to-control.is-mouse {
+            min-height: 66px;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .how-to-control-label {
+            display: none;
+        }
+        .key-cluster {
+            display: grid;
+            grid-template-columns: repeat(3, 23px);
+            grid-template-rows: repeat(2, 23px);
+            gap: 3px;
+        }
+        .keycap {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 6px;
+            border: 1px solid rgba(173,226,255,.66);
+            border-bottom-width: 3px;
+            border-radius: 5px;
+            background: linear-gradient(#18324b,#0b1b2d);
+            color: #f2fbff;
+            font: 800 12px/1 Orbitron, sans-serif;
+            box-shadow: 0 3px 8px rgba(0,0,0,.3);
+        }
+        .key-cluster .key-w { grid-column: 2; }
+        .key-cluster .key-a { grid-column: 1; grid-row: 2; }
+        .key-cluster .key-s { grid-column: 2; grid-row: 2; }
+        .key-cluster .key-d { grid-column: 3; grid-row: 2; }
+        .keycap.is-space { min-width: 84px; font-size: 9px; letter-spacing: .7px; }
+        .keycap.is-e { min-width: 31px; }
+        .how-to-divider {
+            position: relative;
+            display: grid;
+            place-items: center;
+            min-height: 16px;
+            color: rgba(169,224,255,.86);
+            font: 900 10px/1 Orbitron, Rajdhani, sans-serif;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+        .how-to-divider::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(141,232,255,.48), transparent);
+        }
+        .how-to-divider span {
+            position: relative;
+            padding: 0 8px;
+            background: rgba(5,15,27,.92);
+        }
+        .mouse-glyph {
+            position: relative;
+            width: 31px;
+            height: 45px;
+            flex: 0 0 31px;
+            border: 2px solid #bcecff;
+            border-radius: 16px;
+            box-shadow: 0 0 12px rgba(102,213,255,.25);
+        }
+        .mouse-glyph::before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 6px;
+            width: 4px;
+            height: 9px;
+            margin-left: -2px;
+            border-radius: 3px;
+            background: #72dcff;
+            animation: mouse-wheel-hint 1.1s ease-in-out infinite;
+        }
+        .mouse-glyph::after {
+            display: none;
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: -17px;
+            transform: translateX(-50%);
+            color: #72dcff;
+            font: 800 16px/1 sans-serif;
+        }
+        @keyframes how-to-shine { to { transform: translateX(120%); } }
+        @keyframes mouse-wheel-hint {
+            0%,100% { transform: translateY(0); opacity: .7; }
+            50% { transform: translateY(5px); opacity: 1; }
+        }
+        @media (max-width: 620px) {
+            #how-to-play-overlay { top: 60px; right: 12px; width: min(286px, calc(100vw - 24px)); }
+            .how-to-play-card { padding: 10px; }
+            .how-to-key-row { grid-template-columns: 1fr auto auto; gap: 5px; }
+            .how-to-control { padding: 5px 4px; gap: 5px; }
+            .how-to-control.is-keys { min-height: 58px; }
+            .how-to-control.is-single { min-width: 48px; min-height: 58px; }
+            .how-to-control-label { font-size: 10px; text-align: center; }
+            .key-cluster { transform: scale(.78); margin: -6px; }
+            .keycap.is-space { min-width: 56px; }
+            .keycap.is-e { min-width: 25px; }
+            .mouse-glyph { transform: scale(.82); margin: -4px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .menu-daily-badge,
+            .how-to-play-card::before,
+            .mouse-glyph::before { animation: none; }
+            #how-to-play-overlay { transition-duration: .12s; }
+            .wallet-fx-coin { display: none; }
         }
     </style>
 </head>
@@ -3565,6 +4077,38 @@
 <div id="doublejump-cooldown" aria-hidden="true">5</div>
 <div id="doublejump-ready-flash" aria-hidden="true">HAZIR</div>
 <div id="effects-container"></div>
+<div id="wallet-feedback-layer" aria-hidden="true"></div>
+<div id="how-to-play-overlay" aria-hidden="true" hidden>
+    <div class="how-to-play-card">
+        <div id="how-to-play-title" class="how-to-play-title">HOW TO PLAY</div>
+        <div class="how-to-play-controls">
+            <div class="how-to-key-row">
+                <div class="how-to-control is-keys">
+                    <div class="key-cluster" aria-hidden="true">
+                        <span class="keycap key-w">W</span>
+                        <span class="keycap key-a">A</span>
+                        <span class="keycap key-s">S</span>
+                        <span class="keycap key-d">D</span>
+                    </div>
+                    <span id="how-to-play-move" class="how-to-control-label">MOVE</span>
+                </div>
+                <div class="how-to-control is-single">
+                    <span class="keycap is-e" aria-hidden="true">E</span>
+                    <span id="how-to-play-ability" class="how-to-control-label">SKILL</span>
+                </div>
+                <div class="how-to-control is-single">
+                    <span id="how-to-play-space" class="keycap is-space" aria-hidden="true">SPACE</span>
+                    <span id="how-to-play-jump" class="how-to-control-label">JUMP</span>
+                </div>
+            </div>
+            <div class="how-to-divider" aria-hidden="true"><span>OR</span></div>
+            <div class="how-to-control is-mouse">
+                <span class="mouse-glyph" aria-hidden="true"></span>
+                <span id="how-to-play-look" class="how-to-control-label">LOOK</span>
+            </div>
+        </div>
+    </div>
+</div>
 <div id="crosshair-container"><div id="crosshair"></div></div>
 <div id="main-menu" aria-hidden="true">
     <div class="main-menu-shell">
@@ -4762,12 +5306,152 @@ let skyClouds = [];
     let sharedWindGeometry = null;
     let sharedWindMaterial = null;
     const ui = {};
+    let howToPlayTimer = null;
+    let howToPlayLeaveTimer = null;
+    let howToPlayVisibleUntil = 0;
+    const HOW_TO_PLAY_COPY = Object.freeze({
+        en: { title:'HOW TO PLAY', move:'MOVE', jump:'JUMP', look:'LOOK', space:'SPACE' },
+        tr: { title:'NASIL OYNANIR', move:'HAREKET', jump:'ZIPLA', look:'BAKIŞ', space:'BOŞLUK' },
+        it: { title:'COME SI GIOCA', move:'MUOVI', jump:'SALTA', look:'GUARDA', space:'SPAZIO' },
+        'es-ES': { title:'CÓMO JUGAR', move:'MOVER', jump:'SALTAR', look:'MIRAR', space:'ESPACIO' },
+        'es-419': { title:'CÓMO JUGAR', move:'MOVER', jump:'SALTAR', look:'MIRAR', space:'ESPACIO' },
+        fr: { title:'COMMENT JOUER', move:'BOUGER', jump:'SAUTER', look:'REGARDER', space:'ESPACE' },
+        de: { title:'STEUERUNG', move:'BEWEGEN', jump:'SPRINGEN', look:'BLICK', space:'LEERTASTE' },
+        ar: { title:'طريقة اللعب', move:'تحرك', jump:'اقفز', look:'انظر', space:'مسافة' },
+        'pt-BR': { title:'COMO JOGAR', move:'MOVER', jump:'PULAR', look:'OLHAR', space:'ESPAÇO' },
+        'pt-PT': { title:'COMO JOGAR', move:'MOVER', jump:'SALTAR', look:'OLHAR', space:'ESPAÇO' },
+        da: { title:'SÅDAN SPILLER DU', move:'BEVÆG', jump:'HOP', look:'SE', space:'MELLEMRUM' },
+        nl: { title:'HOE TE SPELEN', move:'BEWEGEN', jump:'SPRINGEN', look:'KIJKEN', space:'SPATIE' },
+        'zh-Hant': { title:'遊戲方式', move:'移動', jump:'跳躍', look:'視角', space:'空白鍵' },
+        'zh-Hans': { title:'游戏方式', move:'移动', jump:'跳跃', look:'视角', space:'空格' },
+        ko: { title:'플레이 방법', move:'이동', jump:'점프', look:'시점', space:'스페이스' },
+        pl: { title:'JAK GRAĆ', move:'RUCH', jump:'SKOK', look:'ROZEJRZYJ', space:'SPACJA' },
+        no: { title:'SLIK SPILLER DU', move:'BEVEG', jump:'HOPP', look:'SE', space:'MELLOMROM' },
+        ro: { title:'CUM SE JOACĂ', move:'MIȘCARE', jump:'SALT', look:'PRIVIRE', space:'SPAȚIU' },
+        th: { title:'วิธีเล่น', move:'เคลื่อนที่', jump:'กระโดด', look:'มอง', space:'สเปซ' },
+        uk: { title:'ЯК ГРАТИ', move:'РУХ', jump:'СТРИБОК', look:'ОГЛЯД', space:'ПРОБІЛ' },
+        el: { title:'ΠΩΣ ΠΑΙΖΕΤΑΙ', move:'ΚΙΝΗΣΗ', jump:'ΑΛΜΑ', look:'ΚΟΙΤΑ', space:'SPACE' },
+        sv: { title:'SÅ SPELAR DU', move:'RÖR DIG', jump:'HOPPA', look:'TITTA', space:'MELLANSLAG' },
+        bg: { title:'КАК СЕ ИГРАЕ', move:'ДВИЖЕНИЕ', jump:'СКОК', look:'ОГЛЕД', space:'ИНТЕРВАЛ' },
+        id: { title:'CARA BERMAIN', move:'GERAK', jump:'LOMPAT', look:'LIHAT', space:'SPASI' },
+        fi: { title:'PELIOHJE', move:'LIIKU', jump:'HYPPÄÄ', look:'KATSO', space:'VÄLILYÖNTI' },
+        ja: { title:'遊び方', move:'移動', jump:'ジャンプ', look:'視点', space:'スペース' },
+        hu: { title:'IRÁNYÍTÁS', move:'MOZGÁS', jump:'UGRÁS', look:'NÉZET', space:'SZÓKÖZ' },
+        ru: { title:'КАК ИГРАТЬ', move:'ДВИЖЕНИЕ', jump:'ПРЫЖОК', look:'ОБЗОР', space:'ПРОБЕЛ' },
+        vi: { title:'CÁCH CHƠI', move:'DI CHUYỂN', jump:'NHẢY', look:'NHÌN', space:'PHÍM CÁCH' },
+        cs: { title:'JAK HRÁT', move:'POHYB', jump:'SKOK', look:'ROZHLÍŽENÍ', space:'MEZERNÍK' }
+    });
+
+    function getHowToPlayCopy() {
+        return HOW_TO_PLAY_COPY[normalizeLanguage(menuState.language)] || HOW_TO_PLAY_COPY.en;
+    }
+
+    function applyHowToPlayCopy() {
+        const copy = getHowToPlayCopy();
+        if (ui.howToPlayTitle) ui.howToPlayTitle.textContent = copy.title;
+        if (ui.howToPlayMove) ui.howToPlayMove.textContent = copy.move;
+        if (ui.howToPlayJump) ui.howToPlayJump.textContent = copy.jump;
+        if (ui.howToPlayLook) ui.howToPlayLook.textContent = copy.look;
+        if (ui.howToPlaySpace) ui.howToPlaySpace.textContent = copy.space;
+        if (ui.howToPlayAbility) ui.howToPlayAbility.textContent = tr('ability');
+        if (ui.howToPlayOverlay) {
+            ui.howToPlayOverlay.setAttribute('dir', normalizeLanguage(menuState.language) === 'ar' ? 'rtl' : 'ltr');
+        }
+    }
+
+    function hideHowToPlayOverlay(instant = false) {
+        if (howToPlayTimer) clearTimeout(howToPlayTimer);
+        if (howToPlayLeaveTimer) clearTimeout(howToPlayLeaveTimer);
+        howToPlayTimer = null;
+        howToPlayLeaveTimer = null;
+        howToPlayVisibleUntil = 0;
+        if (!ui.howToPlayOverlay) return;
+        ui.howToPlayOverlay.classList.remove('is-visible');
+        ui.howToPlayOverlay.classList.toggle('is-leaving', !instant);
+        if (instant) {
+            ui.howToPlayOverlay.hidden = true;
+            ui.howToPlayOverlay.classList.remove('is-leaving');
+            ui.howToPlayOverlay.setAttribute('aria-hidden', 'true');
+            return;
+        }
+        howToPlayLeaveTimer = setTimeout(() => {
+            if (!ui.howToPlayOverlay) return;
+            ui.howToPlayOverlay.hidden = true;
+            ui.howToPlayOverlay.classList.remove('is-leaving');
+            ui.howToPlayOverlay.setAttribute('aria-hidden', 'true');
+            howToPlayLeaveTimer = null;
+        }, 420);
+    }
+
+    function showHowToPlayOverlay() {
+        if (!ui.howToPlayOverlay) return;
+        hideHowToPlayOverlay(true);
+        applyHowToPlayCopy();
+        ui.howToPlayOverlay.hidden = false;
+        ui.howToPlayOverlay.setAttribute('aria-hidden', 'false');
+        void ui.howToPlayOverlay.offsetWidth;
+        ui.howToPlayOverlay.classList.add('is-visible');
+        howToPlayVisibleUntil = performance.now() + 5000;
+        howToPlayTimer = setTimeout(() => hideHowToPlayOverlay(false), 5000);
+    }
+
+    function replayElementClass(element, className, duration = 700) {
+        if (!element) return;
+        element.classList.remove(className);
+        void element.offsetWidth;
+        element.classList.add(className);
+        setTimeout(() => element.classList.remove(className), duration);
+    }
+
+    function walletFeedbackPoint(element, fallbackX, fallbackY) {
+        if (element && typeof element.getBoundingClientRect === 'function') {
+            const rect = element.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            }
+        }
+        return { x: fallbackX, y: fallbackY };
+    }
+
+    function playWalletTransactionEffect(amount, kind = 'gain', sourceElement = null) {
+        if (!ui.walletFeedbackLayer || !Number.isFinite(amount) || amount <= 0) return;
+        const source = walletFeedbackPoint(sourceElement, innerWidth * .5, innerHeight * .5);
+        const target = walletFeedbackPoint(ui.menuShopBtn, Math.min(innerWidth - 76, 250), 80);
+        const isGain = kind === 'gain';
+        const value = document.createElement('span');
+        value.className = 'wallet-fx-value' + (isGain ? '' : ' is-spend');
+        value.style.setProperty('--fx-x', `${source.x}px`);
+        value.style.setProperty('--fx-y', `${source.y}px`);
+        value.textContent = `${isGain ? '+' : '−'}${Math.floor(amount).toLocaleString(menuNumberLocale())}`;
+        ui.walletFeedbackLayer.appendChild(value);
+
+        const count = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : (isGain ? 12 : 8);
+        for (let i = 0; i < count; i++) {
+            const coin = document.createElement('i');
+            coin.className = 'wallet-fx-coin' + (isGain ? '' : ' is-spend');
+            const spreadX = (Math.random() - .5) * (isGain ? 150 : 110);
+            const spreadY = isGain ? (-45 - Math.random() * 90) : (45 + Math.random() * 75);
+            const dx = isGain ? spreadX : (target.x - source.x) * .18 + spreadX;
+            const dy = isGain ? spreadY : spreadY;
+            coin.style.setProperty('--fx-x', `${source.x}px`);
+            coin.style.setProperty('--fx-y', `${source.y}px`);
+            coin.style.setProperty('--fx-dx', `${dx}px`);
+            coin.style.setProperty('--fx-dy', `${dy}px`);
+            coin.style.setProperty('--fx-delay', `${i * 24}ms`);
+            coin.style.setProperty('--fx-dur', `${620 + Math.random() * 260}ms`);
+            ui.walletFeedbackLayer.appendChild(coin);
+            setTimeout(() => coin.remove(), 1250);
+        }
+        setTimeout(() => value.remove(), 1100);
+        replayElementClass(ui.menuShopBtn, isGain ? 'is-wallet-gain' : 'is-wallet-spend', isGain ? 760 : 620);
+        const card = sourceElement && sourceElement.closest ? sourceElement.closest('.menu-upgrade-card') : null;
+        if (!isGain && card) replayElementClass(card, 'is-purchase-success', 640);
+    }
+
     function spendWalletCoins(cost, sourceElement = null) {
         const safeCost = Math.max(0, Math.floor(cost) || 0);
         menuState.walletCoins = Math.max(0, (Math.floor(menuState.walletCoins) || 0) - safeCost);
-        if (safeCost > 0 && window.ElementalFeedback) {
-            window.ElementalFeedback.transaction(safeCost, 'spend', sourceElement);
-        }
+        if (safeCost > 0) playWalletTransactionEffect(safeCost, 'spend', sourceElement);
     }
     const MAIN_MENU_STORAGE_KEY = 'elemental-run-steam-menu-state-v1';
     const BROWSER_SAVE_INTEGRITY_VERSION = 1;
@@ -5206,11 +5890,8 @@ let skyClouds = [];
             bumpDailyStreak();
         }
         const claimedRow = sourceElement && sourceElement.closest ? sourceElement.closest('.menu-daily-row') : null;
-        if (claimedRow) {
-            claimedRow.classList.add('is-reward-claimed');
-            setTimeout(() => claimedRow.classList.remove('is-reward-claimed'), 700);
-        }
-        if (window.ElementalFeedback) window.ElementalFeedback.transaction(grantedAmount, 'gain', sourceElement);
+        if (claimedRow) replayElementClass(claimedRow, 'is-reward-claimed', 700);
+        playWalletTransactionEffect(grantedAmount, 'gain', sourceElement);
         saveMainMenuState();
         updateMainMenuStats();
         setTimeout(() => renderDailyMissions(), 260);
@@ -5333,6 +6014,7 @@ let skyClouds = [];
             const claimableCount = data.missions.filter((m) => m.done && !m.rewarded).length;
             ui.menuDailyBadge.textContent = '!';
             ui.menuDailyBadge.hidden = claimableCount === 0;
+            ui.menuDailyBadge.setAttribute('aria-label', claimableCount > 0 ? `${claimableCount} daily rewards ready` : '');
             ui.menuDailyBadge.classList.toggle('is-complete', claimableCount > 0);
         }
     }
@@ -5880,6 +6562,14 @@ let skyClouds = [];
         ui.speedVignette = document.getElementById('speed-vignette');
         ui.glideWind = document.getElementById('glide-wind');
         ui.doubleJumpCooldown = document.getElementById('doublejump-cooldown');
+        ui.walletFeedbackLayer = document.getElementById('wallet-feedback-layer');
+        ui.howToPlayOverlay = document.getElementById('how-to-play-overlay');
+        ui.howToPlayTitle = document.getElementById('how-to-play-title');
+        ui.howToPlayMove = document.getElementById('how-to-play-move');
+        ui.howToPlayJump = document.getElementById('how-to-play-jump');
+        ui.howToPlayLook = document.getElementById('how-to-play-look');
+        ui.howToPlaySpace = document.getElementById('how-to-play-space');
+        ui.howToPlayAbility = document.getElementById('how-to-play-ability');
         ui.shieldBar = document.getElementById('shield-bar');
         ui.hudControls = document.getElementById('hud-controls');
         ui.noclipIndicator = document.getElementById('noclip-indicator');
@@ -8296,6 +8986,17 @@ let skyClouds = [];
         setTextBySelector('.menu-upgrade-card.is-coin .menu-upgrade-title', tr('goldMultiplier'));
         setTextBySelector('.menu-upgrade-card.is-jump .menu-upgrade-title', tr('jumpMultiplier'));
         setTextBySelector('.menu-upgrade-card.is-speed .menu-upgrade-title', tr('speedUpgrade'));
+        const tagLang = normalizeLanguage(menuState.language);
+        const upgradeTagText = (trText, enText) => tagLang === 'tr' ? trText : enText;
+        setTextBySelector('.menu-upgrade-card.is-score .menu-upgrade-tag', upgradeTagText('Skor carpani', 'Score multiplier'));
+        setTextBySelector('.menu-upgrade-card.is-coin .menu-upgrade-tag', upgradeTagText('Altin carpani', 'Gold multiplier'));
+        setTextBySelector('.menu-upgrade-card.is-jump .menu-upgrade-tag', upgradeTagText('Ziplama gucu', 'Jump height'));
+        setTextBySelector('.menu-upgrade-card.is-speed .menu-upgrade-tag', upgradeTagText('Baslangic hizi', 'Start speed'));
+        setTextBySelector('.menu-upgrade-card.is-glide .menu-upgrade-tag', upgradeTagText('Basili tut', 'Hold key'));
+        setTextBySelector('.menu-upgrade-card.is-doublejump .menu-upgrade-tag', upgradeTagText('Cift ziplama', 'Second jump'));
+        setTextBySelector('.menu-upgrade-card.is-revive .menu-upgrade-tag', upgradeTagText('Can hakki', 'Extra life'));
+        setTextBySelector('.menu-upgrade-card.is-timeslow .menu-upgrade-tag', upgradeTagText('Orta tus', 'Middle mouse'));
+        setTextBySelector('.menu-upgrade-card.is-magnet .menu-upgrade-tag', upgradeTagText('E tusu', 'E key'));
         const gameOverLabels = document.querySelectorAll('#game-over p span');
         if (gameOverLabels[0]) gameOverLabels[0].innerText = tr('score');
         if (gameOverLabels[1]) gameOverLabels[1].innerText = tr('gold');
@@ -8311,6 +9012,7 @@ let skyClouds = [];
         updateTimeSlowUpgradeCard();
         updateMagnetUpgradeCard();
         updateRebirthUpgradeCard();
+        applyHowToPlayCopy();
         applyBrowserLanguageTexts();
         renderSettingsPanels();
     }
@@ -8518,7 +9220,7 @@ let skyClouds = [];
         const goldLabel = tr('gold').toLocaleUpperCase();
         if (levelEl) levelEl.innerText = `${level}/${maxLevel}`;
         if (multiplierEl) multiplierEl.innerText = multiplierText;
-        if (costEl) costEl.innerText = isMax ? tr('maxLevel') : `${nextCost.toLocaleString('tr-TR')} ${goldLabel}`;
+        if (costEl) costEl.innerText = isMax ? tr('maxLevel') : `${nextCost.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         if (statusEl) {
             statusEl.innerText = isMax
                 ? tr('maxLevel')
@@ -8526,7 +9228,7 @@ let skyClouds = [];
         }
         if (buttonEl) {
             setUpgradeButtonUnavailable(buttonEl, isMax || !canAfford);
-            buttonEl.innerText = isMax ? tr('maxLevel') : `${nextCost.toLocaleString('tr-TR')} ${goldLabel}`;
+            buttonEl.innerText = isMax ? tr('maxLevel') : `${nextCost.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         }
         (steps || []).forEach((step, index) => {
             step.classList.toggle('is-filled', index < level);
@@ -8541,7 +9243,7 @@ let skyClouds = [];
         const canAfford = !owned && walletCoins >= GLIDE_UPGRADE_COST;
         const goldLabel = tr('gold').toLocaleUpperCase();
         if (ui.glideUpgradeState) ui.glideUpgradeState.innerText = owned ? (selected ? tr('selected') : tr('owned')) : tr('locked');
-        if (ui.glideUpgradeCost) ui.glideUpgradeCost.innerText = owned ? tr('owned') : `${GLIDE_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+        if (ui.glideUpgradeCost) ui.glideUpgradeCost.innerText = owned ? tr('owned') : `${GLIDE_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         if (ui.glideUpgradeStatus) {
             ui.glideUpgradeStatus.innerText = owned
                 ? (selected ? tr('active') : tr('select'))
@@ -8551,7 +9253,7 @@ let skyClouds = [];
             setUpgradeButtonUnavailable(ui.glideUpgradeBtn, selected || (!owned && !canAfford));
             ui.glideUpgradeBtn.innerText = owned
                 ? (selected ? tr('selected') : tr('select'))
-                : `${GLIDE_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+                : `${GLIDE_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         }
         (ui.glideUpgradeSteps || []).forEach((step, index) => {
             step.classList.toggle('is-filled', owned);
@@ -8566,7 +9268,7 @@ let skyClouds = [];
         const canAfford = !owned && walletCoins >= DOUBLE_JUMP_UPGRADE_COST;
         const goldLabel = tr('gold').toLocaleUpperCase();
         if (ui.doubleJumpUpgradeState) ui.doubleJumpUpgradeState.innerText = owned ? (selected ? tr('selected') : tr('owned')) : tr('locked');
-        if (ui.doubleJumpUpgradeCost) ui.doubleJumpUpgradeCost.innerText = owned ? tr('owned') : `${DOUBLE_JUMP_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+        if (ui.doubleJumpUpgradeCost) ui.doubleJumpUpgradeCost.innerText = owned ? tr('owned') : `${DOUBLE_JUMP_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         if (ui.doubleJumpUpgradeStatus) {
             ui.doubleJumpUpgradeStatus.innerText = owned
                 ? (selected ? '5s' : tr('select'))
@@ -8576,7 +9278,7 @@ let skyClouds = [];
             setUpgradeButtonUnavailable(ui.doubleJumpUpgradeBtn, selected || (!owned && !canAfford));
             ui.doubleJumpUpgradeBtn.innerText = owned
                 ? (selected ? tr('selected') : tr('select'))
-                : `${DOUBLE_JUMP_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+                : `${DOUBLE_JUMP_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         }
     }
 
@@ -8586,7 +9288,7 @@ let skyClouds = [];
         const canAfford = !owned && walletCoins >= REVIVE_UPGRADE_COST;
         const goldLabel = tr('gold').toLocaleUpperCase();
         if (ui.reviveUpgradeState) ui.reviveUpgradeState.innerText = owned ? tr('active') : tr('locked');
-        if (ui.reviveUpgradeCost) ui.reviveUpgradeCost.innerText = owned ? tr('owned') : `${REVIVE_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+        if (ui.reviveUpgradeCost) ui.reviveUpgradeCost.innerText = owned ? tr('owned') : `${REVIVE_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         if (ui.reviveUpgradeStatus) {
             ui.reviveUpgradeStatus.innerText = owned
                 ? tr('active')
@@ -8596,7 +9298,7 @@ let skyClouds = [];
             setUpgradeButtonUnavailable(ui.reviveUpgradeBtn, owned || !canAfford);
             ui.reviveUpgradeBtn.innerText = owned
                 ? tr('active')
-                : `${REVIVE_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+                : `${REVIVE_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         }
     }
 
@@ -8647,7 +9349,7 @@ let skyClouds = [];
         if (ui.timeSlowUpgradeTitle) ui.timeSlowUpgradeTitle.innerText = localizedName;
         if (ui.timeSlowUpgradeAbility) ui.timeSlowUpgradeAbility.innerText = localizedName;
         if (ui.timeSlowUpgradeState) ui.timeSlowUpgradeState.innerText = owned ? (selected ? tr('selected') : tr('owned')) : tr('locked');
-        if (ui.timeSlowUpgradeCost) ui.timeSlowUpgradeCost.innerText = owned ? tr('owned') : `${TIME_SLOW_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+        if (ui.timeSlowUpgradeCost) ui.timeSlowUpgradeCost.innerText = owned ? tr('owned') : `${TIME_SLOW_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         if (ui.timeSlowUpgradeStatus) {
             ui.timeSlowUpgradeStatus.innerText = owned
                 ? (selected ? tr('active') : tr('select'))
@@ -8657,7 +9359,7 @@ let skyClouds = [];
             setUpgradeButtonUnavailable(ui.timeSlowUpgradeBtn, selected || (!owned && !canAfford));
             ui.timeSlowUpgradeBtn.innerText = owned
                 ? (selected ? tr('selected') : tr('select'))
-                : `${TIME_SLOW_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+                : `${TIME_SLOW_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         }
     }
 
@@ -8671,7 +9373,7 @@ let skyClouds = [];
         if (ui.magnetUpgradeTitle) ui.magnetUpgradeTitle.innerText = localizedName;
         if (ui.magnetUpgradeAbility) ui.magnetUpgradeAbility.innerText = localizedName;
         if (ui.magnetUpgradeState) ui.magnetUpgradeState.innerText = owned ? (selected ? tr('selected') : tr('owned')) : tr('locked');
-        if (ui.magnetUpgradeCost) ui.magnetUpgradeCost.innerText = owned ? tr('owned') : `${MAGNET_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+        if (ui.magnetUpgradeCost) ui.magnetUpgradeCost.innerText = owned ? tr('owned') : `${MAGNET_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         if (ui.magnetUpgradeStatus) {
             ui.magnetUpgradeStatus.innerText = owned
                 ? (selected ? tr('active') : tr('select'))
@@ -8681,7 +9383,7 @@ let skyClouds = [];
             setUpgradeButtonUnavailable(ui.magnetUpgradeBtn, selected || (!owned && !canAfford));
             ui.magnetUpgradeBtn.innerText = owned
                 ? (selected ? tr('selected') : tr('select'))
-                : `${MAGNET_UPGRADE_COST.toLocaleString('tr-TR')} ${goldLabel}`;
+                : `${MAGNET_UPGRADE_COST.toLocaleString(menuNumberLocale())} ${goldLabel}`;
         }
     }
 
@@ -9213,7 +9915,7 @@ let skyClouds = [];
     }
 
     function showMainMenu(resetRun = false) {
-        if (window.ElementalFeedback) window.ElementalFeedback.hide(true);
+        hideHowToPlayOverlay(true);
         rewardedDeathPending = false;
         pendingRewardedDeathMessage = '';
         hideRewardedContinueOverlay();
@@ -9268,7 +9970,7 @@ let skyClouds = [];
     function beginRunFromMainMenu(resetRun = true) {
         if (resetRun) resetGame({ startPaused: true, skipImmediateRender: true });
         hideMainMenu();
-        if (window.ElementalFeedback) window.ElementalFeedback.show(normalizeLanguage(menuState.language));
+        showHowToPlayOverlay();
         runStartedFromMenu = true;
         menuState.runCount += 1;
         saveMainMenuState();
@@ -10781,6 +11483,8 @@ nextSnowballX = 0;
                 rewardedDeathPending,
                 rewardedDeathOfferReady,
                 rewardedAdBusy,
+                howToPlayVisible: !!(ui.howToPlayOverlay && !ui.howToPlayOverlay.hidden),
+                howToPlayRemainingMs: Math.max(0, howToPlayVisibleUntil - performance.now()),
                 browserBuild: isBrowserBuild(),
                 hands: {
                     enabled: !!menuState.handsEnabled,
@@ -10869,6 +11573,37 @@ nextSnowballX = 0;
             verifySave: () => {
                 const raw = localStorage.getItem(MAIN_MENU_STORAGE_KEY);
                 return raw ? verifyBrowserSaveIntegrity(JSON.parse(raw)) : false;
+            },
+            showHowToPlay: () => {
+                showHowToPlayOverlay();
+                return renderGameToText();
+            },
+            previewWalletEffect: (kind = 'gain', amount = 50) => {
+                playWalletTransactionEffect(Math.max(1, Number(amount) || 50), kind === 'spend' ? 'spend' : 'gain', ui.menuShopBtn);
+                return renderGameToText();
+            },
+            returnToMenu: () => {
+                showMainMenu(false);
+                return renderGameToText();
+            },
+            makeDailyClaimable: () => {
+                const data = ensureDailyMissions();
+                const mission = data.missions[0];
+                mission.progress = mission.target;
+                mission.done = true;
+                mission.rewarded = false;
+                renderDailyMissions();
+                return renderGameToText();
+            },
+            setWalletCoins: (amount = 0) => {
+                menuState.walletCoins = Math.max(0, Math.floor(Number(amount)) || 0);
+                updateMainMenuStats();
+                return renderGameToText();
+            },
+            setLanguage: (language = 'en') => {
+                menuState.language = normalizeLanguage(language);
+                applyLanguageTexts();
+                return renderGameToText();
             }
         });
     }
@@ -18379,6 +19114,9 @@ function createHeadlightBeam() {
             }
         }
         if (bufferDirty) globalParticleMesh.geometry.attributes.position.needsUpdate = true;
+        // Havuzda canlı slot yokken Points mesh'ini tamamen çizim dışına al. Böylece
+        // eski sarı/mavi slotlar herhangi bir buffer/rebase güncellemesinde tekrar
+        // görünemez; yeni ve kasıtlı bir patlama mesh'i yeniden açar.
         globalParticleMesh.visible = activeCount > 0;
     }
 
