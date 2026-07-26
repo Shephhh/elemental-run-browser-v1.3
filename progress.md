@@ -58,3 +58,9 @@ TODO:
 - Reworked the play-start how-to card into a compact top-right rectangle with WASD, E, SPACE, an OR divider line, and a mouse icon.
 - Applied the same index.html update to the desktop v1.3 app.asar and kept a timestamped app.asar backup.
 - Verified with a Playwright smoke test: upgradeHasTurkish=false, the onboarding card appears in the top-right and hides after 5 seconds, with no browser console errors.
+
+2026-07-26 - How-to-play stability + Auto ads check
+- Fixed the onboarding card's intermittent nested/overlapping layout: an older global three-column rule was leaking into the new control stack. The card now explicitly uses one vertical control flow with fixed, responsive key groups.
+- Replaced the minimal mouse outline with a clearer mouse icon that has separate left/right buttons, a lit scroll wheel, and a lower body detail. The card background is now nearly opaque so HUD text behind it cannot read as part of the card.
+- The card is queued after menu teardown and two animation frames, so its five-second display time begins after slow start-up work rather than expiring during it.
+- Confirmed that the AdSense publisher script, publisher meta tag, and ads.txt publisher line are present. With Auto ads switched on in AdSense, no additional manual page-level tag or ad unit is required for display Auto ads.
