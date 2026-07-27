@@ -4389,9 +4389,11 @@
             0%, 100% { transform: rotate(-20deg); }
             50% { transform: rotate(70deg); }
         }
-        @media (orientation: portrait) and (max-width: 760px) {
-            body.mobile-runtime:not(.main-menu-active) #mobile-orientation-hint {
+        @media (orientation: portrait) and (max-width: 900px) {
+            body.mobile-runtime #mobile-orientation-hint {
                 display: grid;
+                pointer-events: auto;
+                touch-action: none;
             }
         }
         @media (max-height: 520px) {
@@ -5232,11 +5234,25 @@
             const userAgent = navigator.userAgent || '';
             const reportedMobile = navigator.userAgentData && navigator.userAgentData.mobile === true;
             const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
+            // Mobile browsers can request a desktop user agent. In that mode the old
+            // UA-only test selected the mouse/pointer-lock runtime, so PLAY appeared
+            // unresponsive and the keyboard onboarding was shown. A compact coarse
+            // touch screen is a phone/tablet even when its UA claims to be desktop.
+            const coarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+            const screenWidth = Number(window.screen && window.screen.width) || innerWidth || 9999;
+            const screenHeight = Number(window.screen && window.screen.height) || innerHeight || 9999;
+            const compactScreen = Math.min(screenWidth, screenHeight) <= 900
+                && Math.max(screenWidth, screenHeight) <= 1180;
+            const desktopWindows = /Windows NT/i.test(userAgent) && !/Windows Phone|Android/i.test(userAgent);
+            const compactTouchDevice = !desktopWindows
+                && navigator.maxTouchPoints > 0
+                && coarsePointer
+                && compactScreen;
             // iPadOS can identify itself as a desktop Mac while still exposing
             // multi-touch. This keeps iPads on the touch controls without sending
             // touch-capable Windows laptops to the mobile runtime.
             const iPadDesktopMode = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-            return forcedMobile || reportedMobile || mobileUserAgent || iPadDesktopMode;
+            return forcedMobile || reportedMobile || mobileUserAgent || iPadDesktopMode || compactTouchDevice;
         } catch (error) {
             return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
         }

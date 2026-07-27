@@ -106,3 +106,11 @@ TODO:
 - Reduced ability-card state labels such as LOCKED, OWNED, SELECTED, and ACTIVE to a compact localized chip size without changing numeric upgrade values.
 - Reduced the play-start How to Play overlay to a 250px corner hint with compact keys/mouse glyphs, keeping the top of the 3D playfield readable.
 - Local visual QA confirmed 12.4px ability states, a 250x154px onboarding hint, correct start flow, and no browser/page errors.
+
+2026-07-27 - Mobile input and landscape recovery
+- Fixed phones using a browser's "desktop site" identity being routed to the desktop mouse/pointer-lock runtime. Compact coarse-pointer touch devices now select the mobile runtime even when their user agent claims to be a desktop Mac.
+- Preserved the desktop runtime for touch-capable Windows laptops.
+- Portrait phones now show the rotate-to-landscape blocker from the main menu onward and the blocker intercepts touches, preventing an unusable portrait run from starting behind it.
+- In landscape, the desktop WASD/Space onboarding is hidden, the mobile two-stick onboarding is shown, and tapping PLAY immediately starts the run without pointer-lock.
+- Real touch QA passed for tapping PLAY and jumping from the right joystick. Separate profiles passed for Android landscape, Android portrait, a phone using a desktop Mac user agent, and a touch-capable Windows laptop; no page/runtime errors were reported.
+- Bumped the service-worker shell cache so returning mobile visitors receive the corrected routing and input behavior.

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-7-elemental-worlds';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-8-mobile-input-recovery';
 const SHELL = [
   './',
   './index.html',
