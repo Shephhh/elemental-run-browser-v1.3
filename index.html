@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ELEMENTAL RUN - Free Endless Runner</title>
     <meta name="description" content="Play ELEMENTAL RUN in your browser. Dodge traffic, jump hazards, collect gold, unlock upgrades, and survive fast neon endless runner maps.">
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
@@ -4065,10 +4065,251 @@
             .keycap.is-e { min-width: 25px; }
             .mouse-glyph { transform: scale(.88); margin: -3px; }
         }
+
+        /* Mobile runtime: two thumb sticks, safe-area spacing and zero browser gestures. */
+        #mobile-controls {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 34;
+            pointer-events: none;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body.mobile-runtime {
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+        body.mobile-runtime canvas {
+            touch-action: none;
+        }
+        body.mobile-runtime.mobile-controls-visible #mobile-controls {
+            display: block;
+        }
+        .mobile-stick {
+            --stick-size: clamp(116px, 21vmin, 168px);
+            position: absolute;
+            bottom: max(16px, calc(env(safe-area-inset-bottom) + 10px));
+            width: var(--stick-size);
+            height: var(--stick-size);
+            pointer-events: auto;
+            touch-action: none;
+            opacity: .84;
+            transition: opacity .16s ease, transform .16s ease;
+        }
+        .mobile-stick.is-look {
+            left: max(18px, calc(env(safe-area-inset-left) + 12px));
+        }
+        .mobile-stick.is-action {
+            right: max(18px, calc(env(safe-area-inset-right) + 12px));
+        }
+        .mobile-stick.is-active {
+            opacity: 1;
+            transform: scale(1.035);
+        }
+        .mobile-stick-base {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            overflow: visible;
+            border: 2px solid rgba(135, 236, 255, .62);
+            background:
+                radial-gradient(circle at 50% 50%, rgba(16, 40, 58, .32) 0 42%, rgba(4, 14, 24, .64) 43% 100%);
+            box-shadow:
+                inset 0 0 0 8px rgba(67, 196, 230, .06),
+                inset 0 0 24px rgba(39, 203, 255, .17),
+                0 0 0 1px rgba(0, 0, 0, .45),
+                0 8px 28px rgba(0, 0, 0, .42);
+        }
+        .mobile-stick-base::before,
+        .mobile-stick-base::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            background: rgba(150, 235, 255, .22);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .mobile-stick-base::before { width: 72%; height: 1px; }
+        .mobile-stick-base::after { width: 1px; height: 72%; }
+        .mobile-stick-knob {
+            --knob-x: 0px;
+            --knob-y: 0px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 44%;
+            height: 44%;
+            border-radius: 50%;
+            transform: translate3d(calc(-50% + var(--knob-x)), calc(-50% + var(--knob-y)), 0);
+            border: 2px solid rgba(222, 251, 255, .9);
+            background:
+                radial-gradient(circle at 38% 30%, rgba(255,255,255,.48), rgba(78,216,245,.32) 25%, rgba(8,42,61,.88) 72%);
+            box-shadow:
+                inset 0 0 14px rgba(121, 239, 255, .35),
+                0 0 18px rgba(56, 217, 255, .36),
+                0 5px 10px rgba(0,0,0,.48);
+            will-change: transform;
+            pointer-events: none;
+        }
+        .mobile-stick.is-action .mobile-stick-base {
+            border-color: rgba(255, 117, 185, .68);
+            box-shadow:
+                inset 0 0 0 8px rgba(255, 77, 157, .06),
+                inset 0 0 24px rgba(255, 49, 147, .14),
+                0 0 0 1px rgba(0, 0, 0, .45),
+                0 8px 28px rgba(0, 0, 0, .42);
+        }
+        .mobile-stick.is-action .mobile-stick-knob {
+            border-color: rgba(255, 225, 244, .92);
+            background:
+                radial-gradient(circle at 38% 30%, rgba(255,255,255,.5), rgba(255,105,183,.33) 26%, rgba(65,10,44,.9) 72%);
+            box-shadow:
+                inset 0 0 14px rgba(255, 155, 215, .3),
+                0 0 18px rgba(255, 63, 159, .32),
+                0 5px 10px rgba(0,0,0,.48);
+        }
+        .mobile-stick-caption {
+            position: absolute;
+            left: 50%;
+            top: -13px;
+            transform: translateX(-50%);
+            color: rgba(222, 249, 255, .72);
+            font-family: Orbitron, Rajdhani, sans-serif;
+            font-size: clamp(8px, 1.3vmin, 11px);
+            font-weight: 900;
+            letter-spacing: 1.2px;
+            text-shadow: 0 2px 6px #000;
+            pointer-events: none;
+        }
+        .mobile-action-marker {
+            position: absolute;
+            display: grid;
+            place-items: center;
+            gap: 1px;
+            min-width: 38px;
+            color: rgba(255, 234, 246, .82);
+            font-family: Orbitron, Rajdhani, sans-serif;
+            font-size: clamp(8px, 1.2vmin, 10px);
+            font-weight: 900;
+            line-height: 1;
+            letter-spacing: .7px;
+            text-shadow: 0 2px 7px #000, 0 0 8px rgba(255, 55, 157, .5);
+            pointer-events: none;
+        }
+        .mobile-action-marker b { font-size: clamp(14px, 2.5vmin, 22px); line-height: .8; }
+        .mobile-action-marker.is-up { left: 50%; top: 6px; transform: translateX(-50%); }
+        .mobile-action-marker.is-down { left: 50%; bottom: 6px; transform: translateX(-50%); }
+        .mobile-action-marker.is-left { left: -37px; top: 50%; transform: translateY(-50%); }
+        #mobile-orientation-hint {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 70;
+            place-items: center;
+            pointer-events: none;
+            background: rgba(2, 6, 13, .86);
+            color: #dffaff;
+            font-family: Orbitron, Rajdhani, sans-serif;
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 1.7px;
+            text-align: center;
+        }
+        #mobile-orientation-hint::before {
+            content: "↻";
+            display: block;
+            margin-bottom: 12px;
+            font-size: 44px;
+            color: #62e8ff;
+            text-shadow: 0 0 18px rgba(69, 224, 255, .62);
+            animation: mobile-rotate-hint 1.5s ease-in-out infinite;
+        }
+        @keyframes mobile-rotate-hint {
+            0%, 100% { transform: rotate(-20deg); }
+            50% { transform: rotate(70deg); }
+        }
+        @media (orientation: portrait) and (max-width: 760px) {
+            body.mobile-runtime:not(.main-menu-active) #mobile-orientation-hint {
+                display: grid;
+            }
+        }
+        @media (max-height: 520px) {
+            .mobile-stick {
+                --stick-size: clamp(104px, 27vh, 142px);
+                bottom: max(10px, calc(env(safe-area-inset-bottom) + 6px));
+            }
+            .mobile-stick.is-look { left: max(12px, calc(env(safe-area-inset-left) + 8px)); }
+            .mobile-stick.is-action { right: max(12px, calc(env(safe-area-inset-right) + 8px)); }
+            body.mobile-runtime #ui {
+                transform: scale(.78);
+                transform-origin: top left;
+            }
+            body.mobile-runtime #progress-wrapper {
+                transform: translateX(-50%) scale(.76);
+                transform-origin: top center;
+            }
+            body.mobile-runtime #progress-text {
+                transform: translateX(-50%) scale(.8);
+                transform-origin: top center;
+            }
+        }
+        @media (max-height: 520px) and (orientation: landscape) {
+            body.mobile-runtime .menu-logo-btn {
+                display: none;
+            }
+            body.mobile-runtime .menu-button-stack {
+                left: max(18px, calc(env(safe-area-inset-left) + 12px));
+                top: 94px;
+                width: min(410px, calc(59vw - 24px));
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 6px;
+            }
+            body.mobile-runtime #menu-start-btn {
+                grid-column: 1 / -1;
+            }
+            body.mobile-runtime #main-menu .menu-button {
+                height: 46px;
+                grid-template-columns: 46px minmax(0, 1fr);
+                font-size: clamp(12px, 2.15vw, 17px);
+            }
+            body.mobile-runtime #main-menu .menu-button:not(.primary) .menu-button-text {
+                font-size: .75em;
+                letter-spacing: 0;
+            }
+            body.mobile-runtime .menu-button-icon {
+                width: 46px;
+            }
+            body.mobile-runtime .menu-button-icon svg {
+                width: 27px;
+                height: 27px;
+            }
+            body.mobile-runtime .menu-score-panel {
+                height: 66px;
+            }
+        }
+        body.mobile-runtime #hud-controls,
+        body.mobile-runtime #info-text,
+        body.mobile-runtime #how-to-play-overlay {
+            display: none !important;
+        }
+        body.mobile-runtime .menu-snow span:nth-child(n+10) {
+            display: none;
+        }
+        body.mobile-runtime .menu-snow span {
+            filter: none !important;
+        }
+        body.mobile-runtime.mobile-controls-visible #crosshair-container {
+            opacity: .55;
+        }
         @media (prefers-reduced-motion: reduce) {
             .menu-daily-badge,
             .how-to-play-card::before,
             .mouse-glyph::before { animation: none; }
+            #mobile-orientation-hint::before { animation: none; }
             #how-to-play-overlay { transition-duration: .12s; }
             .wallet-fx-coin { display: none; }
         }
@@ -4722,6 +4963,23 @@
 <p id="info-text">1000 puandan sonra her 10000 puanda yol genişler.</p>
 </div>
 <div id="noclip-indicator" style="display:none; position:absolute; top:116px; right:24px; z-index:12; pointer-events:none; padding:8px 12px; border:1px solid rgba(116,232,255,.55); border-radius:8px; background:rgba(4,12,24,.76); color:#8cf4ff; font-family:Orbitron,Rajdhani,sans-serif; font-size:13px; font-weight:900; letter-spacing:1.8px; text-shadow:0 0 8px rgba(83,224,255,.8);">NOCLIP <span style="margin-left:8px; color:rgba(255,255,255,.72); font-size:11px;">F6</span></div>
+<div id="mobile-controls" aria-hidden="true">
+    <div id="mobile-look-stick" class="mobile-stick is-look" role="application" aria-label="Look control">
+        <div class="mobile-stick-base">
+            <span id="mobile-look-caption" class="mobile-stick-caption">LOOK</span>
+            <span class="mobile-stick-knob" aria-hidden="true"></span>
+        </div>
+    </div>
+    <div id="mobile-action-stick" class="mobile-stick is-action" role="application" aria-label="Action control">
+        <div class="mobile-stick-base">
+            <span class="mobile-action-marker is-up"><b>↑</b><span id="mobile-jump-label">JUMP</span></span>
+            <span class="mobile-action-marker is-down"><span id="mobile-slide-label">SLIDE</span><b>↓</b></span>
+            <span class="mobile-action-marker is-left"><b>⚡</b><span id="mobile-skill-label">SKILL</span></span>
+            <span class="mobile-stick-knob" aria-hidden="true"></span>
+        </div>
+    </div>
+</div>
+<div id="mobile-orientation-hint" aria-hidden="true"><span>TURN YOUR PHONE</span></div>
 <div id="revive-sequence" aria-hidden="true">
     <div class="revive-screen-grade"></div>
     <div class="revive-vignette"></div>
@@ -4789,6 +5047,26 @@
 <script>
 (() => {
     'use strict';
+    const MOBILE_RUNTIME = (() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const forcedMobile = params.get('mobile') === '1';
+            const userAgent = navigator.userAgent || '';
+            const reportedMobile = navigator.userAgentData && navigator.userAgentData.mobile === true;
+            const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
+            // iPadOS can identify itself as a desktop Mac while still exposing
+            // multi-touch. This keeps iPads on the touch controls without sending
+            // touch-capable Windows laptops to the mobile runtime.
+            const iPadDesktopMode = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+            return forcedMobile || reportedMobile || mobileUserAgent || iPadDesktopMode;
+        } catch (error) {
+            return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+        }
+    })();
+    const MOBILE_LOW_END = MOBILE_RUNTIME && (
+        (Number(navigator.deviceMemory) > 0 && Number(navigator.deviceMemory) <= 4)
+        || (Number(navigator.hardwareConcurrency) > 0 && Number(navigator.hardwareConcurrency) <= 4)
+    );
     let nextNatureSpawnX = 0;
     let scene, camera, renderer, player, clock, dirLight;
     // --- Cinematic GFX module state ---
@@ -5041,7 +5319,7 @@ let nextLavaPlasmaX = 0;
     // toplayıp getSharedResourceSets üzerinden dispose'dan koruyoruz (2026-07-07 hitch fix).
     const spawnPoolGeoms = [], spawnPoolMats = [];
     
-    const MAX_PARTICLES = 600; 
+    const MAX_PARTICLES = MOBILE_RUNTIME ? 160 : 600;
     const pPos = new Float32Array(MAX_PARTICLES * 3);
     const pCol = new Float32Array(MAX_PARTICLES * 3);
     const pData = []; 
@@ -5140,15 +5418,15 @@ const SKY_MOUNTAIN_Z_SPREAD = 240; // dağların kendi aralarındaki derinlik ç
 const SKY_DECOR_Z_CULL = 1700;   // dağlar artık daha dışarıda → eski 900 onları siliyordu
 const SKY_DECOR_MIN_MOUNTAINS = 18;
 const SKY_DECOR_MAX_MOUNTAINS = 30;
-const SKY_DECOR_MIN_SKYSCRAPERS = 28;
-const SKY_DECOR_SPAWN_AHEAD = 5200;
-const SKY_DECOR_CULL_AHEAD = 7000;
-const SKY_DECOR_CULL_BEHIND = 1450;
-const SKY_DECOR_MAX_COUNT = 180;
-const SKY_DECOR_STEP_MIN = 78;
-const SKY_DECOR_STEP_RANDOM = 76;
-const SKY_DECOR_NEAR_AHEAD = 2600;
-const SKY_DECOR_NEAR_BEHIND = 320;
+const SKY_DECOR_MIN_SKYSCRAPERS = MOBILE_RUNTIME ? 10 : 28;
+const SKY_DECOR_SPAWN_AHEAD = MOBILE_RUNTIME ? 1500 : 5200;
+const SKY_DECOR_CULL_AHEAD = MOBILE_RUNTIME ? 2100 : 7000;
+const SKY_DECOR_CULL_BEHIND = MOBILE_RUNTIME ? 520 : 1450;
+const SKY_DECOR_MAX_COUNT = MOBILE_RUNTIME ? 58 : 180;
+const SKY_DECOR_STEP_MIN = MOBILE_RUNTIME ? 105 : 78;
+const SKY_DECOR_STEP_RANDOM = MOBILE_RUNTIME ? 110 : 76;
+const SKY_DECOR_NEAR_AHEAD = MOBILE_RUNTIME ? 920 : 2600;
+const SKY_DECOR_NEAR_BEHIND = MOBILE_RUNTIME ? 180 : 320;
 const SKY_DECOR_MIN_NEAR_ANCHORS = 22;
 const SKY_DECOR_MIN_SAFE_AHEAD = 620;
 const SKY_DECOR_BACKFILL_START_AHEAD = 2850;
@@ -5259,6 +5537,13 @@ let skyClouds = [];
     let pitch = 0;
     let yaw = -Math.PI / 2;  
     const BASE_MOUSE_SENSITIVITY = 0.0012;
+    let mobileLookX = 0;
+    let mobileLookY = 0;
+    let mobileLookPointer = null;
+    let mobileActionPointer = null;
+    let mobileActionDirection = '';
+    let mobileControlsVisible = false;
+    let mobileControlsInitialized = false;
     
     const keys = { a: false, d: false, w: false, s: false, ' ': false, c: false, shift: false };
     const CONTROL_BINDING_VERSION = 1;
@@ -5407,6 +5692,10 @@ let skyClouds = [];
     }
 
     function showHowToPlayOverlay() {
+        if (MOBILE_RUNTIME) {
+            hideHowToPlayOverlay(true);
+            return;
+        }
         if (!ui.howToPlayOverlay) return;
         hideHowToPlayOverlay(true);
         applyHowToPlayCopy();
@@ -5419,7 +5708,8 @@ let skyClouds = [];
     }
 
     function queueHowToPlayOverlay() {
-        // Let the menu teardown and the first game frame finish first.  Starting the
+        if (MOBILE_RUNTIME) return;
+        // Let the menu teardown and the first game frame finish first. Starting the
         // five-second timer before that work completed made the card occasionally
         // disappear immediately on slower browsers.
         requestAnimationFrame(() => {
@@ -5615,6 +5905,21 @@ let skyClouds = [];
         high:        { pixelRatio: 1.25, renderDistance: 1120, shadows: true,  shadowMapSize: 2048, softShadows: true,  antialias: true,  bloom: true,  bloomStrength: 0.22, bloomRadius: 0.45, bloomThreshold: 0.85, envMap: false, exposure: 1.08, maxPixelRatio: 1.75 },
         ultra:       { pixelRatio: 1.5,  renderDistance: 1280, shadows: true,  shadowMapSize: 4096, softShadows: true,  antialias: true,  bloom: true,  bloomStrength: 0.30, bloomRadius: 0.50, bloomThreshold: 0.82, envMap: false, exposure: 1.10, maxPixelRatio: 2.0 }
     };
+    const MOBILE_QUALITY_PRESET = Object.freeze({
+        pixelRatio: MOBILE_LOW_END ? 0.62 : 0.72,
+        renderDistance: MOBILE_LOW_END ? 360 : 440,
+        shadows: false,
+        shadowMapSize: 512,
+        softShadows: false,
+        antialias: false,
+        bloom: false,
+        bloomStrength: 0,
+        bloomRadius: 0,
+        bloomThreshold: 1,
+        envMap: false,
+        exposure: 1,
+        maxPixelRatio: MOBILE_LOW_END ? 0.66 : 0.76
+    });
     const DISPLAY_MODES = ['windowed', 'borderless', 'fullscreen'];
     const SUPPORTED_LANGUAGES = [
         { code: 'en', label: 'İngilizce', nativeName: 'English' },
@@ -6757,7 +7062,7 @@ let skyClouds = [];
 
     function initArrowEffectPool() {
         if (arrowEffectPool.length > 0 || !ui.effectsContainer) return;
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < (MOBILE_RUNTIME ? 4 : 8); i++) {
             const arrow = document.createElement('div');
             arrow.className = 'traffic-arrow';
             arrow.style.display = 'none';
@@ -6768,7 +7073,7 @@ let skyClouds = [];
 
     function initOilSplatterPool() {
         if (oilSplatterPool.length > 0 || !ui.effectsContainer) return;
-        for (let i = 0; i < 44; i++) {
+        for (let i = 0; i < (MOBILE_RUNTIME ? 18 : 44); i++) {
             const splatter = document.createElement('div');
             splatter.className = 'oil-splatter';
             splatter.style.display = 'none';
@@ -8327,7 +8632,10 @@ let skyClouds = [];
             sfxVolume: clampNumber(saved.sfxVolume, 0, 1.4, 1.15),
             uiVolume: clampNumber(saved.uiVolume, 0, 1.6, 1.25),
             gameplayUiHidden: !!saved.gameplayUiHidden,
-            handsEnabled: saved.handsEnabled !== false, // yeni oyuncularda varsayılan AÇIK; mevcut açık/kapalı tercihi korunur
+            // The 18 MB / 120k-triangle hand model is intentionally disabled in the
+            // mobile build. It saves a second render pass, three large textures and
+            // a noticeable startup hitch on low-memory phones.
+            handsEnabled: MOBILE_RUNTIME ? false : saved.handsEnabled !== false,
             mouseSensitivity: clampNumber(saved.mouseSensitivity, 0.45, 1.85, 1.0),
             invertY: !!saved.invertY,
             language: normalizeLanguage(saved.language || 'en'),
@@ -8340,6 +8648,7 @@ let skyClouds = [];
     }
 
     function getQualityPreset() {
+        if (MOBILE_RUNTIME) return MOBILE_QUALITY_PRESET;
         return GRAPHICS_QUALITY_PRESETS[menuState.graphicsQuality] || GRAPHICS_QUALITY_PRESETS.balanced;
     }
 
@@ -8400,7 +8709,9 @@ let skyClouds = [];
         if (preset.pixelRatio <= 1.0) dpr = Math.min(native, preset.pixelRatio);
         else dpr = Math.min(preset.maxPixelRatio || preset.pixelRatio, Math.max(native, preset.pixelRatio));
         // Dinamik çözünürlük ölçeği (FPS koruması) preset'in üstüne çarpılır
-        return Math.max(0.55, Math.max(0.75, dpr) * gfxDynResScale);
+        const absoluteFloor = MOBILE_RUNTIME ? 0.42 : 0.55;
+        const presetFloor = MOBILE_RUNTIME ? 0.52 : 0.75;
+        return Math.max(absoluteFloor, Math.max(presetFloor, dpr) * gfxDynResScale);
     }
 
     // DİNAMİK ÇÖZÜNÜRLÜK (2026-07-05, "oyun kasıyor" fix): FPS düşünce render çözünürlüğünü
@@ -8412,14 +8723,17 @@ let skyClouds = [];
         gfxDynResTimer -= realDelta;
         if (gfxDynResTimer > 0) return;
         let changed = false;
-        if (smoothedFps < 47 && gfxDynResScale > 0.72) {
-            gfxDynResScale = Math.max(0.72, gfxDynResScale - 0.08);
+        const scaleFloor = MOBILE_RUNTIME ? 0.55 : 0.72;
+        const dropFps = MOBILE_RUNTIME ? 55 : 47;
+        const recoverFps = MOBILE_RUNTIME ? 59 : 57.5;
+        if (smoothedFps < dropFps && gfxDynResScale > scaleFloor) {
+            gfxDynResScale = Math.max(scaleFloor, gfxDynResScale - (MOBILE_RUNTIME ? 0.1 : 0.08));
             changed = true;
-            gfxDynResTimer = 1.4; // arka arkaya düşürmeden önce yeni ölçeğin oturmasını bekle
-        } else if (smoothedFps > 57.5 && gfxDynResScale < 1) {
-            gfxDynResScale = Math.min(1, gfxDynResScale + 0.04);
+            gfxDynResTimer = MOBILE_RUNTIME ? 0.9 : 1.4;
+        } else if (smoothedFps > recoverFps && gfxDynResScale < 1) {
+            gfxDynResScale = Math.min(1, gfxDynResScale + (MOBILE_RUNTIME ? 0.025 : 0.04));
             changed = true;
-            gfxDynResTimer = 2.2; // geri yükselirken daha temkinli
+            gfxDynResTimer = MOBILE_RUNTIME ? 3.0 : 2.2;
         } else {
             gfxDynResTimer = 0.5;
         }
@@ -8796,9 +9110,11 @@ let skyClouds = [];
     }
 
     function renderGraphicsSettings(surface) {
-        const qualityButtons = Object.keys(GRAPHICS_QUALITY_PRESETS).map((quality) => {
-            const label = quality === 'performance' ? tr('performance') : quality === 'balanced' ? tr('balanced') : quality === 'high' ? tr('high') : tr('ultra');
-            return optionButton(surface, 'graphicsQuality', quality, label, menuState.graphicsQuality === quality);
+        const qualityKeys = MOBILE_RUNTIME ? ['performance'] : Object.keys(GRAPHICS_QUALITY_PRESETS);
+        const qualityButtons = qualityKeys.map((quality) => {
+            const baseLabel = quality === 'performance' ? tr('performance') : quality === 'balanced' ? tr('balanced') : quality === 'high' ? tr('high') : tr('ultra');
+            const label = MOBILE_RUNTIME ? `${baseLabel} · MOBILE 60 FPS` : baseLabel;
+            return optionButton(surface, 'graphicsQuality', quality, label, MOBILE_RUNTIME || menuState.graphicsQuality === quality);
         }).join('');
         const displayButtons = DISPLAY_MODES.map((mode) => {
             const label = mode === 'windowed' ? tr('windowed') : mode === 'borderless' ? tr('borderless') : tr('fullscreen');
@@ -9046,6 +9362,7 @@ let skyClouds = [];
         updateRebirthUpgradeCard();
         applyHowToPlayCopy();
         applyBrowserLanguageTexts();
+        updateMobileControlLabels();
         renderSettingsPanels();
     }
 
@@ -9948,6 +10265,7 @@ let skyClouds = [];
 
     function showMainMenu(resetRun = false) {
         hideHowToPlayOverlay(true);
+        if (MOBILE_RUNTIME) setMobileControlsVisible(false);
         rewardedDeathPending = false;
         pendingRewardedDeathMessage = '';
         hideRewardedContinueOverlay();
@@ -10007,8 +10325,12 @@ let skyClouds = [];
         menuState.runCount += 1;
         saveMainMenuState();
         updateMainMenuStats();
-        isGamePaused = true;
+        isGamePaused = !MOBILE_RUNTIME;
         if (ui.pauseScreen) ui.pauseScreen.style.display = 'none';
+        if (MOBILE_RUNTIME) {
+            resumeMobileRun();
+            return;
+        }
         if (requestPointerLockFromUi) {
             const waitMs = Math.max(0, pointerLockBlockedUntil - performance.now());
             if (waitMs > 0) {
@@ -10818,6 +11140,7 @@ let skyClouds = [];
 
     function gameOver(msg) {
         if (isGameOver || reviveSequenceActive || rewardedDeathPending) return;
+        if (MOBILE_RUNTIME) setMobileControlsVisible(false);
         if (tryUseRevive()) return;
         if (isBrowserBuild()) {
             beginRewardedDeathOffer(msg);
@@ -10988,8 +11311,10 @@ let skyClouds = [];
         natureIntroStartX = 0;
         natureIntroFillCompleted = false;
         windWasSliding = false;
-        adaptiveRenderDistance = 1100;
+        adaptiveRenderDistance = getQualityPreset().renderDistance;
         smoothedFps = 60;
+        gfxDynResScale = 1;
+        gfxDynResTimer = 0;
         if (sharedWindMaterial) {
             sharedWindMaterial.color.setHex(0xffffff);
             sharedWindMaterial.opacity = 0.05;
@@ -11317,6 +11642,7 @@ nextSnowballX = 0;
         scoreRealDelta = realDelta;
         currentFrameScale = getFrameScale(realDelta);
         pollGamepadInput(realDelta);
+        updateMobileControlsVisibility();
 
         // WEB PERF: Ana menü opak bir CSS arka planıyla tüm canvas'ı kapatıyor. Buna rağmen
         // eskiden şehir, gölgeler, parçacıklar ve post-processing 60 FPS çizilmeye devam
@@ -11330,8 +11656,9 @@ nextSnowballX = 0;
         const fps = 1 / Math.max(rawDelta, 0.0001);
         smoothedFps += (fps - smoothedFps) * 0.08;
         const qualityRenderDistance = getQualityPreset().renderDistance;
-        if (smoothedFps < 40 && adaptiveRenderDistance !== Math.min(qualityRenderDistance, 700)) adaptiveRenderDistance = Math.min(qualityRenderDistance, 700);
-        else if (smoothedFps > 50 && adaptiveRenderDistance !== qualityRenderDistance) adaptiveRenderDistance = qualityRenderDistance;
+        const lowFpsDistance = MOBILE_RUNTIME ? Math.min(qualityRenderDistance, MOBILE_LOW_END ? 300 : 340) : Math.min(qualityRenderDistance, 700);
+        if (smoothedFps < (MOBILE_RUNTIME ? 52 : 40) && adaptiveRenderDistance !== lowFpsDistance) adaptiveRenderDistance = lowFpsDistance;
+        else if (smoothedFps > (MOBILE_RUNTIME ? 58 : 50) && adaptiveRenderDistance !== qualityRenderDistance) adaptiveRenderDistance = qualityRenderDistance;
         updateDynamicResolution(realDelta);
         
         if (!isGameOver && reviveSequenceActive) {
@@ -11344,6 +11671,7 @@ nextSnowballX = 0;
             // realDelta (time-slow'dan bağımsız): başarım eşikleri gerçek zamanla ilerlesin.
             updateAchievementTracking(realDelta);
             const worldTimeScale = getWorldTimeScale();
+            updateMobileLook(realDelta);
             // Dünya yavaşlatması: bu blok içinde delta artık ölçekli (skor gerçek delta kullanır)
             const delta = realDelta * worldTimeScale;
             currentFrameScale = getFrameScale(realDelta) * worldTimeScale;
@@ -11386,19 +11714,21 @@ nextSnowballX = 0;
                 updateLava(delta);
             }
             
+            const tunnelElapsed = clock.getElapsedTime();
+            const updateTunnelParticlesThisFrame = !MOBILE_RUNTIME || (hudTick % 2 === 0);
             tunnels.forEach(t => { 
                 t.mesh.children.forEach(child => {
-                    if (child.userData && child.userData.isTunnelParticle) {
+                    if (updateTunnelParticlesThisFrame && child.userData && child.userData.isTunnelParticle) {
                         const positions = child.geometry.attributes.position.array;
                         const speeds = child.userData.speeds;
                         for(let i=0; i<speeds.length; i++) {
-                            positions[i*3+1] += speeds[i] * Math.sin(clock.getElapsedTime() + i); 
-                            positions[i*3] += speeds[i] * Math.cos(clock.getElapsedTime() * 0.5 + i) * 0.5; 
+                            positions[i*3+1] += speeds[i] * Math.sin(tunnelElapsed + i);
+                            positions[i*3] += speeds[i] * Math.cos(tunnelElapsed * 0.5 + i) * 0.5;
                         }
                         child.geometry.attributes.position.needsUpdate = true;
                     }
                     if (child.userData && child.userData.isLavaTunnelGlow && child.material) {
-                        const pulse = 0.78 + 0.22 * Math.sin(clock.getElapsedTime() * 3.2 + (child.userData.pulseSeed || 0));
+                        const pulse = 0.78 + 0.22 * Math.sin(tunnelElapsed * 3.2 + (child.userData.pulseSeed || 0));
                         child.material.emissiveIntensity = (child.userData.baseIntensity || 1.5) * pulse;
                     }
                 });
@@ -11518,6 +11848,21 @@ nextSnowballX = 0;
                 howToPlayVisible: !!(ui.howToPlayOverlay && !ui.howToPlayOverlay.hidden),
                 howToPlayRemainingMs: Math.max(0, howToPlayVisibleUntil - performance.now()),
                 browserBuild: isBrowserBuild(),
+                mobile: {
+                    runtime: MOBILE_RUNTIME,
+                    lowEndProfile: MOBILE_LOW_END,
+                    controlsVisible: mobileControlsVisible,
+                    lookX: roundForText(mobileLookX, 2),
+                    lookY: roundForText(mobileLookY, 2),
+                    actionDirection: mobileActionDirection,
+                    effectivePixelRatio: renderer ? roundForText(renderer.getPixelRatio(), 2) : null,
+                    renderDistance: adaptiveRenderDistance,
+                    smoothedFps: roundForText(smoothedFps, 1),
+                    shadowsEnabled: !!(renderer && renderer.shadowMap && renderer.shadowMap.enabled),
+                    drawCalls: renderer && renderer.info ? renderer.info.render.calls : null,
+                    triangles: renderer && renderer.info ? renderer.info.render.triangles : null,
+                    points: renderer && renderer.info ? renderer.info.render.points : null
+                },
                 hands: {
                     enabled: !!menuState.handsEnabled,
                     requested: viewmodelGlbRequested,
@@ -11535,6 +11880,8 @@ nextSnowballX = 0;
                 },
                 rewardedUpgradeOffers: menuState.adUpgradeOffers,
             activeSpecialAbility: getActiveSpecialAbility(),
+            timeSlowActive,
+            magnetActive,
             middleMouseHeld,
             glideTimeLeft: roundForText(glideTimeLeft, 2),
             glideHeightAboveFloor: roundForText(getPlayerHeightAboveRunFloor(), 2),
@@ -11635,6 +11982,29 @@ nextSnowballX = 0;
             setLanguage: (language = 'en') => {
                 menuState.language = normalizeLanguage(language);
                 applyLanguageTexts();
+                return renderGameToText();
+            },
+            mobileAction: (direction = '') => {
+                setMobileActionDirection('');
+                setMobileActionDirection(direction);
+                if (direction !== 'left') setMobileActionDirection('');
+                return renderGameToText();
+            },
+            setMobileLook: (x = 0, y = 0) => {
+                mobileLookX = Math.max(-1, Math.min(1, Number(x) || 0));
+                mobileLookY = Math.max(-1, Math.min(1, Number(y) || 0));
+                return renderGameToText();
+            },
+            resumeMobile: () => {
+                resumeMobileRun();
+                return renderGameToText();
+            },
+            unlockMobileSkill: (ability = 'timeSlow') => {
+                if (ability === 'glide' || ability === 'doubleJump' || ability === 'timeSlow' || ability === 'magnet') {
+                    menuState.upgrades = { ...(menuState.upgrades || {}), [ability]: true };
+                    menuState.activeSpecialAbility = ability;
+                    updateUpgradeCards();
+                }
                 return renderGameToText();
             }
         });
@@ -12764,6 +13134,10 @@ if (renderer && dirLight) {
         scene = new THREE.Scene();
         cacheDomReferences();
         if (isBrowserBuild()) document.body.classList.add('browser-build');
+        if (MOBILE_RUNTIME) {
+            document.body.classList.add('mobile-runtime');
+            document.documentElement.style.touchAction = 'none';
+        }
         loadMainMenuState();
         if (isBrowserBuild()) {
             startRewardBoostUiClock();
@@ -12782,8 +13156,8 @@ if (renderer && dirLight) {
         renderer = new THREE.WebGLRenderer({
             antialias: false,
             powerPreference: "high-performance",
-            precision: "highp",
-            logarithmicDepthBuffer: true,
+            precision: MOBILE_RUNTIME ? "mediump" : "highp",
+            logarithmicDepthBuffer: !MOBILE_RUNTIME,
             stencil: false
         });
 
@@ -12796,9 +13170,9 @@ if (renderer && dirLight) {
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = GFX_DEFAULT_EXPOSURE;
         }
-        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.enabled = !MOBILE_RUNTIME;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.shadowMap.autoUpdate = true;
+        renderer.shadowMap.autoUpdate = !MOBILE_RUNTIME;
         document.body.appendChild(renderer.domElement);
 
         const hemiLight = new THREE.HemisphereLight(0x4444ff, 0x221111, 1.2);
@@ -12858,11 +13232,20 @@ if (renderer && dirLight) {
             { func: () => prewarmGameplayAssets(), text: () => tr('loadingWorld') }
         ];
 
-        loadCarGlb();
-        loadTrainGlb();
-        loadMotorGlb();
+        if (MOBILE_RUNTIME) {
+            // Procedural vehicle fallbacks preserve hit boxes and gameplay while
+            // avoiding ~19 MB of GLB downloads and their cloned GPU resources.
+            carGlbSettled = true;
+            trainGlbSettled = true;
+            motorGlbSettled = true;
+        } else {
+            loadCarGlb();
+            loadTrainGlb();
+            loadMotorGlb();
+        }
         runLoadingPipeline(tasks, waitForVehicleGlbsThenFinish);
         setupEventListeners();
+        setupMobileControls();
         window.addEventListener('resize', onWindowResize);
     }
 
@@ -12917,6 +13300,11 @@ if (renderer && dirLight) {
 
     function createViewmodelHands() {
         if (viewmodelRig || !camera || !scene) return;
+        if (MOBILE_RUNTIME) {
+            viewmodelGlbSettled = true;
+            viewmodelGlbReady = false;
+            return;
+        }
         // Eller kameranın ÇOCUĞU (tam kamera takibi — pitch dahil, standart FPS viewmodel davranışı).
         // Context7: camera.add(child) + kameranın sahneye eklenmesi, child'ların matrixWorld'ünün
         // doğru güncellenmesini garantiler (WebXR gaze-cursor kalıbıyla aynı).
@@ -13243,6 +13631,260 @@ if (renderer && dirLight) {
         }
     }
 
+    function updateMobileControlLabels() {
+        if (!MOBILE_RUNTIME) return;
+        const copy = getHowToPlayCopy();
+        const look = document.getElementById('mobile-look-caption');
+        const jump = document.getElementById('mobile-jump-label');
+        const slide = document.getElementById('mobile-slide-label');
+        const skill = document.getElementById('mobile-skill-label');
+        const rotate = document.querySelector('#mobile-orientation-hint span');
+        if (look) look.textContent = copy.look;
+        if (jump) jump.textContent = copy.jump;
+        if (slide) slide.textContent = tr('slide');
+        if (skill) skill.textContent = tr('ability');
+        if (rotate) {
+            const rotateText = {
+                tr: 'TELEFONU YAN ÇEVİR',
+                de: 'HANDY DREHEN',
+                fr: 'TOURNEZ LE TÉLÉPHONE',
+                it: 'RUOTA IL TELEFONO',
+                'es-ES': 'GIRA EL TELÉFONO',
+                'es-419': 'GIRA EL TELÉFONO',
+                'pt-BR': 'GIRE O CELULAR',
+                'pt-PT': 'RODE O TELEMÓVEL'
+            };
+            rotate.textContent = rotateText[normalizeLanguage(menuState.language)] || 'TURN YOUR PHONE';
+        }
+    }
+
+    function resetMobileStick(stick) {
+        if (!stick) return;
+        stick.classList.remove('is-active');
+        const knob = stick.querySelector('.mobile-stick-knob');
+        if (knob) {
+            knob.style.setProperty('--knob-x', '0px');
+            knob.style.setProperty('--knob-y', '0px');
+        }
+    }
+
+    function mobileHaptic(duration = 10) {
+        if (!MOBILE_RUNTIME || !navigator.vibrate) return;
+        try { navigator.vibrate(duration); } catch (error) {}
+    }
+
+    function releaseMobileSkillHold() {
+        if (gamepadGlideHeld) {
+            gamepadGlideHeld = false;
+            setGlideWindActive(false);
+        }
+    }
+
+    function triggerMobileSkill(active = true) {
+        if (!active || isGamePaused || isGameOver || mainMenuVisible) {
+            releaseMobileSkillHold();
+            return false;
+        }
+        const ability = getActiveSpecialAbility();
+        if (ability === 'glide') {
+            gamepadGlideHeld = true;
+            mobileHaptic(8);
+            return true;
+        }
+        let used = false;
+        if (ability === 'doubleJump') used = tryUseDoubleJump();
+        else if (ability === 'timeSlow') used = tryActivateTimeSlow();
+        else if (ability === 'magnet') used = tryActivateMagnet();
+        if (used) mobileHaptic(12);
+        return used;
+    }
+
+    function triggerMobileJump() {
+        if (isGamePaused || isGameOver || mainMenuVisible) return false;
+        const used = isJumping && getActiveSpecialAbility() === 'doubleJump'
+            ? tryUseDoubleJump()
+            : requestJumpInput(0.2);
+        if (used) mobileHaptic(9);
+        return used;
+    }
+
+    function triggerMobileSlide() {
+        if (isGamePaused || isGameOver || mainMenuVisible || isSliding) return false;
+        startSlide();
+        mobileHaptic(10);
+        return true;
+    }
+
+    function setMobileActionDirection(nextDirection) {
+        if (mobileActionDirection === nextDirection) return;
+        if (mobileActionDirection === 'left') releaseMobileSkillHold();
+        mobileActionDirection = nextDirection;
+        if (nextDirection === 'up') triggerMobileJump();
+        else if (nextDirection === 'down') triggerMobileSlide();
+        else if (nextDirection === 'left') triggerMobileSkill(true);
+    }
+
+    function setMobileControlsVisible(visible) {
+        visible = !!visible;
+        if (mobileControlsVisible === visible) return;
+        mobileControlsVisible = visible;
+        document.body.classList.toggle('mobile-controls-visible', visible);
+        const controls = document.getElementById('mobile-controls');
+        if (controls) controls.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        if (!visible) {
+            mobileLookX = 0;
+            mobileLookY = 0;
+            mobileLookPointer = null;
+            mobileActionPointer = null;
+            setMobileActionDirection('');
+            resetMobileStick(document.getElementById('mobile-look-stick'));
+            resetMobileStick(document.getElementById('mobile-action-stick'));
+        }
+    }
+
+    function updateMobileControlsVisibility() {
+        if (!MOBILE_RUNTIME) return;
+        const visible = runStartedFromMenu
+            && !mainMenuVisible
+            && !isGamePaused
+            && !isGameOver
+            && !isDying
+            && !reviveSequenceActive
+            && !rewardedDeathPending
+            && !rewardedAdBusy;
+        setMobileControlsVisible(visible);
+    }
+
+    function updateMobileLook(delta) {
+        if (!MOBILE_RUNTIME || !mobileControlsVisible || (Math.abs(mobileLookX) < 0.015 && Math.abs(mobileLookY) < 0.015)) return;
+        const sensitivity = clampNumber(menuState.mouseSensitivity, 0.45, 1.85, 1);
+        yaw -= mobileLookX * 1.85 * sensitivity * delta;
+        pitch += mobileLookY * 1.45 * sensitivity * delta * (menuState.invertY ? 1 : -1);
+        const limitPitch = 75 * (Math.PI / 180);
+        const limitYaw = 80 * (Math.PI / 180);
+        const centerYaw = -Math.PI / 2;
+        pitch = Math.max(-limitPitch, Math.min(limitPitch, pitch));
+        yaw = Math.max(centerYaw - limitYaw, Math.min(centerYaw + limitYaw, yaw));
+    }
+
+    function resumeMobileRun() {
+        if (!MOBILE_RUNTIME || isGameOver) return false;
+        closePauseSettingsPanel();
+        hideMainMenu();
+        isGamePaused = false;
+        if (ui.pauseScreen) ui.pauseScreen.style.display = 'none';
+        if (!audioContext) initAudio();
+        if (audioContext && audioContext.state === 'suspended') audioContext.resume();
+        applyMainMenuSettings();
+        updateDoubleJumpCooldownUi();
+        updateMobileControlsVisibility();
+        return true;
+    }
+
+    function setupMobileControls() {
+        if (!MOBILE_RUNTIME || mobileControlsInitialized) return;
+        const lookStick = document.getElementById('mobile-look-stick');
+        const actionStick = document.getElementById('mobile-action-stick');
+        if (!lookStick || !actionStick) return;
+        mobileControlsInitialized = true;
+        updateMobileControlLabels();
+
+        const updateVector = (stick, event) => {
+            const rect = stick.getBoundingClientRect();
+            const half = Math.max(1, rect.width * 0.5);
+            let x = (event.clientX - (rect.left + half)) / half;
+            let y = (event.clientY - (rect.top + half)) / half;
+            const length = Math.hypot(x, y);
+            if (length > 1) { x /= length; y /= length; }
+            const travel = rect.width * 0.28;
+            const knob = stick.querySelector('.mobile-stick-knob');
+            if (knob) {
+                knob.style.setProperty('--knob-x', `${(x * travel).toFixed(1)}px`);
+                knob.style.setProperty('--knob-y', `${(y * travel).toFixed(1)}px`);
+            }
+            return { x, y, length: Math.min(1, length) };
+        };
+
+        lookStick.addEventListener('pointerdown', (event) => {
+            if (!mobileControlsVisible || mobileLookPointer !== null) return;
+            event.preventDefault();
+            event.stopPropagation();
+            mobileLookPointer = event.pointerId;
+            lookStick.setPointerCapture(event.pointerId);
+            lookStick.classList.add('is-active');
+            const vector = updateVector(lookStick, event);
+            mobileLookX = vector.x;
+            mobileLookY = vector.y;
+        }, { passive: false });
+        lookStick.addEventListener('pointermove', (event) => {
+            if (event.pointerId !== mobileLookPointer) return;
+            event.preventDefault();
+            const vector = updateVector(lookStick, event);
+            mobileLookX = vector.x;
+            mobileLookY = vector.y;
+        }, { passive: false });
+        const releaseLook = (event) => {
+            if (event.pointerId !== mobileLookPointer) return;
+            event.preventDefault();
+            mobileLookPointer = null;
+            mobileLookX = 0;
+            mobileLookY = 0;
+            resetMobileStick(lookStick);
+        };
+        lookStick.addEventListener('pointerup', releaseLook, { passive: false });
+        lookStick.addEventListener('pointercancel', releaseLook, { passive: false });
+        lookStick.addEventListener('lostpointercapture', (event) => {
+            if (event.pointerId !== mobileLookPointer) return;
+            mobileLookPointer = null;
+            mobileLookX = 0;
+            mobileLookY = 0;
+            resetMobileStick(lookStick);
+        });
+
+        actionStick.addEventListener('pointerdown', (event) => {
+            if (!mobileControlsVisible || mobileActionPointer !== null) return;
+            event.preventDefault();
+            event.stopPropagation();
+            mobileActionPointer = event.pointerId;
+            actionStick.setPointerCapture(event.pointerId);
+            actionStick.classList.add('is-active');
+            const vector = updateVector(actionStick, event);
+            const direction = vector.length < 0.38
+                ? ''
+                : (Math.abs(vector.y) >= Math.abs(vector.x) * 0.82
+                    ? (vector.y < 0 ? 'up' : 'down')
+                    : (vector.x < 0 ? 'left' : ''));
+            setMobileActionDirection(direction);
+        }, { passive: false });
+        actionStick.addEventListener('pointermove', (event) => {
+            if (event.pointerId !== mobileActionPointer) return;
+            event.preventDefault();
+            const vector = updateVector(actionStick, event);
+            const direction = vector.length < 0.38
+                ? ''
+                : (Math.abs(vector.y) >= Math.abs(vector.x) * 0.82
+                    ? (vector.y < 0 ? 'up' : 'down')
+                    : (vector.x < 0 ? 'left' : ''));
+            setMobileActionDirection(direction);
+        }, { passive: false });
+        const releaseAction = (event) => {
+            if (event.pointerId !== mobileActionPointer) return;
+            event.preventDefault();
+            mobileActionPointer = null;
+            setMobileActionDirection('');
+            resetMobileStick(actionStick);
+        };
+        actionStick.addEventListener('pointerup', releaseAction, { passive: false });
+        actionStick.addEventListener('pointercancel', releaseAction, { passive: false });
+        actionStick.addEventListener('lostpointercapture', (event) => {
+            if (event.pointerId !== mobileActionPointer) return;
+            mobileActionPointer = null;
+            setMobileActionDirection('');
+            resetMobileStick(actionStick);
+        });
+        document.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });
+    }
+
 
     function setupEventListeners() {
         window.addEventListener('keydown', (e) => {
@@ -13532,6 +14174,10 @@ if (renderer && dirLight) {
         const requestLock = () => {
             if (isGameOver || document.pointerLockElement === renderer.domElement) return;
             if (mainMenuVisible) return;
+            if (MOBILE_RUNTIME) {
+                resumeMobileRun();
+                return;
+            }
             if (performance.now() < pointerLockBlockedUntil) {
                 showPointerLockRetryHint(
                     tr('preparing').toLocaleUpperCase(),
@@ -13898,7 +14544,7 @@ if (renderer && dirLight) {
     }  
 
     function createCyberGridTexture() {
-        const size = 1024;
+        const size = MOBILE_RUNTIME ? 512 : 1024;
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
@@ -13929,14 +14575,14 @@ if (renderer && dirLight) {
 
     function createNatureFloor() {
     // 1024px doku (eski 512) + tekrar 48→40: birim başına ~2.4x daha fazla texel.
-    const size = 1024;
+    const size = MOBILE_RUNTIME ? 512 : 1024;
     const canvas = document.createElement('canvas');
     canvas.width = size; canvas.height = size;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#1d3a19';
     ctx.fillRect(0,0,size,size);
     // yumuşak ton yamaları (tek düze görünmesin)
-    for(let i=0; i<260; i++){
+    for(let i=0; i<(MOBILE_RUNTIME ? 90 : 260); i++){
         const x = Math.random()*size, y = Math.random()*size, r = 30 + Math.random()*95;
         const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
         const c = Math.random() > 0.5 ? '34,71,24' : '24,49,19';
@@ -13949,7 +14595,7 @@ if (renderer && dirLight) {
     const grassDark = ['#20421c', '#1b3817', '#25491f', '#2a5323'];
     const grassLight = ['#3f7a35', '#4c8a3e', '#356b2e', '#57a04a'];
     ctx.lineWidth = 1;
-    for(let i=0; i<26000; i++){
+    for(let i=0; i<(MOBILE_RUNTIME ? 6500 : 26000); i++){
         const x = Math.random()*size, y = Math.random()*size;
         const len = 5 + Math.random()*7;
         const tilt = (Math.random()-0.5) * 3.6;
@@ -13960,7 +14606,7 @@ if (renderer && dirLight) {
         ctx.beginPath(); ctx.moveTo(x + tilt * 0.55, y - len * 0.55); ctx.lineTo(x + tilt, y - len); ctx.stroke();
     }
     // yonca/çalı yamaları — küçük koyu daire kümeleri
-    for(let i=0; i<220; i++){
+    for(let i=0; i<(MOBILE_RUNTIME ? 70 : 220); i++){
         const cx = Math.random()*size, cy = Math.random()*size;
         ctx.fillStyle = Math.random() > 0.5 ? '#2e6027' : '#264f20';
         for(let k=0; k<5; k++){
@@ -13970,7 +14616,7 @@ if (renderer && dirLight) {
         }
     }
     // çakıl taşları — gölge + gövde + parlak kenar (hacim hissi)
-    for(let i=0; i<420; i++){
+    for(let i=0; i<(MOBILE_RUNTIME ? 120 : 420); i++){
         const x = Math.random()*size, y = Math.random()*size, w = 2 + Math.random()*3.5;
         ctx.fillStyle = 'rgba(10,18,8,0.55)';
         ctx.fillRect(x+0.8, y+0.8, w, w*0.75);
@@ -13981,7 +14627,7 @@ if (renderer && dirLight) {
     }
     // minik kır çiçekleri — taç yaprak + sarı merkez
     const flowerPix = ['#ffe066', '#ff9bb0', '#e8f0ff', '#ffb84d'];
-    for(let i=0; i<300; i++){
+    for(let i=0; i<(MOBILE_RUNTIME ? 90 : 300); i++){
         const x = Math.random()*size, y = Math.random()*size;
         ctx.fillStyle = flowerPix[Math.floor(Math.random()*flowerPix.length)];
         ctx.fillRect(x-1.5, y, 4, 1.6);
@@ -14010,7 +14656,7 @@ if (renderer && dirLight) {
     scene.add(natureFloor);
 
     const leafGeo = new THREE.BufferGeometry();
-    const leafCount = 230;
+    const leafCount = MOBILE_RUNTIME ? 70 : 230;
     const lPos = new Float32Array(leafCount * 3);
     const lCol = new Float32Array(leafCount * 3);
     const lSpeed = [];
@@ -14037,7 +14683,7 @@ if (renderer && dirLight) {
 }
 
     function createLavaTexture() {
-        const size = 1024;
+        const size = MOBILE_RUNTIME ? 512 : 1024;
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
@@ -14195,7 +14841,7 @@ if (renderer && dirLight) {
 
         // ZENGİN KIVILCIMLAR: 320 adet, çok-renkli (beyaz-sıcak → sarı → turuncu → kırmızı),
         // değişken boyutta (vertex-color + boyut attribute'u ile canlı kor hissi).
-        const emberCount = 320;
+        const emberCount = MOBILE_RUNTIME ? 100 : 320;
         const emberPos = new Float32Array(emberCount * 3);
         const emberCol = new Float32Array(emberCount * 3);
         const emberPalette = [0xfff2c8, 0xffd257, 0xff9a2e, 0xff5a1a, 0xe33410];
@@ -14246,7 +14892,7 @@ if (renderer && dirLight) {
 
         // SICAKLIK TİTREŞİMİ: yolun üstünde yükselen yarı saydam sıcak puf katmanı (additive)
         if (lavaHeatHaze && lavaHeatHaze.parent) { lavaHeatHaze.parent.remove(lavaHeatHaze); disposeNode(lavaHeatHaze); }
-        const hazeCount = 14; // azaltıldı (26→14): oyuncunun üstüne gelen duman yoğunluğu düşürüldü
+        const hazeCount = MOBILE_RUNTIME ? 6 : 14; // mobile cuts transparent overdraw
         const hazeGeo = new THREE.BufferGeometry();
         const hazePos = new Float32Array(hazeCount * 3);
         // z min 20→58: puflar yol lane'inden dışarıda kalsın, tam oyuncunun üstünden geçmesin
@@ -15031,7 +15677,8 @@ if (renderer && dirLight) {
 
     function createSnowFloor() {
         const tex = createSnowTexture();
-        const geo = new THREE.PlaneGeometry(SNOW_FLOOR_SIZE, SNOW_FLOOR_SIZE, 80, 80);
+        const snowSegments = MOBILE_RUNTIME ? 40 : 80;
+        const geo = new THREE.PlaneGeometry(SNOW_FLOOR_SIZE, SNOW_FLOOR_SIZE, snowSegments, snowSegments);
         const pos = geo.attributes.position;
         const roadSafeHalfWidth = Math.max(getRoadHalfWidth() + 54, 70);
         for (let i = 0; i < pos.count; i++) {
@@ -15110,7 +15757,7 @@ if (renderer && dirLight) {
 
     function createSnowFlurries() {
         if (snowFlurries) disposeNode(snowFlurries);
-        const count = 420; // v2: 220→420, daha yoğun kar yağışı
+        const count = MOBILE_RUNTIME ? 130 : 420; // mobile keeps the snowfall readable without the full vertex-update cost
         const geo = new THREE.BufferGeometry();
         const positions = new Float32Array(count * 3);
         snowFlurryData = [];
@@ -15412,7 +16059,7 @@ if (renderer && dirLight) {
     }
     
     function createSky() {
-        const starGeo = new THREE.BufferGeometry(); const starCount = 3000; const starPos = new Float32Array(starCount * 3);
+        const starGeo = new THREE.BufferGeometry(); const starCount = MOBILE_RUNTIME ? 800 : 3000; const starPos = new Float32Array(starCount * 3);
         const starCol = new Float32Array(starCount * 3);
         for(let i=0; i<starCount; i++) {
             starPos[i*3] = (Math.random() - 0.5) * 3000;
@@ -15762,8 +16409,73 @@ if (renderer && dirLight) {
         { floors:56, W:88, D:38, accent:0xff2d95, roofStyle:'antenna', seed:67, style:'setback' },
         { floors:68, W:100,D:40, accent:0x00e5ff, roofStyle:'box',     seed:83, style:'block'   },
     ];
+
+    function ensureMobileCyberBuildingTypes() {
+        const configs = [
+            { width: 26, depth: 20, height: 52, accent: '#ff2d95', seed: 11 },
+            { width: 34, depth: 24, height: 78, accent: '#00e5ff', seed: 37 },
+            { width: 42, depth: 28, height: 112, accent: '#7c55ff', seed: 67 }
+        ];
+        configs.forEach((config) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#10162d');
+            gradient.addColorStop(1, '#040714');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(44,55,92,.82)';
+            for (let x = 0; x < canvas.width; x += 16) ctx.fillRect(x, 0, 2, canvas.height);
+            for (let y = 0; y < canvas.height; y += 14) ctx.fillRect(0, y, canvas.width, 2);
+            for (let y = 5; y < canvas.height - 5; y += 14) {
+                for (let x = 5; x < canvas.width - 5; x += 16) {
+                    const lit = ((x * 13 + y * 7 + config.seed) % 11) > 2;
+                    ctx.fillStyle = lit
+                        ? (((x + y + config.seed) % 3 === 0) ? config.accent : '#37dff5')
+                        : '#070b19';
+                    ctx.globalAlpha = lit ? 0.88 : 0.76;
+                    ctx.fillRect(x, y, 8, 6);
+                }
+            }
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = config.accent;
+            ctx.fillRect(2, 0, 3, canvas.height);
+            ctx.fillRect(canvas.width - 5, 0, 3, canvas.height);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.anisotropy = 2;
+            const bodyMat = new THREE.MeshBasicMaterial({ map: texture, color: 0xffffff, fog: true });
+            const accentMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(config.accent), fog: true });
+            const bodyGeo = new THREE.BoxGeometry(config.width, config.height, config.depth);
+            bodyGeo.translate(0, config.height * 0.5, 0);
+            const capGeo = new THREE.BoxGeometry(config.width * 1.04, 0.8, config.depth * 1.04);
+            capGeo.translate(0, config.height + 0.4, 0);
+            const parts = [
+                { geo: bodyGeo, mat: bodyMat },
+                { geo: capGeo, mat: accentMat }
+            ];
+            cityBuildingTypes.push({
+                parts,
+                width: config.width,
+                depth: config.depth,
+                height: config.height
+            });
+            parts.forEach((part) => {
+                cityBuildingGeoms.push(part.geo);
+                if (!cityBuildingMats.includes(part.mat)) cityBuildingMats.push(part.mat);
+            });
+        });
+    }
+
     function ensureCyberBuildingTypes(){
         if (cityBuildingTypes.length) return;
+        if (MOBILE_RUNTIME) {
+            ensureMobileCyberBuildingTypes();
+            return;
+        }
         CB_VARIATIONS.forEach(v=>{
             const grp = buildCyberpunkBuilding(v);
             const parts = cbMergeByMaterial(grp);
@@ -16051,7 +16763,7 @@ if (renderer && dirLight) {
         const add=(obj, role, side, edgeOffset, span)=>{ scene.add(obj); cyberDecorObjects.push({obj, role, side, edgeOffset, span}); };
         // sidewalk rail on BOTH sides — fewer signs (mostly non-sign props), road-edge-relative
         const builders=[cdBuildVerticalSign,cdBuildHoloAd,cdBuildHangingSign,cdBuildRoundSign,cdBuildLamp,cdBuildLamp,cdBuildKiosk,cdBuildKiosk,cdBuildBarrier,cdBuildBarrier,cdBuildPod,cdBuildVents,cdBuildVents];
-        const COUNT=44, STEP=18; const span=COUNT*STEP;
+        const COUNT=MOBILE_RUNTIME ? 14 : 44, STEP=MOBILE_RUNTIME ? 48 : 18; const span=COUNT*STEP;
         for(const side of [-1,1]){
             for(let i=0;i<COUNT;i++){
                 const o = builders[(Math.random()*builders.length)|0](side);
@@ -16061,18 +16773,20 @@ if (renderer && dirLight) {
             }
         }
         // a few shop signs at street level (road-edge-relative, well off the road)
-        for(const side of [-1,1]){ for(let i=0;i<4;i++){ const o=cdBuildShopSign(side); o.userData.edgeOffset=13; o.position.x=px - 80 + i*230; add(o,'shop',side,13,4*230); } }
+        for(const side of [-1,1]){ for(let i=0;i<(MOBILE_RUNTIME ? 1 : 4);i++){ const o=cdBuildShopSign(side); o.userData.edgeOffset=13; o.position.x=px - 80 + i*(MOBILE_RUNTIME ? 680 : 230); add(o,'shop',side,13,(MOBILE_RUNTIME ? 680 : 4*230)); } }
         // Floating skybridges: keep the detailed model, but make encounters rare.
-        const SKYBRIDGE_COUNT = 2, SKYBRIDGE_STEP = 620;
+        const SKYBRIDGE_COUNT = MOBILE_RUNTIME ? 1 : 2, SKYBRIDGE_STEP = MOBILE_RUNTIME ? 980 : 620;
         for(let i=0;i<SKYBRIDGE_COUNT;i++){
             const o=cdBuildGantry();
             o.position.set(px + 180 + i*SKYBRIDGE_STEP, 0, getRoadCenterZ());
             add(o,'gantry',0,0,SKYBRIDGE_COUNT*SKYBRIDGE_STEP);
         }
         // red chevron arrows along BOTH road edges
-        for(const side of [-1,1]){ for(let i=0;i<26;i++){ const o=cdBuildChevrons(side); o.position.x=px - 120 + i*44; add(o,'chev',side,4.5,26*44); } }
+        const chevronCount = MOBILE_RUNTIME ? 10 : 26;
+        const chevronStep = MOBILE_RUNTIME ? 72 : 44;
+        for(const side of [-1,1]){ for(let i=0;i<chevronCount;i++){ const o=cdBuildChevrons(side); o.position.x=px - 120 + i*chevronStep; add(o,'chev',side,4.5,chevronCount*chevronStep); } }
         // flying cars crossing the road overhead (left↔right)
-        for(let i=0;i<10;i++){ const o=cdBuildFlyingCar(); o.position.set(px + 80 + Math.random()*820, 30 + Math.random()*26, -60 + Math.random()*120); add(o,'car',0,0,0); }
+        for(let i=0;i<(MOBILE_RUNTIME ? 3 : 10);i++){ const o=cdBuildFlyingCar(); o.position.set(px + 80 + Math.random()*820, 30 + Math.random()*26, -60 + Math.random()*120); add(o,'car',0,0,0); }
         cyberDecorBuilt = true;
     }
 
@@ -16092,9 +16806,23 @@ if (renderer && dirLight) {
         if (!cyberDecorBuilt || !player) return;
         const px = player.position.x; const t = clock.getElapsedTime();
         const reMin = roadLimitZMin, reMax = roadLimitZMax;
-        const fogCullAhead = getFogInvisibleDistance(120);
-        for(const d of cyberDecorObjects){
+        const fogCullAhead = MOBILE_RUNTIME
+            ? Math.min(getFogInvisibleDistance(80), adaptiveRenderDistance + 80)
+            : getFogInvisibleDistance(120);
+        const mobileDecorStride = !MOBILE_RUNTIME
+            ? 1
+            : (MOBILE_LOW_END
+                ? 3
+                : (smoothedFps < 52 ? 3 : (smoothedFps < 58 ? 2 : 1)));
+        for(let decorIndex = 0; decorIndex < cyberDecorObjects.length; decorIndex++){
+            const d = cyberDecorObjects[decorIndex];
             const o = d.obj;
+            if (mobileDecorStride > 1
+                && (d.role === 'edge' || d.role === 'chev' || d.role === 'car')
+                && decorIndex % mobileDecorStride !== 0) {
+                o.visible = false;
+                continue;
+            }
             if (d.role === 'car'){
                 o.position.z += o.userData.vz; o.position.y += Math.sin(t*0.8 + o.userData.bob)*0.02; // cross the road in Z
                 if (o.userData.vz > 0 && o.position.z > 72) o.position.z = -72;
@@ -16163,11 +16891,17 @@ if (renderer && dirLight) {
         const NTYPES = cityBuildingTypes.length;
 
         // 1. KaynaklarÄ± (Geometry/Material) sadece EÄER YOKSA oluÅŸtur (Reset atÄ±nca tekrar Ã¼retmesin)
-        const layers = [
-            { count: 34, layerType: 0, minZOffset: 0 },
-            { count: 24, layerType: 1, minZOffset: 70 },
-            { count: 16, layerType: 2, minZOffset: 150 }
-        ];
+        const layers = MOBILE_RUNTIME
+            ? [
+                { count: 16, layerType: 0, minZOffset: 0 },
+                { count: 8, layerType: 1, minZOffset: 78 },
+                { count: 4, layerType: 2, minZOffset: 165 }
+            ]
+            : [
+                { count: 34, layerType: 0, minZOffset: 0 },
+                { count: 24, layerType: 1, minZOffset: 70 },
+                { count: 16, layerType: 2, minZOffset: 150 }
+            ];
         
         const rangeX = 1500;
         
@@ -17489,7 +18223,7 @@ if (renderer && dirLight) {
             mossMesh.userData = { isLavaTunnelGlow: true, baseIntensity: 1.0, pulseSeed: Math.random() * 5 };
         }
 
-        const pCount = Math.max(15, Math.floor(length / 3));
+        const pCount = MOBILE_RUNTIME ? Math.max(8, Math.floor(length / 8)) : Math.max(15, Math.floor(length / 3));
         const pGeo = new THREE.BufferGeometry();
         const pPos = new Float32Array(pCount * 3);
         const pSpeeds = [];
@@ -17586,7 +18320,8 @@ if (renderer && dirLight) {
 
         // Sis menzili dışındaki binaları söndür/geri getir (durum değişince tek matris yazımı)
         const aheadDx = b.position.x - player.position.x;
-        const shouldCollapse = aheadDx > 640 || aheadDx < -140;
+        const cityAheadLimit = MOBILE_RUNTIME ? adaptiveRenderDistance + 70 : 640;
+        const shouldCollapse = aheadDx > cityAheadLimit || aheadDx < (MOBILE_RUNTIME ? -90 : -140);
         if (shouldCollapse !== !!b.userData.fogCollapsed) {
             b.userData.fogCollapsed = shouldCollapse;
             cityInstanceLayoutDirty = true;
@@ -17929,7 +18664,7 @@ function createWindFan(spawnX, side) {
     const yMin  = floorY;                 // zemin
     const yMax  = floorY + 22;            // tavan
 
-    const lineCount = 160;
+    const lineCount = MOBILE_RUNTIME ? 52 : 160;
     const streakLen = 7;
     const linePositions = new Float32Array(lineCount * 2 * 3);
     const pSpeeds = [];
@@ -19102,6 +19837,7 @@ function createHeadlightBeam() {
     }
 
     function spawnGlobalExplosion(x, y, z, colorHex, count = 20) {
+        if (MOBILE_RUNTIME) count = Math.min(count, 12);
         const c = new THREE.Color(colorHex); let spawned = 0;
         for(let i=0; i<MAX_PARTICLES; i++) {
             if (pData[i].life <= 0) {
@@ -19291,7 +20027,7 @@ function createHeadlightBeam() {
     }
 
     function createWindSystem() {
-        const count = 30;
+        const count = MOBILE_RUNTIME ? 10 : 30;
         if (!sharedWindGeometry) sharedWindGeometry = new THREE.BoxGeometry(6, 0.05, 0.05);
         if (!sharedWindMaterial) {
             sharedWindMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.05 });
@@ -19856,7 +20592,7 @@ function cancelLaneAnimationForLavaDrop() {
         beam.renderOrder = 2000;
         trafficGroup.add(beam);
 
-        const particleCount = 20;
+        const particleCount = MOBILE_RUNTIME ? 8 : 20;
         const pGeo = new THREE.BufferGeometry();
         const pPos = new Float32Array(particleCount * 3);
         const pVels = [];
@@ -22566,7 +23302,7 @@ function cancelLaneAnimationForLavaDrop() {
         }
         addInstancedDecor(tunnelGroup, geoms.waterTunnelUnit, mats.waterIslandGrass, seaweedPlacements);
 
-        const bubbleCount = 120;
+        const bubbleCount = MOBILE_RUNTIME ? 40 : 120;
         const bubblePositions = new Float32Array(bubbleCount * 3);
         for (let i = 0; i < bubbleCount; i++) {
             const side = Math.random() > 0.5 ? 1 : -1;
@@ -22737,7 +23473,7 @@ function cancelLaneAnimationForLavaDrop() {
         }
         addInstancedDecor(tunnelGroup, geoms.waterTunnelUnit, mats.snowTunnelGlass, frostPanels);
 
-        const sparkleCount = 128;
+        const sparkleCount = MOBILE_RUNTIME ? 42 : 128;
         const sparklePositions = new Float32Array(sparkleCount * 3);
         for (let i = 0; i < sparkleCount; i++) {
             sparklePositions[i * 3] = startX + Math.random() * length;
@@ -25866,7 +26602,7 @@ function updateWaterBounceCaps(delta) {
 
 function triggerOilSplatterOverlay() {
     if (!ui.effectsContainer || oilSplatterPool.length === 0) return;
-    const count = 22 + Math.floor(Math.random() * 10);
+    const count = MOBILE_RUNTIME ? (8 + Math.floor(Math.random() * 5)) : (22 + Math.floor(Math.random() * 10));
     for (let i = 0; i < count; i++) {
         let splatter = oilSplatterPool.find(el => el.style.display === 'none');
         if (!splatter) splatter = oilSplatterPool[i % oilSplatterPool.length];
@@ -29329,7 +30065,7 @@ function updateLava(delta) {
         group.add(beam);
 
         // 5. Ä°Ã§eriden YÃ¼kselen Enerji ParÃ§acÄ±klarÄ±
-        const pCount = 80;
+        const pCount = MOBILE_RUNTIME ? 28 : 80;
         const pGeo = new THREE.BufferGeometry();
         const pPosArr = new Float32Array(pCount * 3);
         const pSpeeds = [];

@@ -64,3 +64,11 @@ TODO:
 - Replaced the minimal mouse outline with a clearer mouse icon that has separate left/right buttons, a lit scroll wheel, and a lower body detail. The card background is now nearly opaque so HUD text behind it cannot read as part of the card.
 - The card is queued after menu teardown and two animation frames, so its five-second display time begins after slow start-up work rather than expiring during it.
 - Confirmed that the AdSense publisher script, publisher meta tag, and ads.txt publisher line are present. With Auto ads switched on in AdSense, no additional manual page-level tag or ad unit is required for display Auto ads.
+
+2026-07-27 - Automatic mobile website runtime
+- Merged the dedicated mobile runtime into the main GitHub Pages `index.html`; the public game now uses one URL for desktop and mobile.
+- Android, iPhone/iPad, other mobile user agents, and iPadOS desktop mode automatically select the touch runtime. Touch-capable Windows laptops remain on the desktop runtime.
+- Mobile runtime exposes the two-stick touch controls, safe-area/landscape handling, mobile graphics profile, adaptive resolution/detail, procedural vehicle fallbacks, and skips the large hand/car/train/motor GLB requests.
+- Desktop runtime keeps the existing full desktop menu, keyboard/mouse flow, hands, vehicle models, shadows, and graphics settings.
+- Bumped the service-worker cache to `elemental-run-browser-v13-shell-4-mobile-auto` so returning visitors receive the new routing code.
+- Automated local routing QA passed for Android phone, regular Windows desktop, and touch-capable Windows laptop profiles. Mobile controls stayed inside the viewport, mobile made no heavy GLB requests, and all three profiles reported no runtime/page errors.
