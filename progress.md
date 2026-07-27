@@ -92,3 +92,12 @@ TODO:
 - Added runtime diagnostics for adaptive level, resolution scale, Cyber tier/counts, visible buildings/decor, and shadow cadence.
 - Representative SwiftShader weak-GPU comparison: Performance mode fell from about 2.28M submitted triangles / 529 draw calls to as low as 64k triangles / 255 draw calls in the same Cyber route. The original 3.5 FPS software-render baseline increased to roughly 22-32 FPS across repeated runs; normal hardware WebGL is substantially faster.
 - Automated QA passed for live settings transitions (Performance -> High -> Performance), seven-second Cyber gameplay, adaptive fallback, service-worker update, screenshots, and zero game-origin console/page errors.
+
+2026-07-27 - Cross-platform elemental world refresh
+- Rebuilt Lava scenery around larger, wider volcano silhouettes with calderas, crater glow, parasitic cones, smoke, and short slope-following lava channels. The variants are merged during loading and reused at runtime.
+- Replaced the weak Water/Snow mountain variants with broad, organic ranges derived from the Nature mountain language. Water receives restrained waterfalls and mist; Snow receives separate caps, drifts, and a very small crystal accent set.
+- Added terraced floating foundations, side pods, sky docks, bridges, crowns, and two arcology silhouettes to Sky buildings. Details are baked into the existing material buckets, so the richer skyline does not add per-building draw calls.
+- Removed browser-only Steam, 2x reward, and ad bootstrap elements from the packaged desktop HTML. Browser and mobile retain their existing Steam and rewarded-ad flows.
+- Added map-specific runtime counts to `render_game_to_text` and a localhost-only forced-map QA hook.
+- Bumped the service-worker shell cache so browser/mobile visitors receive the refreshed worlds.
+- Automated desktop-browser, mobile Pixel 5, static desktop-package, and real Electron-package runs completed with no page/console errors. The real desktop package confirmed that Steam, reward, and ad elements are absent and that PLAY enters gameplay normally.

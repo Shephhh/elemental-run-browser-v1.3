@@ -12134,6 +12134,17 @@ nextSnowballX = 0;
                     visibleCyberBuildings: cityBuildings.reduce((count, building) => count + (!building.userData.fogCollapsed ? 1 : 0), 0),
                     cyberDecorCount: cyberDecorObjects.length,
                     visibleCyberDecor: cyberDecorObjects.reduce((count, decor) => count + (decor.obj.visible ? 1 : 0), 0),
+                    skyDecorCount: skyDecorObjects.length,
+                    visibleSkyDecor: skyDecorObjects.reduce((count, decor) => count + (decor.visible ? 1 : 0), 0),
+                    visibleSkySkyscrapers: skyDecorObjects.reduce((count, decor) => count + (
+                        decor.visible && decor.userData?.decorType === 'skyscraper' ? 1 : 0
+                    ), 0),
+                    lateMapDecorCount: lavaDecorObjects.length,
+                    visibleLateMapDecor: lavaDecorObjects.reduce((count, decor) => count + (decor.visible ? 1 : 0), 0),
+                    visibleLateMapMountains: lavaDecorObjects.reduce((count, decor) => {
+                        const type = decor.userData?.decorType || '';
+                        return count + (decor.visible && (type === 'snow_mountain' || type.startsWith('mountain')) ? 1 : 0);
+                    }, 0),
                     shadowRefreshInterval: Number.isFinite(getShadowRefreshInterval()) ? getShadowRefreshInterval() : null,
                     shadowsEnabled: !!(renderer && renderer.shadowMap && renderer.shadowMap.enabled),
                     drawCalls: renderer && renderer.info ? renderer.info.render.calls : null,
@@ -12282,6 +12293,10 @@ nextSnowballX = 0;
                     menuState.activeSpecialAbility = ability;
                     updateUpgradeCards();
                 }
+                return renderGameToText();
+            },
+            forceMap: (phase = 0) => {
+                debugForceMap(Math.max(0, Math.min(5, Math.floor(Number(phase)) || 0)));
                 return renderGameToText();
             }
         });
@@ -13419,7 +13434,21 @@ if (renderer && dirLight) {
     function init() {
         scene = new THREE.Scene();
         cacheDomReferences();
-        if (isBrowserBuild()) document.body.classList.add('browser-build');
+        const browserRuntime = isBrowserBuild();
+        if (browserRuntime) document.body.classList.add('browser-build');
+        // Steam already owns the desktop shell, and rewarded ads are a browser-only economy.
+        // Keep the shared markup for one source of truth, but remove those surfaces from the
+        // packaged desktop menu before its first visible frame.
+        if (!browserRuntime) {
+            if (ui.menuSteamLink) {
+                ui.menuSteamLink.hidden = true;
+                ui.menuSteamLink.style.display = 'none';
+            }
+            if (ui.browserRewardDock) {
+                ui.browserRewardDock.hidden = true;
+                ui.browserRewardDock.style.display = 'none';
+            }
+        }
         if (MOBILE_RUNTIME) {
             document.body.classList.add('mobile-runtime');
             document.documentElement.style.touchAction = 'none';
@@ -24456,13 +24485,17 @@ function initLavaResources() {
         depthWrite: false
     });
     mats.waterRock = new THREE.MeshStandardMaterial({
-        color: 0x5f6870,
+        color: 0x71808a,
+        emissive: 0x101b20,
+        emissiveIntensity: 0.28,
         roughness: 0.92,
         metalness: 0.04,
         flatShading: true
     });
     mats.waterRockDark = new THREE.MeshStandardMaterial({
-        color: 0x363f46,
+        color: 0x46535c,
+        emissive: 0x0b1418,
+        emissiveIntensity: 0.24,
         roughness: 0.96,
         metalness: 0.03,
         flatShading: true
@@ -24894,6 +24927,7 @@ function initLavaResources() {
     });
     // Lav model kütüphanesini yükleme ekranında kur — oyun ortasında merge maliyeti olmasın
     ensureLavaModelTypes();
+    ensureElementalMountainTypes();
 }
 
 function applyWaterThemeToLavaDecorObject(obj) {
@@ -24921,6 +24955,7 @@ function applyWaterThemeToAllLavaDecor() {
 
 function trimLavaDecorForWaterPhase(playerX = 0) {
     const crowdedSmallLavaTypes = new Set(['rock', 'vent', 'rock_shelf']);
+    const replaceWithCoastalMountains = new Set(['mountain', 'mountain_twin', 'mountain_range']);
     for (let i = lavaDecorObjects.length - 1; i >= 0; i--) {
         const obj = lavaDecorObjects[i];
         if (!obj) continue;
@@ -24928,7 +24963,8 @@ function trimLavaDecorForWaterPhase(playerX = 0) {
         const distAhead = obj.position.x - playerX;
         const farBehind = distAhead < -360;
         const oldSmallLavaAhead = crowdedSmallLavaTypes.has(decorType) && distAhead > -220 && distAhead < 2800;
-        if (!farBehind && !oldSmallLavaAhead) continue;
+        const oldLavaMountainAhead = replaceWithCoastalMountains.has(decorType) && distAhead > -260 && distAhead < 3200;
+        if (!farBehind && !oldSmallLavaAhead && !oldLavaMountainAhead) continue;
         disposeNode(obj);
         lavaDecorObjects.splice(i, 1);
     }
@@ -24966,7 +25002,9 @@ function removeWaterDecorForSnowPhase() {
     for (let i = lavaDecorObjects.length - 1; i >= 0; i--) {
         const obj = lavaDecorObjects[i];
         const decorType = obj && obj.userData && obj.userData.decorType;
-        if (!blockedTypes.has(decorType)) continue;
+        const themedMountain = !!(obj && obj.userData && obj.userData.waterThemed)
+            && (decorType === 'mountain' || decorType === 'mountain_twin' || decorType === 'mountain_range');
+        if (!blockedTypes.has(decorType) && !themedMountain) continue;
         disposeNode(obj);
         lavaDecorObjects.splice(i, 1);
     }
@@ -25014,6 +25052,10 @@ function setEnergyPlasmaTheme(group, theme = 'lava') {
 // tutarak birleştir → hem draw call düşer hem tema-swap + pulse çalışmaya devam eder.
 const lavaModelGeoms = [];
 const lavaTypeCache = { volcano: [], obsidian: [], geyser: [], ashtree: [], basalt: [], peak: [] };
+const elementalMountainTypeCache = {
+    water: { single: [], twin: [], range: [] },
+    snow: { single: [], twin: [], range: [] }
+};
 
 function lavaCacheParts(bucket, group) {
     const parts = cbMergeByMaterial(group);
@@ -25060,50 +25102,63 @@ function buildLavaVolcano(seed) {
     const rnd = natSeedRand(seed);
     const g = new THREE.Group();
     // Ana koni: jitter'lı, pürüzlü bazalt gövde (düz koniden daha organik)
-    const mainGeo = new THREE.ConeGeometry(24, 82, 9, 5, true);
-    mainGeo.translate(0, 41, 0);
+    const mainHeight = 154;
+    const mainGeo = new THREE.ConeGeometry(46, mainHeight, 11, 7, true);
+    mainGeo.translate(0, mainHeight * 0.5, 0);
     const mp = mainGeo.attributes.position;
     for (let i = 0; i < mp.count; i++) {
-        const t = Math.max(0, Math.min(1, mp.getY(i) / 82));
-        if (t < 0.94) {
-            mp.setX(i, mp.getX(i) + (rnd() - 0.5) * 6.5 * (1 - t * 0.7));
-            mp.setZ(i, mp.getZ(i) + (rnd() - 0.5) * 6.5 * (1 - t * 0.7));
-            mp.setY(i, mp.getY(i) + (rnd() - 0.5) * 3.0);
+        const t = Math.max(0, Math.min(1, mp.getY(i) / mainHeight));
+        if (t < 0.92) {
+            const shelf = 1 + Math.sin(t * Math.PI * 5.0) * 0.055;
+            mp.setX(i, mp.getX(i) * shelf + (rnd() - 0.5) * 10.5 * (1 - t * 0.62));
+            mp.setZ(i, mp.getZ(i) * shelf + (rnd() - 0.5) * 10.5 * (1 - t * 0.62));
+            mp.setY(i, mp.getY(i) + (rnd() - 0.5) * 4.4);
         }
     }
     mainGeo.computeVertexNormals();
     const main = new THREE.Mesh(mainGeo, mats.lavaRockWarm);
     g.add(main);
     // yan tepeler
-    for (const [sx, sy, sz, px, pz, mat] of [[13, 46, 13, -16, 11, mats.lavaRock], [11, 36, 11, 18, -11, mats.lavaRock]]) {
-        const sGeo = new THREE.ConeGeometry(1, 1, 6);
-        sGeo.translate(0, 0.5, 0);
+    let sidePeakIndex = 0;
+    for (const [sx, sy, sz, px, pz, mat] of [
+        [29, 92, 27, -36, 18, mats.lavaRock],
+        [24, 72, 25, 38, -14, mats.lavaRock],
+        [19, 58, 21, 22, 29, mats.lavaRockWarm]
+    ]) {
+        const sGeo = makeLavaPeakGeo(seed + 31 + sidePeakIndex * 17, 7 - (sidePeakIndex % 2));
+        sidePeakIndex++;
         const s = new THREE.Mesh(sGeo, mat);
         s.scale.set(sx, sy, sz);
-        s.position.set(px, 0, pz);
+        s.position.set(px, -2, pz);
         s.rotation.z = (rnd() - 0.5) * 0.3;
+        s.rotation.y = rnd() * Math.PI * 2;
         g.add(s);
     }
     // AKAN lav dereleri: koninin ön yüzünde birden çok kıvrımlı ince şerit
-    const seamCount = 3 + Math.floor(rnd() * 2);
+    const seamCount = 3;
     for (let i = 0; i < seamCount; i++) {
-        const h = 26 + rnd() * 26;
-        const seam = new THREE.Mesh(new THREE.BoxGeometry(1.6 + rnd() * 1.6, h, 1.4), mats.lavaCore);
-        const a = (i / seamCount - 0.5) * 1.4;
-        seam.position.set(Math.sin(a) * 12, h * 0.5 + 6, Math.cos(a) * 18);
-        seam.rotation.z = a * 0.5;
-        seam.rotation.x = -0.12;
+        const h = 40 + rnd() * 24;
+        const w = 4.2 + rnd() * 2.4;
+        const seam = new THREE.Mesh(createLavaRibbonGeometry(h, w, 1.25, 6), mats.lavaCore);
+        const a = (i - 1) * 0.42;
+        seam.position.set(Math.sin(a) * 24, 86 - i * 7, Math.cos(a) * 35);
+        seam.rotation.z = a * 0.22;
+        seam.rotation.x = -0.52;
         g.add(seam);
     }
     // krater ağzı (parlak) + duman
-    const crater = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 3.0, 3.5, 9), mats.lavaCore);
-    crater.position.y = 79;
+    const caldera = new THREE.Mesh(new THREE.TorusGeometry(11.5, 3.2, 6, 12), mats.lavaRock);
+    caldera.rotation.x = Math.PI / 2;
+    caldera.position.y = 149;
+    g.add(caldera);
+    const crater = new THREE.Mesh(new THREE.CylinderGeometry(9.2, 7.5, 2.4, 12), mats.lavaCore);
+    crater.position.y = 148.4;
     g.add(crater);
-    for (let i = 0; i < 3; i++) {
-        const s = 2.4 + rnd() * 1.4;
+    for (let i = 0; i < 4; i++) {
+        const s = 3.4 + rnd() * 2.0;
         const puff = new THREE.Mesh(geoms.lavaSmokePuff, mats.lavaSmoke);
         puff.scale.setScalar(s);
-        puff.position.set((rnd() - 0.5) * 6, 86 + i * 7, (rnd() - 0.5) * 6);
+        puff.position.set((rnd() - 0.5) * 11, 160 + i * 10, (rnd() - 0.5) * 11);
         g.add(puff);
     }
     return g;
@@ -25463,6 +25518,8 @@ function createLavaTwinMountain() {
         group.add(puff);
     }
 
+    group.scale.set(1.24, 1.3, 1.24);
+    mergeDirectStaticMeshesByMaterial(group, 'lavaTwinVolcanoMerged');
     group.userData = {
         lavaDecor: true,
         decorType: 'mountain_twin',
@@ -25602,6 +25659,132 @@ function mergeDirectStaticMeshesByMaterial(group, mergedName) {
     });
 }
 
+function buildElementalMountainGroup(theme, style, seed) {
+    ensureNatureModelTypes();
+    const rnd = natSeedRand(seed);
+    const group = new THREE.Group();
+    const source = natureTypeCache.mountainGeos;
+    const layoutsByStyle = {
+        single: [
+            { x: 0, z: 0, sx: 1.52, sy: 2.30, sz: 1.56 },
+            { x: -52, z: 18, sx: 0.84, sy: 1.40, sz: 0.92 },
+            { x: 50, z: -14, sx: 0.78, sy: 1.24, sz: 0.88 }
+        ],
+        twin: [
+            { x: -36, z: 4, sx: 1.34, sy: 2.18, sz: 1.42 },
+            { x: 37, z: -8, sx: 1.24, sy: 1.98, sz: 1.34 },
+            { x: 0, z: 24, sx: 0.82, sy: 1.22, sz: 0.90 }
+        ],
+        range: [
+            { x: -92, z: 6, sx: 1.06, sy: 1.78, sz: 1.18 },
+            { x: -44, z: -12, sx: 1.40, sy: 2.34, sz: 1.48 },
+            { x: 14, z: 10, sx: 1.60, sy: 2.62, sz: 1.66 },
+            { x: 70, z: -7, sx: 1.25, sy: 2.08, sz: 1.36 },
+            { x: 114, z: 18, sx: 0.92, sy: 1.48, sz: 1.02 }
+        ]
+    };
+    const layouts = layoutsByStyle[style] || layoutsByStyle.single;
+    const isSnow = theme === 'snow';
+    const bodyLight = isSnow ? mats.snowRock : mats.waterRock;
+    const bodyDark = isSnow ? mats.snowRockDark : mats.waterRockDark;
+
+    layouts.forEach((p, index) => {
+        const geo = source[(index + (seed % source.length)) % source.length];
+        const body = new THREE.Mesh(geo, index % 2 ? bodyLight : bodyDark);
+        body.scale.set(p.sx, p.sy, p.sz);
+        body.position.set(p.x, -4, p.z);
+        body.rotation.y = rnd() * Math.PI * 2;
+        body.rotation.z = (rnd() - 0.5) * 0.08;
+        group.add(body);
+
+        if (isSnow) {
+            const capHeight = 24 + p.sy * 8;
+            const cap = new THREE.Mesh(source[(index + 1) % source.length], mats.snowCap);
+            cap.scale.set(p.sx * 0.46, capHeight / 62, p.sz * 0.48);
+            cap.position.set(p.x, p.sy * 46, p.z);
+            cap.rotation.y = body.rotation.y + 0.18;
+            group.add(cap);
+        }
+    });
+
+    const base = new THREE.Mesh(geoms.lavaBoulder, bodyDark);
+    const rangeWidth = style === 'range' ? 126 : (style === 'twin' ? 72 : 64);
+    base.scale.set(rangeWidth, isSnow ? 10 : 14, style === 'range' ? 42 : 34);
+    base.position.set(style === 'range' ? 10 : 0, 2.5, 0);
+    base.rotation.set(0.04, rnd() * Math.PI, (rnd() - 0.5) * 0.06);
+    group.add(base);
+
+    if (isSnow) {
+        const drift = new THREE.Mesh(geoms.snowDrift, mats.snowCap);
+        drift.scale.set(rangeWidth * 1.08, 2.8, style === 'range' ? 46 : 38);
+        drift.position.y = -1.2;
+        group.add(drift);
+        const crystalCount = style === 'range' ? 3 : 2;
+        for (let i = 0; i < crystalCount; i++) {
+            const ice = new THREE.Mesh(geoms.snowCrystal, mats.snowIce);
+            ice.scale.set(2.4 + rnd() * 1.8, 14 + rnd() * 14, 2.0 + rnd() * 1.4);
+            ice.position.set((i - (crystalCount - 1) * 0.5) * 48 + (rnd() - 0.5) * 12, 8, 28 + rnd() * 9);
+            ice.rotation.z = (rnd() - 0.5) * 0.32;
+            group.add(ice);
+        }
+    } else {
+        const waterfallCount = style === 'range' ? 3 : 2;
+        for (let i = 0; i < waterfallCount; i++) {
+            const h = 58 + rnd() * 38;
+            const fall = new THREE.Mesh(createLavaRibbonGeometry(h, 7 + rnd() * 4, 1.1, 7), mats.waterGlow);
+            const spread = style === 'range' ? 62 : 34;
+            fall.position.set((i - (waterfallCount - 1) * 0.5) * spread + (rnd() - 0.5) * 10, 36 + h * 0.35, 48 + rnd() * 9);
+            fall.rotation.z = (rnd() - 0.5) * 0.18;
+            group.add(fall);
+        }
+        for (let i = 0; i < 3; i++) {
+            const mist = new THREE.Mesh(geoms.lavaSmokePuff, mats.waterMist);
+            const s = 3.6 + rnd() * 2.4;
+            mist.scale.setScalar(s);
+            mist.position.set((rnd() - 0.5) * rangeWidth, 3 + rnd() * 8, 48 + rnd() * 12);
+            group.add(mist);
+        }
+    }
+    return group;
+}
+
+function ensureElementalMountainTypes() {
+    if (elementalMountainTypeCache.water.single.length) return;
+    const styles = ['single', 'twin', 'range'];
+    styles.forEach((style, index) => {
+        lavaCacheParts(elementalMountainTypeCache.water[style], buildElementalMountainGroup('water', style, 1101 + index * 37));
+        lavaCacheParts(elementalMountainTypeCache.snow[style], buildElementalMountainGroup('snow', style, 1201 + index * 41));
+    });
+}
+
+function createWaterMountainModel(style = 'single') {
+    ensureElementalMountainTypes();
+    const resolved = elementalMountainTypeCache.water[style] ? style : 'single';
+    const group = instantiateLavaParts(elementalMountainTypeCache.water[resolved]);
+    group.userData = {
+        lavaDecor: true,
+        decorType: resolved === 'single' ? 'mountain' : `mountain_${resolved}`,
+        waterThemed: true,
+        pulseSeed: Math.random() * Math.PI * 2,
+        pulseAmp: 0.12
+    };
+    return group;
+}
+
+function createElementalSnowMountainModel(style = 'single') {
+    ensureElementalMountainTypes();
+    const resolved = elementalMountainTypeCache.snow[style] ? style : 'single';
+    const group = instantiateLavaParts(elementalMountainTypeCache.snow[resolved]);
+    group.userData = {
+        lavaDecor: true,
+        decorType: resolved === 'single' ? 'snow_mountain' : `mountain_${resolved}`,
+        snowThemed: true,
+        pulseSeed: Math.random() * Math.PI * 2,
+        pulseAmp: 0.12
+    };
+    return group;
+}
+
 function addInstancedLavaDecor(group, geometry, material, placements) {
     return addInstancedDecor(group, geometry, material, placements);
 }
@@ -25722,6 +25905,7 @@ function createLavaMountainRange() {
     }
     addInstancedLavaDecor(group, geoms.lavaSmokePuff, mats.lavaSmoke, smokePuffs);
 
+    group.scale.set(1.18, 1.28, 1.18);
     mergeDirectStaticMeshesByMaterial(group, 'lavaMountainRangeMerged');
 
     group.userData = {
@@ -27910,7 +28094,7 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
         : type === 'water_cargo_ship'
         ? roadCenterZ + side * (roadHalfWidth + 150 + Math.random() * 170)
         : (type === 'mountain' || type === 'mountain_twin' || type === 'mountain_range' || type === 'castle')
-        ? roadCenterZ + side * (roadHalfWidth + (type === 'mountain_range' ? 72 : 94) + Math.random() * (type === 'mountain_range' ? 105 : 150))
+        ? roadCenterZ + side * (roadHalfWidth + (type === 'mountain_range' ? 135 : 120) + Math.random() * (type === 'mountain_range' ? 150 : 170))
         : (type === 'obsidian' || type === 'basalt' || type === 'geyser' || type === 'ashtree')
         ? roadCenterZ + side * (roadHalfWidth + 24 + Math.random() * 120)
         : roadCenterZ + side * (roadHalfWidth + 16 + Math.random() * 138);
@@ -27921,9 +28105,15 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
     else if (type === 'geyser') obj = createLavaGeyser();
     else if (type === 'ashtree') obj = createLavaAshTree();
     else if (type === 'basalt') obj = createLavaBasalt();
-    else if (type === 'mountain') obj = createLavaMountain();
-    else if (type === 'mountain_twin') obj = createLavaTwinMountain();
-    else if (type === 'mountain_range') obj = createLavaMountainRange();
+    else if (type === 'mountain') obj = gamePhase >= 5
+        ? createElementalSnowMountainModel('single')
+        : (gamePhase >= 4 ? createWaterMountainModel('single') : createLavaMountain());
+    else if (type === 'mountain_twin') obj = gamePhase >= 5
+        ? createElementalSnowMountainModel('twin')
+        : (gamePhase >= 4 ? createWaterMountainModel('twin') : createLavaTwinMountain());
+    else if (type === 'mountain_range') obj = gamePhase >= 5
+        ? createElementalSnowMountainModel('range')
+        : (gamePhase >= 4 ? createWaterMountainModel('range') : createLavaMountainRange());
     else if (type === 'castle') obj = createLavaCastle();
     else if (type === 'pirate_ship') obj = createPirateShipModel();
     else if (type === 'water_island') obj = createWaterIslandModel();
@@ -27934,7 +28124,7 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
     else if (type === 'water_sailboat') obj = createWaterSailboatModel();
     else if (type === 'water_buoy') obj = createWaterBuoyModel();
     else if (type === 'water_cargo_ship') obj = createWaterCargoShipModel();
-    else if (type === 'snow_mountain') obj = createSnowMountainModel();
+    else if (type === 'snow_mountain') obj = createElementalSnowMountainModel(Math.random() > 0.55 ? 'twin' : 'single');
     else if (type === 'snow_pine') obj = createSnowPineClusterModel();
     else if (type === 'snow_cabin') obj = createSnowCabinModel();
     else if (type === 'snow_crystal') obj = createSnowCrystalClusterModel();
@@ -27983,9 +28173,13 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
         : type === 'water_cargo_ship'
         ? (2.3 + Math.random() * 1.0)
         : (type === 'mountain' || type === 'mountain_twin' || type === 'mountain_range')
-        ? (type === 'mountain_range'
-            ? (1.02 + (Math.abs(z) / 340) * 0.34 + Math.random() * 0.14)
-            : (0.72 + (Math.abs(z) / 260) * 0.45 + Math.random() * 0.16))
+        ? (gamePhase >= 4
+            ? (type === 'mountain_range'
+                ? (0.70 + (Math.abs(z) / 620) * 0.18 + Math.random() * 0.08)
+                : (0.60 + (Math.abs(z) / 580) * 0.18 + Math.random() * 0.08))
+            : (type === 'mountain_range'
+                ? (0.92 + (Math.abs(z) / 520) * 0.28 + Math.random() * 0.12)
+                : (0.78 + (Math.abs(z) / 460) * 0.28 + Math.random() * 0.12)))
         : (type === 'castle'
             ? (0.78 + (Math.abs(z) / 280) * 0.38 + Math.random() * 0.12)
             : (type === 'obsidian' || type === 'basalt')
@@ -28737,6 +28931,83 @@ function buildSkyTowerWindows(g, w, d, h, rnd) {
     }
 }
 
+function addSkyTowerSilhouetteDetails(g, w, d, h, neonMat, rnd, style = 'tower') {
+    const radius = Math.max(w, d) * (style === 'arcology' ? 1.05 : 0.82);
+    const foundation = new THREE.Mesh(
+        new THREE.CylinderGeometry(radius, radius * 0.82, 7, 8),
+        mats.skyScraperTrim
+    );
+    foundation.position.y = 1.5;
+    foundation.rotation.y = Math.PI / 8;
+    g.add(foundation);
+
+    const underside = new THREE.Mesh(
+        new THREE.ConeGeometry(radius * 0.72, 24, 8),
+        mats.skyScraperDark
+    );
+    underside.position.y = -13.8;
+    underside.rotation.y = Math.PI / 8;
+    g.add(underside);
+
+    const baseGlow = new THREE.Mesh(
+        new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, 0.8, 8),
+        neonMat
+    );
+    baseGlow.position.y = -1.5;
+    baseGlow.rotation.y = Math.PI / 8;
+    g.add(baseGlow);
+
+    const levels = style === 'ziggurat' ? [0.34, 0.67] : (style === 'twin' ? [0.3, 0.58] : [0.27, 0.56, 0.78]);
+    levels.forEach((ratio, index) => {
+        const extra = index % 2 === 0 ? 1.32 : 1.20;
+        const terrace = new THREE.Mesh(
+            new THREE.BoxGeometry(w * extra, 2.4, d * (extra + 0.04)),
+            mats.skyScraperTrim
+        );
+        terrace.position.y = h * ratio;
+        g.add(terrace);
+        const line = new THREE.Mesh(
+            new THREE.BoxGeometry(w * (extra + 0.04), 0.55, d * (extra + 0.08)),
+            neonMat
+        );
+        line.position.y = h * ratio - 1.45;
+        g.add(line);
+    });
+
+    if (style === 'tower' || style === 'arcology') {
+        for (const side of [-1, 1]) {
+            const podH = h * (0.18 + rnd() * 0.06);
+            const pod = new THREE.Mesh(
+                new THREE.BoxGeometry(w * 0.30, podH, d * 0.64),
+                mats.skyScraper
+            );
+            pod.position.set(side * w * 0.66, h * (side > 0 ? 0.43 : 0.66), 0);
+            g.add(pod);
+            const podGlow = new THREE.Mesh(
+                new THREE.BoxGeometry(w * 0.32, 1.1, d * 0.68),
+                neonMat
+            );
+            podGlow.position.set(pod.position.x, pod.position.y + podH * 0.5, 0);
+            g.add(podGlow);
+        }
+    }
+
+    // One asymmetric sky dock gives the silhouette a readable horizontal landmark.
+    const dockSide = rnd() > 0.5 ? 1 : -1;
+    const dock = new THREE.Mesh(
+        new THREE.BoxGeometry(w * 0.72, 2.8, d * 1.18),
+        mats.skyScraperTrim
+    );
+    dock.position.set(dockSide * w * 0.78, h * 0.36, 0);
+    g.add(dock);
+    const dockLight = new THREE.Mesh(
+        new THREE.BoxGeometry(w * 0.74, 0.65, d * 1.22),
+        neonMat
+    );
+    dockLight.position.set(dock.position.x, dock.position.y - 1.6, 0);
+    g.add(dockLight);
+}
+
 function buildSkyTower(seed, h, w, d, neonMat, roof) {
     const rnd = natSeedRand(seed);
     const g = new THREE.Group();
@@ -28789,6 +29060,7 @@ function buildSkyTower(seed, h, w, d, neonMat, roof) {
             g.add(fin);
         }
     }
+    addSkyTowerSilhouetteDetails(g, w, d, h, neonMat, rnd, 'tower');
     return g;
 }
 
@@ -28820,6 +29092,7 @@ function buildSkyZiggurat(seed, h, w, d, neonMat) {
     const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.8, h * 0.12, 6), neonMat);
     antenna.position.y = curH + h * 0.06;
     g.add(antenna);
+    addSkyTowerSilhouetteDetails(g, w, d, h, neonMat, rnd, 'ziggurat');
     return g;
 }
 
@@ -28859,6 +29132,70 @@ function buildSkyTwinTowers(seed, h, w, d, neonMat) {
         bLine.position.y = by - 1.6;
         g.add(bLine);
     }
+    addSkyTowerSilhouetteDetails(g, w, d, h, neonMat, rnd, 'twin');
+    return g;
+}
+
+function buildSkyArcology(seed, h, w, d, neonMat) {
+    const rnd = natSeedRand(seed);
+    const g = new THREE.Group();
+    const core = new THREE.Mesh(
+        new THREE.CylinderGeometry(w * 0.42, w * 0.58, h, 8),
+        mats.skyScraper
+    );
+    core.position.y = h * 0.5;
+    core.rotation.y = Math.PI / 8;
+    g.add(core);
+
+    for (const ratio of [0.18, 0.36, 0.56, 0.75, 0.91]) {
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(w * (0.43 + ratio * 0.06), 0.85, 5, 10),
+            neonMat
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = h * ratio;
+        g.add(ring);
+    }
+
+    const satellites = [
+        { x: -w * 0.78, z: d * 0.34, scale: 0.66 },
+        { x: w * 0.74, z: d * 0.26, scale: 0.78 },
+        { x: 0, z: -d * 0.88, scale: 0.58 }
+    ];
+    satellites.forEach((p, index) => {
+        const sh = h * p.scale;
+        const sw = w * (0.24 + index * 0.025);
+        const sd = d * 0.42;
+        const tower = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, sd), mats.skyScraper);
+        tower.position.set(p.x, sh * 0.5, p.z);
+        tower.rotation.y = (rnd() - 0.5) * 0.24;
+        g.add(tower);
+        for (let y = 16; y < sh - 8; y += 18) {
+            const windows = new THREE.Mesh(new THREE.BoxGeometry(sw * 0.82, 5.4, 0.5), y % 36 ? mats.skyWindowGlow : mats.skyScraperDark);
+            windows.position.set(p.x, y, p.z + sd * 0.5 + 0.3);
+            windows.rotation.y = tower.rotation.y;
+            g.add(windows);
+        }
+        const bridgeLength = Math.max(8, Math.hypot(p.x, p.z) - w * 0.34);
+        const bridge = new THREE.Mesh(new THREE.BoxGeometry(bridgeLength, 3.2, 4.2), mats.skyScraperTrim);
+        bridge.position.set(p.x * 0.5, Math.min(sh * 0.72, h * 0.48), p.z * 0.5);
+        bridge.rotation.y = -Math.atan2(p.z, p.x);
+        g.add(bridge);
+        const bridgeGlow = new THREE.Mesh(new THREE.BoxGeometry(bridgeLength, 0.65, 4.5), neonMat);
+        bridgeGlow.position.copy(bridge.position);
+        bridgeGlow.position.y -= 1.9;
+        bridgeGlow.rotation.y = bridge.rotation.y;
+        g.add(bridgeGlow);
+    });
+
+    const crown = new THREE.Mesh(new THREE.ConeGeometry(w * 0.30, h * 0.16, 8), mats.skyScraperDark);
+    crown.position.y = h + h * 0.08;
+    crown.rotation.y = Math.PI / 8;
+    g.add(crown);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(2.2, 7, 6), neonMat);
+    beacon.position.y = h + h * 0.17;
+    g.add(beacon);
+    addSkyTowerSilhouetteDetails(g, w * 1.35, d * 1.35, h, neonMat, rnd, 'arcology');
     return g;
 }
 
@@ -28957,6 +29294,8 @@ function ensureSkyModelTypes() {
     skyCacheParts(skyTypeCache.tower, buildSkyTower(647, 380, 28, 22, mats.skyScraperNeonA, 'antenna'));
     skyCacheParts(skyTypeCache.tower, buildSkyZiggurat(659, 260, 34, 26, mats.skyScraperNeonC));
     skyCacheParts(skyTypeCache.tower, buildSkyTwinTowers(673, 300, 38, 18, mats.skyScraperNeonB));
+    skyCacheParts(skyTypeCache.tower, buildSkyArcology(683, 285, 38, 30, mats.skyScraperNeonA));
+    skyCacheParts(skyTypeCache.tower, buildSkyArcology(691, 360, 44, 34, mats.skyScraperNeonB));
     skyTypeCache.balloon = skyCacheParts([], buildSkyBalloonModel());
     skyTypeCache.blimp = skyCacheParts([], buildSkyBlimpModel());
     skyTypeCache.plane = skyCacheParts([], buildSkyPlaneModel());

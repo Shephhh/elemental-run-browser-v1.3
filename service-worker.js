@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-6-cyber-performance';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-7-elemental-worlds';
 const SHELL = [
   './',
   './index.html',
