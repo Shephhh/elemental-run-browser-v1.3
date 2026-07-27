@@ -3,32 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ELEMENTAL RUN - Free Endless Runner</title>
+    <title>ELEMENTAL RUN</title>
     <meta name="description" content="Play ELEMENTAL RUN in your browser. Dodge traffic, jump hazards, collect gold, unlock upgrades, and survive fast neon endless runner maps.">
     <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
     <meta name="google-site-verification" content="COTiiA_3UexTN09oOE64Drk1NRgvieoduXjFf7jWGvE">
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
+    <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
+    <meta name="elemental-run-build" content="1.3.2-web-mobile">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/elemental-run-icon.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4666514897532022" crossorigin="anonymous"></script>
+    <script async data-ad-client="ca-pub-4666514897532022" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4666514897532022" crossorigin="anonymous"></script>
+    <script>
+        window.adsbygoogle = window.adsbygoogle || [];
+        window.adBreak = window.adBreak || function (options) { window.adsbygoogle.push(options); };
+        window.adConfig = window.adConfig || function (options) { window.adsbygoogle.push(options); };
+        window.adConfig({ preloadAdBreaks: 'on', sound: 'on' });
+    </script>
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <meta property="og:site_name" content="ELEMENTAL RUN">
-    <meta property="og:title" content="ELEMENTAL RUN - Free Endless Runner">
+    <meta property="og:title" content="ELEMENTAL RUN">
     <meta property="og:description" content="Race through neon roads, avoid deadly obstacles, collect gold, and push your high score in ELEMENTAL RUN.">
     <meta property="og:image" content="https://shephhh.github.io/elemental-run-browser-v1.3/assets/elemental-run-icon.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ELEMENTAL RUN - Free Endless Runner">
+    <meta name="twitter:title" content="ELEMENTAL RUN">
     <meta name="twitter:description" content="Play ELEMENTAL RUN in your browser and chase your best score across fast endless runner maps.">
     <meta name="twitter:image" content="https://shephhh.github.io/elemental-run-browser-v1.3/assets/elemental-run-icon.png">
     <script type="application/ld+json">
         {
             "@context": "https://schema.org",
-            "@type": ["VideoGame", "WebSite"],
+            "@type": "VideoGame",
             "name": "ELEMENTAL RUN",
             "alternateName": "Elemental Run",
             "url": "https://shephhh.github.io/elemental-run-browser-v1.3/",
@@ -311,6 +319,7 @@
         }
 
         #loading-bar-container {
+            position: relative;
             width: 300px;
             height: 6px;
             background: #111;
@@ -325,6 +334,16 @@
             background: linear-gradient(90deg, #00ffff, #ff00ff);
             transition: width 0.2s ease-out;
             box-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+        }
+        #loading-percent {
+            margin: 10px 0 4px;
+            color: #eafcff;
+            font-family: 'Orbitron', 'Rajdhani', sans-serif;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 14px rgba(76, 224, 255, .58);
+            font-variant-numeric: tabular-nums;
         }
 
         button:hover { transform: none; background: #101b2b; }
@@ -842,6 +861,9 @@
             border-radius: 1px;
             background: linear-gradient(90deg, #69caff 0%, #4be1c1 34%, #ffd85d 66%, #ff6848 100%);
             box-shadow: 0 0 18px rgba(255, 132, 72, 0.28);
+        }
+        #loading-percent {
+            font-size: clamp(17px, 2vw, 22px);
         }
         #pause-card {
             width: min(500px, calc(100vw - 44px));
@@ -4066,6 +4088,126 @@
             .mouse-glyph { transform: scale(.88); margin: -3px; }
         }
 
+        .how-to-mobile-controls {
+            display: none;
+        }
+        body.mobile-runtime .how-to-desktop-controls {
+            display: none;
+        }
+        body.mobile-runtime #how-to-play-overlay {
+            left: 50%;
+            right: auto;
+            top: max(48px, calc(env(safe-area-inset-top) + 40px));
+            width: min(430px, calc(100vw - 220px));
+            min-width: 330px;
+            transform: translate(-50%, -10px) scale(.97);
+        }
+        body.mobile-runtime #how-to-play-overlay.is-visible {
+            transform: translate(-50%, 0) scale(1);
+        }
+        body.mobile-runtime #how-to-play-overlay.is-leaving {
+            transform: translate(-50%, -12px) scale(.98);
+        }
+        body.mobile-runtime .how-to-play-card {
+            padding: 9px 12px 10px;
+            border-color: rgba(123, 232, 255, .58);
+            background: linear-gradient(180deg, rgba(4, 13, 25, .97), rgba(8, 20, 35, .94));
+        }
+        body.mobile-runtime .how-to-play-title {
+            margin-bottom: 7px;
+            font-size: 10px;
+        }
+        body.mobile-runtime .how-to-mobile-controls {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .mobile-how-control {
+            display: grid;
+            grid-template-columns: 68px minmax(0, 1fr);
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
+            padding: 5px 7px;
+            border: 1px solid rgba(126, 207, 238, .15);
+            border-radius: 10px;
+            background: rgba(3, 14, 27, .42);
+        }
+        .mobile-how-stick {
+            position: relative;
+            display: grid;
+            place-items: center;
+            width: 62px;
+            height: 62px;
+            border: 2px solid rgba(132, 234, 255, .64);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(64, 194, 230, .18) 0 35%, rgba(6, 24, 38, .76) 37% 100%);
+            box-shadow: inset 0 0 16px rgba(56, 211, 255, .16), 0 0 14px rgba(40, 194, 236, .12);
+        }
+        .mobile-how-stick::after {
+            content: "";
+            width: 25px;
+            height: 25px;
+            border: 2px solid rgba(224, 251, 255, .9);
+            border-radius: 50%;
+            background: rgba(82, 213, 242, .38);
+            box-shadow: 0 0 12px rgba(67, 219, 255, .35);
+        }
+        .mobile-how-stick.is-action {
+            border-color: rgba(255, 119, 188, .7);
+            box-shadow: inset 0 0 16px rgba(255, 61, 159, .14), 0 0 14px rgba(255, 48, 151, .12);
+        }
+        .mobile-how-stick.is-action::after {
+            border-color: rgba(255, 230, 245, .92);
+            background: rgba(255, 91, 179, .38);
+            box-shadow: 0 0 12px rgba(255, 76, 169, .32);
+        }
+        .mobile-how-stick .mobile-how-arrow {
+            position: absolute;
+            color: rgba(235, 252, 255, .9);
+            font: 900 13px/1 Orbitron, sans-serif;
+            text-shadow: 0 1px 5px #000;
+        }
+        .mobile-how-arrow.is-up { top: 4px; left: 50%; transform: translateX(-50%); }
+        .mobile-how-arrow.is-down { bottom: 4px; left: 50%; transform: translateX(-50%); }
+        .mobile-how-arrow.is-left { left: 4px; top: 50%; transform: translateY(-50%); }
+        .mobile-how-copy {
+            min-width: 0;
+            color: rgba(224, 245, 255, .9);
+            font: 800 9px/1.5 Orbitron, Rajdhani, sans-serif;
+            letter-spacing: .7px;
+        }
+        .mobile-how-copy strong {
+            display: block;
+            margin-bottom: 3px;
+            color: #82e8ff;
+            font-size: 10px;
+        }
+        .mobile-how-copy > span {
+            display: block;
+            white-space: nowrap;
+        }
+        body.mobile-runtime .menu-version-tag::after {
+            content: " · MOBILE";
+            color: #70e8ff;
+        }
+        @media (max-width: 680px), (max-height: 360px) {
+            body.mobile-runtime #how-to-play-overlay {
+                width: min(390px, calc(100vw - 190px));
+                min-width: 300px;
+                top: max(40px, calc(env(safe-area-inset-top) + 32px));
+            }
+            .mobile-how-control {
+                grid-template-columns: 56px minmax(0, 1fr);
+                gap: 6px;
+                padding: 4px 5px;
+            }
+            .mobile-how-stick { width: 50px; height: 50px; }
+            .mobile-how-stick::after { width: 20px; height: 20px; }
+            .mobile-how-copy { font-size: 8px; }
+        }
+
         /* Mobile runtime: two thumb sticks, safe-area spacing and zero browser gestures. */
         #mobile-controls {
             display: none;
@@ -4292,8 +4434,7 @@
             }
         }
         body.mobile-runtime #hud-controls,
-        body.mobile-runtime #info-text,
-        body.mobile-runtime #how-to-play-overlay {
+        body.mobile-runtime #info-text {
             display: none !important;
         }
         body.mobile-runtime .menu-snow span:nth-child(n+10) {
@@ -4323,8 +4464,9 @@
         <div id="loading-text">LOADING...</div>
         <div id="loading-subtext">Preparing...</div>
         <div id="loading-hint">Shader'lar, ses katmanları ve dünya parçaları hazırlanıyor.</div>
+        <div id="loading-percent" role="status" aria-live="polite">0%</div>
         <div id="loading-bar-container">
-            <div id="loading-bar"></div>
+            <div id="loading-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
         </div>
     </div>
 </div><div id="progress-wrapper">
@@ -4345,7 +4487,7 @@
 <div id="how-to-play-overlay" aria-hidden="true" hidden>
     <div class="how-to-play-card">
         <div id="how-to-play-title" class="how-to-play-title">HOW TO PLAY</div>
-        <div class="how-to-play-controls">
+        <div class="how-to-play-controls how-to-desktop-controls">
             <div class="how-to-key-row">
                 <div class="how-to-control is-keys">
                     <div class="key-cluster" aria-hidden="true">
@@ -4369,6 +4511,27 @@
             <div class="how-to-control is-mouse">
                 <span class="mouse-glyph" aria-hidden="true"><span class="mouse-button left"></span><span class="mouse-button right"></span><span class="mouse-wheel"></span><span class="mouse-tail"></span></span>
                 <span id="how-to-play-look" class="how-to-control-label">LOOK</span>
+            </div>
+        </div>
+        <div class="how-to-mobile-controls" aria-label="Mobile controls">
+            <div class="mobile-how-control">
+                <span class="mobile-how-stick" aria-hidden="true"></span>
+                <span class="mobile-how-copy">
+                    <strong id="how-to-mobile-look">LOOK</strong>
+                    <span id="how-to-mobile-look-hint">DRAG TO LOOK</span>
+                </span>
+            </div>
+            <div class="mobile-how-control">
+                <span class="mobile-how-stick is-action" aria-hidden="true">
+                    <i class="mobile-how-arrow is-up">↑</i>
+                    <i class="mobile-how-arrow is-down">↓</i>
+                    <i class="mobile-how-arrow is-left">←</i>
+                </span>
+                <span class="mobile-how-copy">
+                    <span><b>↑</b> <span id="how-to-mobile-jump">JUMP</span></span>
+                    <span><b>↓</b> <span id="how-to-mobile-slide">SLIDE</span></span>
+                    <span><b>←</b> <span id="how-to-mobile-skill">SKILL</span></span>
+                </span>
             </div>
         </div>
     </div>
@@ -5662,6 +5825,11 @@ let skyClouds = [];
         if (ui.howToPlayLook) ui.howToPlayLook.textContent = copy.look;
         if (ui.howToPlaySpace) ui.howToPlaySpace.textContent = copy.space;
         if (ui.howToPlayAbility) ui.howToPlayAbility.textContent = tr('ability');
+        if (ui.howToMobileLook) ui.howToMobileLook.textContent = copy.look;
+        if (ui.howToMobileLookHint) ui.howToMobileLookHint.textContent = '↔  ↕';
+        if (ui.howToMobileJump) ui.howToMobileJump.textContent = copy.jump;
+        if (ui.howToMobileSlide) ui.howToMobileSlide.textContent = tr('slide');
+        if (ui.howToMobileSkill) ui.howToMobileSkill.textContent = tr('ability');
         if (ui.howToPlayOverlay) {
             ui.howToPlayOverlay.setAttribute('dir', normalizeLanguage(menuState.language) === 'ar' ? 'rtl' : 'ltr');
         }
@@ -5692,10 +5860,6 @@ let skyClouds = [];
     }
 
     function showHowToPlayOverlay() {
-        if (MOBILE_RUNTIME) {
-            hideHowToPlayOverlay(true);
-            return;
-        }
         if (!ui.howToPlayOverlay) return;
         hideHowToPlayOverlay(true);
         applyHowToPlayCopy();
@@ -5708,7 +5872,6 @@ let skyClouds = [];
     }
 
     function queueHowToPlayOverlay() {
-        if (MOBILE_RUNTIME) return;
         // Let the menu teardown and the first game frame finish first. Starting the
         // five-second timer before that work completed made the card occasionally
         // disappear immediately on slower browsers.
@@ -6907,6 +7070,11 @@ let skyClouds = [];
         ui.howToPlayLook = document.getElementById('how-to-play-look');
         ui.howToPlaySpace = document.getElementById('how-to-play-space');
         ui.howToPlayAbility = document.getElementById('how-to-play-ability');
+        ui.howToMobileLook = document.getElementById('how-to-mobile-look');
+        ui.howToMobileLookHint = document.getElementById('how-to-mobile-look-hint');
+        ui.howToMobileJump = document.getElementById('how-to-mobile-jump');
+        ui.howToMobileSlide = document.getElementById('how-to-mobile-slide');
+        ui.howToMobileSkill = document.getElementById('how-to-mobile-skill');
         ui.shieldBar = document.getElementById('shield-bar');
         ui.hudControls = document.getElementById('hud-controls');
         ui.noclipIndicator = document.getElementById('noclip-indicator');
@@ -7034,6 +7202,7 @@ let skyClouds = [];
         ui.rebirthUpgradeSteps = Array.from(document.querySelectorAll('#rebirth-upgrade-steps span'));
         ui.menuDialogCloseBtns = Array.from(document.querySelectorAll('#main-menu .menu-dialog-close'));
         ui.loadingBar = document.getElementById('loading-bar');
+        ui.loadingPercent = document.getElementById('loading-percent');
         ui.loadingText = document.getElementById('loading-text');
         ui.loadingSubtext = document.getElementById('loading-subtext');
         ui.loadingHint = document.getElementById('loading-hint');
@@ -9436,6 +9605,9 @@ let skyClouds = [];
             } else if (setting === 'muted') {
                 stopMenuMusicNow();
                 stopGameplayMusicNow();
+            }
+            if (setting === 'muted' && typeof window.adConfig === 'function') {
+                window.adConfig({ sound: menuState.muted ? 'off' : 'on' });
             }
             resetGamepadUiFocus(gamepadUiFocusIndex);
             return;
@@ -12911,9 +13083,14 @@ if (renderer && dirLight) {
 }
     function updateLoading(percent, text, subText = '') {
         const clamped = Math.max(0, Math.min(100, percent));
-        if (ui.loadingBar) ui.loadingBar.style.width = clamped.toFixed(1) + '%';
+        const wholePercent = Math.floor(clamped);
+        if (ui.loadingBar) {
+            ui.loadingBar.style.width = clamped.toFixed(1) + '%';
+            ui.loadingBar.setAttribute('aria-valuenow', String(wholePercent));
+        }
+        if (ui.loadingPercent) ui.loadingPercent.innerText = wholePercent + '%';
         if (ui.loadingText) ui.loadingText.innerText = text;
-        if (ui.loadingSubtext) ui.loadingSubtext.innerText = subText || (Math.floor(clamped) + '%');
+        if (ui.loadingSubtext) ui.loadingSubtext.innerText = subText || tr('preparing');
     }
 
     function updatePauseRunStats() {
@@ -13097,6 +13274,7 @@ if (renderer && dirLight) {
 
     function runLoadingPipeline(tasks, done) {
         const total = tasks.length;
+        const pipelineShare = 82;
         let currentTask = 0;
 
         const runNext = () => {
@@ -13107,7 +13285,7 @@ if (renderer && dirLight) {
 
             const task = tasks[currentTask];
             const taskText = typeof task.text === 'function' ? task.text() : task.text;
-            const startPct = (currentTask / total) * 100;
+            const startPct = (currentTask / total) * pipelineShare;
             updateLoading(startPct, taskText, (currentTask + 1) + '/' + total);
 
             requestAnimationFrame(() => {
@@ -13120,7 +13298,7 @@ if (renderer && dirLight) {
                 const tookMs = performance.now() - t0;
 
                 currentTask++;
-                const endPct = (currentTask / total) * 100;
+                const endPct = (currentTask / total) * pipelineShare;
                 updateLoading(endPct, taskText, currentTask + '/' + total + ' - ' + tookMs.toFixed(0) + 'ms');
 
                 setTimeout(runNext, 24);
@@ -13139,10 +13317,20 @@ if (renderer && dirLight) {
             document.documentElement.style.touchAction = 'none';
         }
         loadMainMenuState();
+        if (typeof window.adConfig === 'function') {
+            window.adConfig({ sound: menuState.muted ? 'off' : 'on' });
+        }
         if (isBrowserBuild()) {
             startRewardBoostUiClock();
             if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-                navigator.serviceWorker.register('./service-worker.js').catch((error) => console.warn('Service worker registration failed:', error));
+                navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).then((registration) => {
+                    registration.update().catch(() => {});
+                }).catch((error) => console.warn('Service worker registration failed:', error));
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (sessionStorage.getItem('elemental-sw-reloaded') === '1') return;
+                    sessionStorage.setItem('elemental-sw-reloaded', '1');
+                    location.reload();
+                });
             }
         }
         initArrowEffectPool();
@@ -13238,10 +13426,6 @@ if (renderer && dirLight) {
             carGlbSettled = true;
             trainGlbSettled = true;
             motorGlbSettled = true;
-        } else {
-            loadCarGlb();
-            loadTrainGlb();
-            loadMotorGlb();
         }
         runLoadingPipeline(tasks, waitForVehicleGlbsThenFinish);
         setupEventListeners();
@@ -13258,6 +13442,8 @@ if (renderer && dirLight) {
     let viewmodelGlbRequested = false; // hand.glb tembel yükleniyor (bkz. ensureViewmodelHandModel)
     let viewmodelGlbSettled = false;
     let viewmodelGlbReady = false;
+    const HAND_ASSET_BYTES = 7551488;
+    let viewmodelHandLoadRatio = 0;
     let viewmodelLeftHandGroup = null, viewmodelRightHandGroup = null;
     let viewmodelBobTimer = 0;
     let vmSpeedSmooth = 0, vmSwayX = 0, vmSwayRoll = 0, vmJumpSmooth = 0, vmSlideSmooth = 0, vmCadenceSpeed = 0, vmRunBlend = 0;
@@ -13303,6 +13489,7 @@ if (renderer && dirLight) {
         if (MOBILE_RUNTIME) {
             viewmodelGlbSettled = true;
             viewmodelGlbReady = false;
+            viewmodelHandLoadRatio = 1;
             return;
         }
         // Eller kameranın ÇOCUĞU (tam kamera takibi — pitch dahil, standart FPS viewmodel davranışı).
@@ -13398,6 +13585,7 @@ if (renderer && dirLight) {
                 viewmodelHands.add(pivot);
                 viewmodelGlbPivot = pivot;
                 viewmodelGlbReady = true;
+                viewmodelHandLoadRatio = 1;
 
                 // İLK-KARE HITCH FIX (2026-07-19): el shader programı + 3× 2048² doku eskiden
                 // İLK overlay karesinde (= koşunun ilk karesi) derlenip yükleniyordu → eller
@@ -13414,16 +13602,22 @@ if (renderer && dirLight) {
                     pivot.scale.setScalar(prevScale);
                 } catch (e) { console.warn('hand warm render hata', e); }
                 viewmodelGlbSettled = true;
-            }, undefined, (err) => {
+            }, (event) => {
+                const total = Number(event && event.total) || HAND_ASSET_BYTES;
+                const loaded = Number(event && event.loaded) || 0;
+                viewmodelHandLoadRatio = Math.max(viewmodelHandLoadRatio, Math.min(.99, loaded / Math.max(1, total)));
+            }, (err) => {
                 viewmodelGlbRequested = false; // yükleme başarısızsa tekrar denenebilsin
                 viewmodelGlbReady = false;
                 viewmodelGlbSettled = true;
+                viewmodelHandLoadRatio = 1;
                 console.warn('hand.glb yüklenemedi', err);
             });
         } catch (e) {
             viewmodelGlbRequested = false;
             viewmodelGlbReady = false;
             viewmodelGlbSettled = true;
+            viewmodelHandLoadRatio = 1;
             console.warn('viewmodel GLTFLoader hata', e);
         }
     }
@@ -13592,20 +13786,46 @@ if (renderer && dirLight) {
     // hata da sayılır; üst sınır 20sn — dosya eksikse sonsuza kadar asılı kalma), sonra
     // atlanmış warm'ları telafi eder (GLB callback'i mats.vehicles kurulmadan ateşlenirse
     // warmGlbType guard'a takılıp false dönmüş olabilir).
+    let vehicleGlbLoadsStarted = false;
+
+    function startVehicleModelLoads() {
+        if (MOBILE_RUNTIME || vehicleGlbLoadsStarted) return;
+        vehicleGlbLoadsStarted = true;
+        loadCarGlb();
+        loadTrainGlb();
+        loadMotorGlb();
+    }
+
+    function scheduleVehicleModelLoads() {
+        if (MOBILE_RUNTIME || vehicleGlbLoadsStarted) return;
+        const scheduledAt = performance.now();
+        const waitForHands = () => {
+            if (!menuState.handsEnabled || viewmodelGlbSettled || performance.now() - scheduledAt > 30000) {
+                const start = () => startVehicleModelLoads();
+                if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 2500 });
+                else setTimeout(start, 1200);
+                return;
+            }
+            setTimeout(waitForHands, 500);
+        };
+        waitForHands();
+    }
+
     function waitForVehicleGlbsThenFinish() {
         const waitStart = performance.now();
         const tick = () => {
-            const vehiclesSettled = carGlbSettled && trainGlbSettled && motorGlbSettled;
             const handsSettled = !menuState.handsEnabled || viewmodelGlbSettled;
-            const settled = vehiclesSettled && handsSettled;
-            if (!settled && performance.now() - waitStart < 45000) {
-                updateLoading(100, tr('loadingWorld'), handsSettled ? '3D' : 'HANDS 3D');
+            const handProgress = handsSettled ? 1 : Math.max(0, Math.min(.99, viewmodelHandLoadRatio));
+            const elapsed = performance.now() - waitStart;
+            updateLoading(82 + handProgress * 17, tr('loadingWorld'), handsSettled ? tr('preparing') : `HANDS ${Math.floor(handProgress * 100)}%`);
+            // The menu must never be held hostage by a slow or saturated network.
+            // The optimized hand request continues in the background and appears
+            // automatically when it completes.
+            if (!handsSettled && elapsed < 12000) {
                 setTimeout(tick, 100);
                 return;
             }
-            if (carGlbReady && !carGlbWarmed) carGlbWarmed = warmGlbType(makeGlbCar);
-            if (trainGlbReady && !trainGlbWarmed) trainGlbWarmed = warmGlbType((c) => makeGlbTrainWagon(c, false, false, false));
-            if (motorGlbReady && !motorGlbWarmed) motorGlbWarmed = warmGlbType(makeGlbMotor);
+            updateLoading(99, tr('loadingWorld'), tr('preparing'));
             finishLoading();
         };
         tick();
@@ -13617,6 +13837,7 @@ if (renderer && dirLight) {
         if (GFX_CINEMATIC_COLOR) { try { gfxFixColorSpace(scene); } catch (e) { console.warn('gfxFixColorSpace failed', e); } }
         try { applyGraphicsQuality(); } catch (e) { console.warn('applyGraphicsQuality (post-load) failed', e); }
         requestShadowMapRefresh();
+        scheduleVehicleModelLoads();
         if(!isGameOver) {
             isGamePaused = true;
             showMainMenu(true);

@@ -72,3 +72,13 @@ TODO:
 - Desktop runtime keeps the existing full desktop menu, keyboard/mouse flow, hands, vehicle models, shadows, and graphics settings.
 - Bumped the service-worker cache to `elemental-run-browser-v13-shell-4-mobile-auto` so returning visitors receive the new routing code.
 - Automated local routing QA passed for Android phone, regular Windows desktop, and touch-capable Windows laptop profiles. Mobile controls stayed inside the viewport, mobile made no heavy GLB requests, and all three profiles reported no runtime/page errors.
+
+2026-07-27 - Mobile onboarding, loading resilience, hand optimization, and rewarded H5 ads
+- Added a mobile-specific five-second How to Play card. It explains the left look stick and the right stick's jump, slide, and ability gestures instead of showing desktop keyboard/mouse controls.
+- Added a visible loading percentage with progressbar semantics. The percentage now follows world initialization and the critical hand download instead of jumping directly from an indeterminate bar to the menu.
+- Optimized `assets/hand.glb` from 19.36 MB / 120k triangles / 2048px textures to 7.55 MB / 36k triangles / 1024px textures. Visual inspection confirmed the hands remain suitable in gameplay.
+- Desktop startup no longer blocks on all vehicle models. It waits at most 12 seconds for the hand model, opens the menu if the connection is congested, and finishes the hand request in the background. Car, train, and motor models are deferred until the critical load settles or the browser becomes idle.
+- Kept mobile devices on procedural hands/traffic so they avoid all heavy GLB requests.
+- Added Google H5 Games rewarded-ad integration through the official `adBreak({ type: "reward" })` callback flow. Rewards are granted only after `adViewed`; dismissals and no-fill statuses do not grant rewards. Localhost retains a deterministic demo provider for QA.
+- Bumped the service-worker cache and added an update check/controller refresh so returning mobile visitors receive the new build instead of an older cached shell.
+- Automated QA passed for mobile routing, mobile How to Play, loading percentage progression, optimized hand readiness/visibility, delayed-network menu fallback, rewarded demo completion, skipped mobile GLBs, and zero runtime/page errors.

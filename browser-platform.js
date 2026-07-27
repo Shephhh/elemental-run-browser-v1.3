@@ -62,6 +62,48 @@
     }
   }
 
+  function runGoogleH5RewardedAd(onStart, placement) {
+    return new Promise((resolve) => {
+      let settled = false;
+      let viewed = false;
+      let dismissed = false;
+      let started = false;
+      const finish = (result) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(result);
+      };
+      const start = () => {
+        if (started) return;
+        started = true;
+        onStart();
+      };
+      const timer = setTimeout(() => finish(unavailable('google-h5', 'Rewarded ad request timed out.')), 15000);
+      try {
+        window.adBreak({
+          type: 'reward',
+          name: String(placement || 'elemental_reward').replace(/[^a-z0-9_-]+/gi, '_').slice(0, 80),
+          beforeAd: start,
+          afterAd: function () {},
+          beforeReward: (showAdFn) => {
+            try { showAdFn(); } catch (error) { finish(unavailable('google-h5', error)); }
+          },
+          adDismissed: () => { dismissed = true; },
+          adViewed: () => { viewed = true; },
+          adBreakDone: (info) => {
+            const status = String(info && info.breakStatus || '');
+            if (viewed || status === 'viewed') finish(completed('google-h5'));
+            else if (dismissed || status === 'dismissed') finish({ status: 'skipped', provider: 'google-h5' });
+            else finish(unavailable('google-h5', status || 'No rewarded ad was available.'));
+          }
+        });
+      } catch (error) {
+        finish(unavailable('google-h5', error));
+      }
+    });
+  }
+
   function loadGooglePublisherTag() {
     if (window.googletag && window.googletag.cmd) return Promise.resolve(window.googletag);
     return new Promise((resolve, reject) => {
@@ -198,6 +240,8 @@
         result = await runCrazyGamesAd(onStart);
       } else if (window.PokiSDK && typeof window.PokiSDK.rewardedBreak === 'function') {
         result = await runPokiAd(onStart);
+      } else if (config.googleAdsenseH5Rewarded && typeof window.adBreak === 'function' && !canUseDemoAds()) {
+        result = await runGoogleH5RewardedAd(onStart, request.placement);
       } else if (config.googleAdManagerRewardedUnitPath) {
         result = await runGoogleAdManagerAd(onStart);
       } else if (canUseDemoAds()) {
@@ -221,6 +265,7 @@
       if (customProvider) return 'custom';
       if (window.CrazyGames && window.CrazyGames.SDK && window.CrazyGames.SDK.ad) return 'crazygames';
       if (window.PokiSDK && typeof window.PokiSDK.rewardedBreak === 'function') return 'poki';
+      if (config.googleAdsenseH5Rewarded && typeof window.adBreak === 'function' && !canUseDemoAds()) return 'google-h5';
       if (config.googleAdManagerRewardedUnitPath) return 'google-ad-manager';
       return canUseDemoAds() ? 'demo' : 'none';
     }

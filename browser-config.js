@@ -2,6 +2,7 @@
   const config = Object.freeze({
     steamUrl: 'https://store.steampowered.com/app/4721080/',
     googleAdsensePublisherId: 'ca-pub-4666514897532022',
+    googleAdsenseH5Rewarded: true,
     // Real rewarded ads start only after you paste the approved Google Ad
     // Manager rewarded ad-unit path, for example: '/1234567/elemental_run_rewarded'.
     // GitHub Pages cannot invent this; it must come from the publisher account.
