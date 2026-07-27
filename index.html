@@ -3524,6 +3524,21 @@
             font-size: clamp(16px, 1.45vw, 21px);
             white-space: nowrap;
         }
+        /* Ability cards use words (LOCKED / OWNED / SELECTED), not numeric values.
+           Keep these state chips compact so long localized words do not dominate a card. */
+        #glide-upgrade-state,
+        #doublejump-upgrade-state,
+        #revive-upgrade-state,
+        #timeslow-upgrade-state,
+        #magnet-upgrade-state {
+            max-width: 96px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: clamp(10px, 0.86vw, 13px) !important;
+            line-height: 1.05;
+            letter-spacing: 0.45px;
+            opacity: 0.9;
+        }
         .menu-upgrade-steps {
             gap: 6px;
         }
@@ -3879,10 +3894,10 @@
         #how-to-play-overlay {
             position: fixed;
             left: auto;
-            right: clamp(14px, 2.2vw, 34px);
-            top: clamp(104px, 12vh, 140px);
+            right: clamp(12px, 1.6vw, 24px);
+            top: clamp(86px, 9vh, 112px);
             z-index: 12020;
-            width: min(310px, calc(100vw - 28px));
+            width: min(250px, calc(100vw - 24px));
             transform: translate(18px, -8px) scale(.97);
             opacity: 0;
             pointer-events: none;
@@ -3902,7 +3917,7 @@
         }
         .how-to-play-card {
             position: relative;
-            padding: 12px 14px 14px;
+            padding: 8px 10px 10px;
             box-sizing: border-box;
             border: 1px solid rgba(118,219,255,.5);
             border-radius: 12px;
@@ -3921,10 +3936,10 @@
         }
         .how-to-play-title {
             position: relative;
-            margin-bottom: 9px;
+            margin-bottom: 6px;
             text-align: center;
-            font: 800 12px/1 Orbitron, Rajdhani, sans-serif;
-            letter-spacing: 1.7px;
+            font: 800 10px/1 Orbitron, Rajdhani, sans-serif;
+            letter-spacing: 1.25px;
             color: #8de8ff;
             text-shadow: 0 0 14px rgba(91,214,255,.45);
         }
@@ -3933,28 +3948,28 @@
             display: grid;
             /* This explicitly overrides the older three-column menu helper. */
             grid-template-columns: minmax(0, 1fr);
-            gap: 9px;
+            gap: 6px;
         }
         .how-to-key-row {
             display: grid;
-            grid-template-columns: 82px 46px minmax(86px, 1fr);
+            grid-template-columns: 62px 34px minmax(66px, 1fr);
             align-items: center;
             justify-content: center;
-            gap: 7px;
+            gap: 5px;
             min-width: 0;
         }
         .how-to-control {
             min-width: 0;
-            min-height: 62px;
+            min-height: 44px;
             box-sizing: border-box;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 7px;
-            padding: 6px 7px;
+            gap: 5px;
+            padding: 4px 5px;
         }
         .how-to-control.is-keys {
-            min-height: 64px;
+            min-height: 46px;
             border: 1px solid rgba(127,190,225,.13);
             background: rgba(4,16,30,.34);
         }
@@ -3964,7 +3979,7 @@
             background: rgba(4,16,30,.28);
         }
         .how-to-control.is-mouse {
-            min-height: 66px;
+            min-height: 46px;
             flex-direction: column;
             gap: 5px;
         }
@@ -3973,40 +3988,40 @@
         }
         .key-cluster {
             display: grid;
-            grid-template-columns: repeat(3, 23px);
-            grid-template-rows: repeat(2, 23px);
-            gap: 3px;
+            grid-template-columns: repeat(3, 18px);
+            grid-template-rows: repeat(2, 18px);
+            gap: 2px;
         }
         .keycap {
             box-sizing: border-box;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 24px;
-            height: 24px;
-            padding: 0 6px;
+            min-width: 19px;
+            height: 19px;
+            padding: 0 4px;
             border: 1px solid rgba(173,226,255,.66);
             border-bottom-width: 3px;
             border-radius: 5px;
             background: linear-gradient(#18324b,#0b1b2d);
             color: #f2fbff;
-            font: 800 12px/1 Orbitron, sans-serif;
-            box-shadow: 0 3px 8px rgba(0,0,0,.3);
+            font: 800 9px/1 Orbitron, sans-serif;
+            box-shadow: 0 2px 5px rgba(0,0,0,.3);
         }
         .key-cluster .key-w { grid-column: 2; }
         .key-cluster .key-a { grid-column: 1; grid-row: 2; }
         .key-cluster .key-s { grid-column: 2; grid-row: 2; }
         .key-cluster .key-d { grid-column: 3; grid-row: 2; }
-        .keycap.is-space { min-width: 84px; font-size: 9px; letter-spacing: .7px; }
-        .keycap.is-e { min-width: 31px; }
+        .keycap.is-space { min-width: 66px; font-size: 7px; letter-spacing: .45px; }
+        .keycap.is-e { min-width: 25px; }
         .how-to-divider {
             position: relative;
             display: grid;
             place-items: center;
-            min-height: 16px;
+            min-height: 12px;
             color: rgba(169,224,255,.86);
-            font: 900 10px/1 Orbitron, Rajdhani, sans-serif;
-            letter-spacing: 1.2px;
+            font: 900 8px/1 Orbitron, Rajdhani, sans-serif;
+            letter-spacing: .9px;
             text-transform: uppercase;
         }
         .how-to-divider::before {
@@ -4020,27 +4035,27 @@
         }
         .how-to-divider span {
             position: relative;
-            padding: 0 8px;
+            padding: 0 6px;
             background: rgba(5,15,27,.92);
         }
         .mouse-glyph {
             position: relative;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-template-rows: 18px 26px;
-            width: 36px;
-            height: 46px;
-            flex: 0 0 36px;
+            grid-template-rows: 14px 20px;
+            width: 28px;
+            height: 36px;
+            flex: 0 0 28px;
             overflow: hidden;
-            border: 2px solid #bcecff;
-            border-radius: 17px 17px 13px 13px;
+            border: 1.5px solid #bcecff;
+            border-radius: 13px 13px 10px 10px;
             background: linear-gradient(145deg, rgba(30,77,106,.94), rgba(8,26,44,.96));
             box-shadow: 0 0 15px rgba(102,213,255,.3), inset 0 0 9px rgba(180,239,255,.12);
             box-sizing: border-box;
         }
         .mouse-button {
             display: block;
-            height: 18px;
+            height: 14px;
             border-bottom: 1px solid rgba(188,236,255,.56);
             background: linear-gradient(180deg, rgba(128,220,255,.2), rgba(18,58,83,.04));
         }
@@ -4049,10 +4064,10 @@
         .mouse-wheel {
             position: absolute;
             left: 50%;
-            top: 5px;
-            width: 5px;
-            height: 10px;
-            margin-left: -3px;
+            top: 4px;
+            width: 4px;
+            height: 7px;
+            margin-left: -2px;
             border: 1px solid rgba(218,249,255,.98);
             border-radius: 4px;
             background: #72dcff;
@@ -4063,9 +4078,9 @@
             grid-column: 1 / -1;
             display: block;
             align-self: end;
-            width: 15px;
+            width: 12px;
             height: 1px;
-            margin: 0 auto 10px;
+            margin: 0 auto 7px;
             background: rgba(188,236,255,.38);
             box-shadow: 0 0 7px rgba(114,220,255,.38);
         }

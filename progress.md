@@ -101,3 +101,8 @@ TODO:
 - Added map-specific runtime counts to `render_game_to_text` and a localhost-only forced-map QA hook.
 - Bumped the service-worker shell cache so browser/mobile visitors receive the refreshed worlds.
 - Automated desktop-browser, mobile Pixel 5, static desktop-package, and real Electron-package runs completed with no page/console errors. The real desktop package confirmed that Steam, reward, and ad elements are absent and that PLAY enters gameplay normally.
+
+2026-07-27 - Upgrade state and onboarding scale refinement
+- Reduced ability-card state labels such as LOCKED, OWNED, SELECTED, and ACTIVE to a compact localized chip size without changing numeric upgrade values.
+- Reduced the play-start How to Play overlay to a 250px corner hint with compact keys/mouse glyphs, keeping the top of the 3D playfield readable.
+- Local visual QA confirmed 12.4px ability states, a 250x154px onboarding hint, correct start flow, and no browser/page errors.
