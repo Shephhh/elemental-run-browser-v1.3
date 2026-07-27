@@ -5304,6 +5304,8 @@
     let cityBuildingInstances = [];
     let cityInstanceLayoutDirty = true;
     let cityBuildingTypes = []; // detailed cyberpunk building variations (merged-by-material, instanced)
+    const cyberBuildingTypeCache = { lite: null, detailed: null };
+    let activeCyberBuildingTier = '';
     let cyberSun;
     let starField;
     let cyberFloor;
@@ -7037,6 +7039,7 @@ let skyClouds = [];
     let smoothedFps = 60;
     let pendingShadowRefreshX = Number.POSITIVE_INFINITY;
     let shadowRefreshCooldown = 0;
+    let shadowRefreshFrame = 0;
     let gameplayAssetsPrewarmed = false;
 
     function cacheDomReferences() {
@@ -8883,28 +8886,86 @@ let skyClouds = [];
         return Math.max(absoluteFloor, Math.max(presetFloor, dpr) * gfxDynResScale);
     }
 
-    // DİNAMİK ÇÖZÜNÜRLÜK (2026-07-05, "oyun kasıyor" fix): FPS düşünce render çözünürlüğünü
-    // kademeli düşürür (en az %72), toparlanınca yavaşça geri yükseltir. Fill-rate/bloom/FXAA
-    // maliyeti çözünürlükle karesel ölçeklendiğinden zayıf GPU'larda en etkili tek kaldıraç.
+    // Frame-time governor: resolution is the first line of defence, then costly optional
+    // effects are suspended. Degradation is deliberately fast; recovery is deliberately
+    // slow so borderline PCs do not oscillate between two qualities every few seconds.
     let gfxDynResScale = 1, gfxDynResTimer = 0;
-    function updateDynamicResolution(realDelta) {
+    let adaptivePerfLevel = 0;
+    let adaptiveLowFpsSeconds = 0;
+    let adaptiveCriticalFpsSeconds = 0;
+    let adaptiveRecoverySeconds = 0;
+
+    function setAdaptivePerfLevel(nextLevel) {
+        const level = Math.max(0, Math.min(2, Math.floor(nextLevel) || 0));
+        if (level === adaptivePerfLevel) return;
+        adaptivePerfLevel = level;
+        adaptiveRecoverySeconds = 0;
+        cityInstanceLayoutDirty = true;
+        applyGraphicsQuality();
+        if (timeSlowActive && !gfxComposerActive && !timeSlowGrayMats) collectTimeSlowGrayTargets();
+    }
+
+    function getRuntimeRenderDistanceTarget(preset = getQualityPreset()) {
+        const base = preset.renderDistance;
+        if (MOBILE_RUNTIME) {
+            const mobileFloor = MOBILE_LOW_END ? 280 : 320;
+            const scale = adaptivePerfLevel === 2 ? 0.62 : (adaptivePerfLevel === 1 ? 0.78 : 1);
+            return Math.max(mobileFloor, Math.min(base, base * scale));
+        }
+        const quality = menuState.graphicsQuality;
+        const floor = quality === 'performance' ? 400 : (quality === 'balanced' ? 500 : 560);
+        const scale = adaptivePerfLevel === 2 ? 0.58 : (adaptivePerfLevel === 1 ? 0.76 : 1);
+        return Math.max(floor, Math.min(base, base * scale));
+    }
+
+    function updateDynamicResolution(rawFrameDelta) {
         if (!renderer || isGamePaused || mainMenuVisible || !runStartedFromMenu) return;
-        gfxDynResTimer -= realDelta;
-        if (gfxDynResTimer > 0) return;
-        let changed = false;
-        const scaleFloor = MOBILE_RUNTIME ? 0.55 : 0.72;
-        const dropFps = MOBILE_RUNTIME ? 55 : 47;
-        const recoverFps = MOBILE_RUNTIME ? 59 : 57.5;
-        if (smoothedFps < dropFps && gfxDynResScale > scaleFloor) {
-            gfxDynResScale = Math.max(scaleFloor, gfxDynResScale - (MOBILE_RUNTIME ? 0.1 : 0.08));
-            changed = true;
-            gfxDynResTimer = MOBILE_RUNTIME ? 0.9 : 1.4;
-        } else if (smoothedFps > recoverFps && gfxDynResScale < 1) {
-            gfxDynResScale = Math.min(1, gfxDynResScale + (MOBILE_RUNTIME ? 0.025 : 0.04));
-            changed = true;
-            gfxDynResTimer = MOBILE_RUNTIME ? 3.0 : 2.2;
+        const sampleDelta = Math.max(0, Math.min(0.25, rawFrameDelta || 0));
+        const criticalFps = MOBILE_RUNTIME ? 39 : 34;
+        const lowFps = MOBILE_RUNTIME ? 53 : 49;
+        const recoverFps = MOBILE_RUNTIME ? 58 : 56;
+
+        if (smoothedFps < lowFps) {
+            adaptiveLowFpsSeconds += sampleDelta;
+            adaptiveRecoverySeconds = 0;
         } else {
-            gfxDynResTimer = 0.5;
+            adaptiveLowFpsSeconds = Math.max(0, adaptiveLowFpsSeconds - sampleDelta * 0.65);
+        }
+        if (smoothedFps < criticalFps) adaptiveCriticalFpsSeconds += sampleDelta;
+        else adaptiveCriticalFpsSeconds = Math.max(0, adaptiveCriticalFpsSeconds - sampleDelta);
+
+        if (adaptiveCriticalFpsSeconds > 0.45) setAdaptivePerfLevel(2);
+        else if (adaptiveLowFpsSeconds > 0.75 && adaptivePerfLevel < 1) setAdaptivePerfLevel(1);
+
+        if (smoothedFps > recoverFps) {
+            adaptiveRecoverySeconds += sampleDelta;
+            if (adaptiveRecoverySeconds > (adaptivePerfLevel === 2 ? 4.5 : 6.5)) {
+                setAdaptivePerfLevel(adaptivePerfLevel - 1);
+                adaptiveLowFpsSeconds = 0;
+                adaptiveCriticalFpsSeconds = 0;
+            }
+        } else {
+            adaptiveRecoverySeconds = 0;
+        }
+
+        gfxDynResTimer -= sampleDelta;
+        if (gfxDynResTimer > 0) return;
+        const scaleFloor = MOBILE_RUNTIME ? 0.48 : 0.58;
+        let changed = false;
+        if (smoothedFps < criticalFps && gfxDynResScale > scaleFloor) {
+            gfxDynResScale = Math.max(scaleFloor, gfxDynResScale - (MOBILE_RUNTIME ? 0.16 : 0.18));
+            gfxDynResTimer = 0.28;
+            changed = true;
+        } else if (smoothedFps < lowFps && gfxDynResScale > scaleFloor) {
+            gfxDynResScale = Math.max(scaleFloor, gfxDynResScale - (MOBILE_RUNTIME ? 0.09 : 0.1));
+            gfxDynResTimer = 0.42;
+            changed = true;
+        } else if (smoothedFps > recoverFps && adaptivePerfLevel === 0 && gfxDynResScale < 1) {
+            gfxDynResScale = Math.min(1, gfxDynResScale + (MOBILE_RUNTIME ? 0.02 : 0.025));
+            gfxDynResTimer = 2.8;
+            changed = true;
+        } else {
+            gfxDynResTimer = 0.35;
         }
         if (changed) {
             renderer.setPixelRatio(gfxComputePixelRatio(getQualityPreset()));
@@ -9037,18 +9098,24 @@ let skyClouds = [];
         }
         if (preset.envMap) gfxEnsureEnvironment();
         else if (scene) scene.environment = null;
-        const wantComposer = !!(preset.bloom || preset.antialias);
+        const allowBloom = !!preset.bloom && adaptivePerfLevel === 0;
+        const allowFxaa = !!preset.antialias && adaptivePerfLevel < 2;
+        const wantComposer = allowBloom || allowFxaa;
         if (wantComposer) {
             gfxEnsureComposer();
             if (gfxBloomPass) {
-                gfxBloomPass.enabled = !!preset.bloom;
+                gfxBloomPass.enabled = allowBloom;
                 gfxBloomPass.radius = preset.bloomRadius;
                 gfxBaseBloomStrength = preset.bloomStrength;
                 gfxBaseBloomThreshold = preset.bloomThreshold;
                 gfxApplyPhaseBloom(typeof gamePhase !== 'undefined' ? gamePhase : 0);
             }
-            if (gfxFxaaPass) gfxFxaaPass.enabled = !!preset.antialias;
+            if (gfxFxaaPass) gfxFxaaPass.enabled = allowFxaa;
             gfxResize();
+        } else {
+            if (gfxBloomPass) gfxBloomPass.enabled = false;
+            if (gfxFxaaPass) gfxFxaaPass.enabled = false;
+            if (gfxDesatPass) gfxDesatPass.enabled = false;
         }
         gfxComposerActive = wantComposer && !!gfxComposer;
     }
@@ -9070,19 +9137,26 @@ let skyClouds = [];
 
     function applyGraphicsQuality() {
         const preset = getQualityPreset();
-        adaptiveRenderDistance = preset.renderDistance;
+        adaptiveRenderDistance = getRuntimeRenderDistanceTarget(preset);
         document.body.dataset.graphicsQuality = menuState.graphicsQuality;
         if (renderer) {
             const dpr = gfxComputePixelRatio(preset);
             if (typeof renderer.setPixelRatio === 'function') renderer.setPixelRatio(dpr);
             if (renderer.shadowMap) {
-                renderer.shadowMap.enabled = !!preset.shadows;
-                renderer.shadowMap.autoUpdate = !!preset.shadows;
+                const shadowsEnabled = !!preset.shadows
+                    && adaptivePerfLevel < 2
+                    && (typeof gamePhase === 'undefined' || gamePhase === 0);
+                renderer.shadowMap.enabled = shadowsEnabled;
+                renderer.shadowMap.autoUpdate = false;
                 renderer.shadowMap.needsUpdate = true;
             }
             applyGfxQuality(preset);
         }
-        if (dirLight) dirLight.castShadow = !!preset.shadows;
+        if (dirLight) {
+            dirLight.castShadow = !!preset.shadows
+                && adaptivePerfLevel < 2
+                && (typeof gamePhase === 'undefined' || gamePhase === 0);
+        }
         applyDisplayMode(false);
     }
 
@@ -9617,6 +9691,10 @@ let skyClouds = [];
             else if (setting === 'displayMode') menuState.displayMode = normalizeDisplayMode(target.dataset.value);
             if (setting === 'displayMode') applyDisplayMode(true);
             persistAndApplySettings(true);
+            if (setting === 'graphicsQuality' && gamePhase === 0 && player) {
+                initCity();
+                requestShadowMapRefresh(player.position.x, true);
+            }
             resetGamepadUiFocus(gamepadUiFocusIndex);
             return;
         }
@@ -10539,23 +10617,32 @@ let skyClouds = [];
         pendingShadowRefreshX = Math.min(pendingShadowRefreshX, xPos);
     }
 
+    function getShadowRefreshInterval() {
+        if (MOBILE_RUNTIME || adaptivePerfLevel >= 2) return Number.POSITIVE_INFINITY;
+        const quality = menuState.graphicsQuality;
+        let interval = quality === 'ultra' ? 1 : (quality === 'high' ? 2 : 3);
+        if (adaptivePerfLevel === 1) interval += 2;
+        if (smoothedFps < 48) interval += 1;
+        return interval;
+    }
+
     function updateShadowRefreshQueue(delta) {
         if (!(renderer && renderer.shadowMap && renderer.shadowMap.enabled) || !player) return;
-        if (renderer.shadowMap.autoUpdate) {
-            pendingShadowRefreshX = Number.POSITIVE_INFINITY;
-            shadowRefreshCooldown = 0;
-            return;
-        }
+        renderer.shadowMap.autoUpdate = false;
         if (shadowRefreshCooldown > 0) {
             shadowRefreshCooldown = Math.max(0, shadowRefreshCooldown - delta);
         }
-        if (!Number.isFinite(pendingShadowRefreshX) || shadowRefreshCooldown > 0) return;
-
+        shadowRefreshFrame += 1;
+        const interval = getShadowRefreshInterval();
+        const cadenceDue = Number.isFinite(interval) && shadowRefreshFrame >= interval;
         const flushAhead = Math.min(180, adaptiveRenderDistance * 0.22);
-        if (pendingShadowRefreshX <= player.position.x + flushAhead) {
+        const queuedDue = Number.isFinite(pendingShadowRefreshX)
+            && pendingShadowRefreshX <= player.position.x + flushAhead;
+        if (shadowRefreshCooldown <= 0 && (cadenceDue || queuedDue)) {
             renderer.shadowMap.needsUpdate = true;
+            shadowRefreshFrame = 0;
             pendingShadowRefreshX = Number.POSITIVE_INFINITY;
-            shadowRefreshCooldown = 0.08;
+            shadowRefreshCooldown = cadenceDue ? 0 : 0.06;
         }
     }
 
@@ -11483,10 +11570,15 @@ let skyClouds = [];
         natureIntroStartX = 0;
         natureIntroFillCompleted = false;
         windWasSliding = false;
-        adaptiveRenderDistance = getQualityPreset().renderDistance;
+        adaptivePerfLevel = 0;
+        adaptiveLowFpsSeconds = 0;
+        adaptiveCriticalFpsSeconds = 0;
+        adaptiveRecoverySeconds = 0;
+        adaptiveRenderDistance = getRuntimeRenderDistanceTarget();
         smoothedFps = 60;
         gfxDynResScale = 1;
         gfxDynResTimer = 0;
+        shadowRefreshFrame = 0;
         if (sharedWindMaterial) {
             sharedWindMaterial.color.setHex(0xffffff);
             sharedWindMaterial.opacity = 0.05;
@@ -11616,6 +11708,7 @@ nextSnowballX = 0;
             lavaDropEdge = null;
         }
         resetSkySharedMaterials();
+        applyGraphicsQuality();
         requestShadowMapRefresh();
     }
 
@@ -11827,11 +11920,15 @@ nextSnowballX = 0;
 
         const fps = 1 / Math.max(rawDelta, 0.0001);
         smoothedFps += (fps - smoothedFps) * 0.08;
-        const qualityRenderDistance = getQualityPreset().renderDistance;
-        const lowFpsDistance = MOBILE_RUNTIME ? Math.min(qualityRenderDistance, MOBILE_LOW_END ? 300 : 340) : Math.min(qualityRenderDistance, 700);
-        if (smoothedFps < (MOBILE_RUNTIME ? 52 : 40) && adaptiveRenderDistance !== lowFpsDistance) adaptiveRenderDistance = lowFpsDistance;
-        else if (smoothedFps > (MOBILE_RUNTIME ? 58 : 50) && adaptiveRenderDistance !== qualityRenderDistance) adaptiveRenderDistance = qualityRenderDistance;
-        updateDynamicResolution(realDelta);
+        updateDynamicResolution(rawDelta);
+        const targetRenderDistance = getRuntimeRenderDistanceTarget();
+        const renderDistanceRate = targetRenderDistance < adaptiveRenderDistance ? 360 : 72;
+        const renderDistanceStep = renderDistanceRate * realDelta;
+        if (adaptiveRenderDistance < targetRenderDistance) {
+            adaptiveRenderDistance = Math.min(targetRenderDistance, adaptiveRenderDistance + renderDistanceStep);
+        } else if (adaptiveRenderDistance > targetRenderDistance) {
+            adaptiveRenderDistance = Math.max(targetRenderDistance, adaptiveRenderDistance - renderDistanceStep);
+        }
         
         if (!isGameOver && reviveSequenceActive) {
             // Pause/pointer-lock kaybı olsa bile sekans zamanlayıcısı donmaz; ESC ayrıca
@@ -12030,6 +12127,14 @@ nextSnowballX = 0;
                     effectivePixelRatio: renderer ? roundForText(renderer.getPixelRatio(), 2) : null,
                     renderDistance: adaptiveRenderDistance,
                     smoothedFps: roundForText(smoothedFps, 1),
+                    adaptivePerformanceLevel: adaptivePerfLevel,
+                    dynamicResolutionScale: roundForText(gfxDynResScale, 2),
+                    cyberBuildingTier: activeCyberBuildingTier,
+                    cyberBuildingCount: cityBuildings.length,
+                    visibleCyberBuildings: cityBuildings.reduce((count, building) => count + (!building.userData.fogCollapsed ? 1 : 0), 0),
+                    cyberDecorCount: cyberDecorObjects.length,
+                    visibleCyberDecor: cyberDecorObjects.reduce((count, decor) => count + (decor.obj.visible ? 1 : 0), 0),
+                    shadowRefreshInterval: Number.isFinite(getShadowRefreshInterval()) ? getShadowRefreshInterval() : null,
                     shadowsEnabled: !!(renderer && renderer.shadowMap && renderer.shadowMap.enabled),
                     drawCalls: renderer && renderer.info ? renderer.info.render.calls : null,
                     triangles: renderer && renderer.info ? renderer.info.render.triangles : null,
@@ -12767,13 +12872,15 @@ if (gfxBloomPass && gamePhase !== gfxLastBloomPhase) {
 }
 
 if (renderer && dirLight) {
-    const shadowsOn = (gamePhase === 0);
+    const presetAllowsShadows = !!getQualityPreset().shadows;
+    const shadowsOn = gamePhase === 0 && presetAllowsShadows && adaptivePerfLevel < 2;
     
     // GÃ¶lge motorunu (shadowMap) tamamen kapatÄ±p kasmaya yol aÃ§mak yerine, 
     // sadece Ä±ÅŸÄ±ÄŸÄ±n gÃ¶lge kamerasÄ±nÄ± devre dÄ±ÅŸÄ± bÄ±rakÄ±yoruz.
-    if (dirLight.castShadow !== shadowsOn || renderer.shadowMap.autoUpdate !== shadowsOn) {
+    if (dirLight.castShadow !== shadowsOn || renderer.shadowMap.enabled !== shadowsOn || renderer.shadowMap.autoUpdate) {
         dirLight.castShadow = shadowsOn;
-        renderer.shadowMap.autoUpdate = shadowsOn;
+        renderer.shadowMap.enabled = shadowsOn;
+        renderer.shadowMap.autoUpdate = false;
         
         // EÄŸer geÃ§iÅŸte hala ufak bir takÄ±lma olursa diye gÃ¶lge koyuluÄŸunu sÄ±fÄ±rlayarak 
         // materyal yeniden derlenmesinin Ã¶nÃ¼ne geÃ§iyoruz.
@@ -12783,6 +12890,7 @@ if (renderer && dirLight) {
             dirLight.shadow.bias = -0.0001; // Åehirdeki normal gÃ¶lge ayarÄ±na geri dÃ¶n
         }
         renderer.shadowMap.needsUpdate = true;
+        shadowRefreshFrame = 0;
         pendingShadowRefreshX = Number.POSITIVE_INFINITY;
         shadowRefreshCooldown = 0;
     }
@@ -13345,7 +13453,10 @@ if (renderer && dirLight) {
             antialias: false,
             powerPreference: "high-performance",
             precision: MOBILE_RUNTIME ? "mediump" : "highp",
-            logarithmicDepthBuffer: !MOBILE_RUNTIME,
+            // The farthest playable geometry is well inside the precision range of a normal
+            // 24-bit depth buffer. Log depth adds fragment-shader work and disables several
+            // early depth optimisations on older integrated GPUs.
+            logarithmicDepthBuffer: false,
             stencil: false
         });
 
@@ -13358,9 +13469,11 @@ if (renderer && dirLight) {
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = GFX_DEFAULT_EXPOSURE;
         }
-        renderer.shadowMap.enabled = !MOBILE_RUNTIME;
+        // Quality application enables this only when the selected preset and current
+        // adaptive level can afford it. Keeping it cold here avoids a hidden menu cost.
+        renderer.shadowMap.enabled = false;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.shadowMap.autoUpdate = !MOBILE_RUNTIME;
+        renderer.shadowMap.autoUpdate = false;
         document.body.appendChild(renderer.domElement);
 
         const hemiLight = new THREE.HemisphereLight(0x4444ff, 0x221111, 1.2);
@@ -16631,11 +16744,13 @@ if (renderer && dirLight) {
         { floors:68, W:100,D:40, accent:0x00e5ff, roofStyle:'box',     seed:83, style:'block'   },
     ];
 
-    function ensureMobileCyberBuildingTypes() {
+    function buildLiteCyberBuildingTypes() {
+        const types = [];
         const configs = [
             { width: 26, depth: 20, height: 52, accent: '#ff2d95', seed: 11 },
             { width: 34, depth: 24, height: 78, accent: '#00e5ff', seed: 37 },
-            { width: 42, depth: 28, height: 112, accent: '#7c55ff', seed: 67 }
+            { width: 42, depth: 28, height: 112, accent: '#7c55ff', seed: 67 },
+            { width: 52, depth: 32, height: 146, accent: '#ff5fc8', seed: 83 }
         ];
         configs.forEach((config) => {
             const canvas = document.createElement('canvas');
@@ -16678,7 +16793,7 @@ if (renderer && dirLight) {
                 { geo: bodyGeo, mat: bodyMat },
                 { geo: capGeo, mat: accentMat }
             ];
-            cityBuildingTypes.push({
+            types.push({
                 parts,
                 width: config.width,
                 depth: config.depth,
@@ -16689,21 +16804,33 @@ if (renderer && dirLight) {
                 if (!cityBuildingMats.includes(part.mat)) cityBuildingMats.push(part.mat);
             });
         });
+        return types;
+    }
+
+    function getRequestedCyberBuildingTier() {
+        const quality = MOBILE_RUNTIME ? 'performance' : menuState.graphicsQuality;
+        return (quality === 'performance' || quality === 'balanced') ? 'lite' : 'detailed';
     }
 
     function ensureCyberBuildingTypes(){
-        if (cityBuildingTypes.length) return;
-        if (MOBILE_RUNTIME) {
-            ensureMobileCyberBuildingTypes();
-            return;
+        const requestedTier = getRequestedCyberBuildingTier();
+        if (!cyberBuildingTypeCache[requestedTier]) {
+            if (requestedTier === 'lite') {
+                cyberBuildingTypeCache.lite = buildLiteCyberBuildingTypes();
+            } else {
+                const detailed = [];
+                CB_VARIATIONS.forEach(v=>{
+                    const grp = buildCyberpunkBuilding(v);
+                    const parts = cbMergeByMaterial(grp);
+                    const H = 3.6 + Math.max(2, v.floors) * 2.7;
+                    detailed.push({ parts, width: v.W, depth: v.D, height: H });
+                    parts.forEach(p=>{ cityBuildingGeoms.push(p.geo); if(cityBuildingMats.indexOf(p.mat)<0) cityBuildingMats.push(p.mat); });
+                });
+                cyberBuildingTypeCache.detailed = detailed;
+            }
         }
-        CB_VARIATIONS.forEach(v=>{
-            const grp = buildCyberpunkBuilding(v);
-            const parts = cbMergeByMaterial(grp);
-            const H = 3.6 + Math.max(2, v.floors) * 2.7;
-            cityBuildingTypes.push({ parts, width: v.W, depth: v.D, height: H });
-            parts.forEach(p=>{ cityBuildingGeoms.push(p.geo); if(cityBuildingMats.indexOf(p.mat)<0) cityBuildingMats.push(p.mat); });
-        });
+        activeCyberBuildingTier = requestedTier;
+        cityBuildingTypes = cyberBuildingTypeCache[requestedTier];
     }
 
     // ===== CYBER STREET DECOR — neon signage, overhead gantries, chevron arrows, flying cars.
@@ -16984,7 +17111,17 @@ if (renderer && dirLight) {
         const add=(obj, role, side, edgeOffset, span)=>{ scene.add(obj); cyberDecorObjects.push({obj, role, side, edgeOffset, span}); };
         // sidewalk rail on BOTH sides — fewer signs (mostly non-sign props), road-edge-relative
         const builders=[cdBuildVerticalSign,cdBuildHoloAd,cdBuildHangingSign,cdBuildRoundSign,cdBuildLamp,cdBuildLamp,cdBuildKiosk,cdBuildKiosk,cdBuildBarrier,cdBuildBarrier,cdBuildPod,cdBuildVents,cdBuildVents];
-        const COUNT=MOBILE_RUNTIME ? 14 : 44, STEP=MOBILE_RUNTIME ? 48 : 18; const span=COUNT*STEP;
+        const quality = MOBILE_RUNTIME ? 'performance' : menuState.graphicsQuality;
+        const decorProfiles = {
+            performance: { edgeCount: 24, edgeStep: 32, shopCount: 2, shopStep: 420, chevronCount: 14, chevronStep: 72, carCount: 4 },
+            balanced: { edgeCount: 32, edgeStep: 25, shopCount: 3, shopStep: 310, chevronCount: 18, chevronStep: 60, carCount: 6 },
+            high: { edgeCount: 38, edgeStep: 21, shopCount: 4, shopStep: 230, chevronCount: 22, chevronStep: 52, carCount: 8 },
+            ultra: { edgeCount: 44, edgeStep: 18, shopCount: 4, shopStep: 230, chevronCount: 26, chevronStep: 44, carCount: 10 }
+        };
+        const decorProfile = MOBILE_RUNTIME
+            ? { edgeCount: 14, edgeStep: 48, shopCount: 1, shopStep: 680, chevronCount: 10, chevronStep: 72, carCount: 3 }
+            : decorProfiles[quality];
+        const COUNT=decorProfile.edgeCount, STEP=decorProfile.edgeStep; const span=COUNT*STEP;
         for(const side of [-1,1]){
             for(let i=0;i<COUNT;i++){
                 const o = builders[(Math.random()*builders.length)|0](side);
@@ -16994,7 +17131,7 @@ if (renderer && dirLight) {
             }
         }
         // a few shop signs at street level (road-edge-relative, well off the road)
-        for(const side of [-1,1]){ for(let i=0;i<(MOBILE_RUNTIME ? 1 : 4);i++){ const o=cdBuildShopSign(side); o.userData.edgeOffset=13; o.position.x=px - 80 + i*(MOBILE_RUNTIME ? 680 : 230); add(o,'shop',side,13,(MOBILE_RUNTIME ? 680 : 4*230)); } }
+        for(const side of [-1,1]){ for(let i=0;i<decorProfile.shopCount;i++){ const o=cdBuildShopSign(side); o.userData.edgeOffset=13; o.position.x=px - 80 + i*decorProfile.shopStep; add(o,'shop',side,13,decorProfile.shopCount*decorProfile.shopStep); } }
         // Floating skybridges: keep the detailed model, but make encounters rare.
         const SKYBRIDGE_COUNT = MOBILE_RUNTIME ? 1 : 2, SKYBRIDGE_STEP = MOBILE_RUNTIME ? 980 : 620;
         for(let i=0;i<SKYBRIDGE_COUNT;i++){
@@ -17003,11 +17140,11 @@ if (renderer && dirLight) {
             add(o,'gantry',0,0,SKYBRIDGE_COUNT*SKYBRIDGE_STEP);
         }
         // red chevron arrows along BOTH road edges
-        const chevronCount = MOBILE_RUNTIME ? 10 : 26;
-        const chevronStep = MOBILE_RUNTIME ? 72 : 44;
+        const chevronCount = decorProfile.chevronCount;
+        const chevronStep = decorProfile.chevronStep;
         for(const side of [-1,1]){ for(let i=0;i<chevronCount;i++){ const o=cdBuildChevrons(side); o.position.x=px - 120 + i*chevronStep; add(o,'chev',side,4.5,chevronCount*chevronStep); } }
         // flying cars crossing the road overhead (left↔right)
-        for(let i=0;i<(MOBILE_RUNTIME ? 3 : 10);i++){ const o=cdBuildFlyingCar(); o.position.set(px + 80 + Math.random()*820, 30 + Math.random()*26, -60 + Math.random()*120); add(o,'car',0,0,0); }
+        for(let i=0;i<decorProfile.carCount;i++){ const o=cdBuildFlyingCar(); o.position.set(px + 80 + Math.random()*820, 30 + Math.random()*26, -60 + Math.random()*120); add(o,'car',0,0,0); }
         cyberDecorBuilt = true;
     }
 
@@ -17023,24 +17160,42 @@ if (renderer && dirLight) {
         return (camera && Number.isFinite(camera.far) ? camera.far : 3000) + padding;
     }
 
+    function getCyberVisibleAheadDistance() {
+        if (MOBILE_RUNTIME) return Math.min(adaptiveRenderDistance + 70, MOBILE_LOW_END ? 350 : 430);
+        const capByQuality = {
+            performance: 420,
+            balanced: 520,
+            high: 640,
+            ultra: 760
+        };
+        const qualityCap = capByQuality[menuState.graphicsQuality] || capByQuality.balanced;
+        const adaptiveScale = adaptivePerfLevel === 2 ? 0.70 : (adaptivePerfLevel === 1 ? 0.86 : 1);
+        return Math.min(adaptiveRenderDistance + 60, qualityCap * adaptiveScale);
+    }
+
     function updateCyberDecor(delta){
         if (!cyberDecorBuilt || !player) return;
         const px = player.position.x; const t = clock.getElapsedTime();
         const reMin = roadLimitZMin, reMax = roadLimitZMax;
-        const fogCullAhead = MOBILE_RUNTIME
-            ? Math.min(getFogInvisibleDistance(80), adaptiveRenderDistance + 80)
-            : getFogInvisibleDistance(120);
-        const mobileDecorStride = !MOBILE_RUNTIME
-            ? 1
-            : (MOBILE_LOW_END
+        const fogCullAhead = Math.min(
+            getFogInvisibleDistance(MOBILE_RUNTIME ? 80 : 120),
+            getCyberVisibleAheadDistance() + (MOBILE_RUNTIME ? 50 : 90)
+        );
+        let decorStride = MOBILE_RUNTIME
+            ? (MOBILE_LOW_END
                 ? 3
-                : (smoothedFps < 52 ? 3 : (smoothedFps < 58 ? 2 : 1)));
+                : (smoothedFps < 52 ? 3 : (smoothedFps < 58 ? 2 : 1)))
+            : (menuState.graphicsQuality === 'performance'
+                ? 3
+                : (menuState.graphicsQuality === 'balanced' ? 2 : 1));
+        if (adaptivePerfLevel === 1) decorStride = Math.max(decorStride, 2);
+        else if (adaptivePerfLevel === 2) decorStride = Math.max(decorStride, 3);
         for(let decorIndex = 0; decorIndex < cyberDecorObjects.length; decorIndex++){
             const d = cyberDecorObjects[decorIndex];
             const o = d.obj;
-            if (mobileDecorStride > 1
+            if (decorStride > 1
                 && (d.role === 'edge' || d.role === 'chev' || d.role === 'car')
-                && decorIndex % mobileDecorStride !== 0) {
+                && decorIndex % decorStride !== 0) {
                 o.visible = false;
                 continue;
             }
@@ -17112,19 +17267,39 @@ if (renderer && dirLight) {
         const NTYPES = cityBuildingTypes.length;
 
         // 1. KaynaklarÄ± (Geometry/Material) sadece EÄER YOKSA oluÅŸtur (Reset atÄ±nca tekrar Ã¼retmesin)
+        const quality = MOBILE_RUNTIME ? 'performance' : menuState.graphicsQuality;
+        const layerProfiles = {
+            performance: [
+                { count: 22, layerType: 0, minZOffset: 0 },
+                { count: 12, layerType: 1, minZOffset: 78 },
+                { count: 6, layerType: 2, minZOffset: 165 }
+            ],
+            balanced: [
+                { count: 28, layerType: 0, minZOffset: 0 },
+                { count: 16, layerType: 1, minZOffset: 74 },
+                { count: 8, layerType: 2, minZOffset: 160 }
+            ],
+            high: [
+                { count: 30, layerType: 0, minZOffset: 0 },
+                { count: 18, layerType: 1, minZOffset: 72 },
+                { count: 10, layerType: 2, minZOffset: 155 }
+            ],
+            ultra: [
+                { count: 34, layerType: 0, minZOffset: 0 },
+                { count: 24, layerType: 1, minZOffset: 70 },
+                { count: 16, layerType: 2, minZOffset: 150 }
+            ]
+        };
         const layers = MOBILE_RUNTIME
             ? [
                 { count: 16, layerType: 0, minZOffset: 0 },
                 { count: 8, layerType: 1, minZOffset: 78 },
                 { count: 4, layerType: 2, minZOffset: 165 }
             ]
-            : [
-                { count: 34, layerType: 0, minZOffset: 0 },
-                { count: 24, layerType: 1, minZOffset: 70 },
-                { count: 16, layerType: 2, minZOffset: 150 }
-            ];
+            : layerProfiles[quality];
         
         const rangeX = 1500;
+        const originX = player ? player.position.x : 0;
         
         const buildingBuckets = cityBuildingTypes.map(() => []);
 
@@ -17134,14 +17309,16 @@ if (renderer && dirLight) {
 
             layers.forEach(layer => {
                 // near layer = shorter buildings, far layer = taller ones (skyline depth)
-                let typeMin = 0, typeMax = 2;
-                if (layer.layerType === 1) { typeMin = 2; typeMax = 4; }
-                if (layer.layerType === 2) { typeMin = 4; typeMax = NTYPES - 1; }
+                const tierRange = activeCyberBuildingTier === 'lite'
+                    ? [[0, 1], [1, 2], [2, NTYPES - 1]][layer.layerType]
+                    : [[0, 2], [2, 4], [4, NTYPES - 1]][layer.layerType];
+                const typeMin = Math.min(NTYPES - 1, tierRange[0]);
+                const typeMax = Math.max(typeMin, Math.min(NTYPES - 1, tierRange[1]));
 
                 const cell = rangeX / layer.count; // even spacing so the row reads as a continuous wall (no see-through gaps)
                 for(let i=0; i<layer.count; i++) {
                     const typeIdx = Math.min(NTYPES - 1, Math.floor(Math.random() * (typeMax - typeMin + 1)) + typeMin);
-                    const xPos = -200 + (i + Math.random() * 0.45) * cell + layer.layerType * (cell * 0.33);
+                    const xPos = originX - 200 + (i + Math.random() * 0.45) * cell + layer.layerType * (cell * 0.33);
                     const dist = sideBaseDistance + layer.minZOffset + Math.random() * 40;
                     const zPos = isLeft ? -dist : dist;
                     const yPos = -2 - Math.random() * 6; // base ~ground, slightly sunk for varied skyline
@@ -18541,8 +18718,13 @@ if (renderer && dirLight) {
 
         // Sis menzili dışındaki binaları söndür/geri getir (durum değişince tek matris yazımı)
         const aheadDx = b.position.x - player.position.x;
-        const cityAheadLimit = MOBILE_RUNTIME ? adaptiveRenderDistance + 70 : 640;
-        const shouldCollapse = aheadDx > cityAheadLimit || aheadDx < (MOBILE_RUNTIME ? -90 : -140);
+        const cityAheadLimit = getCyberVisibleAheadDistance();
+        const cityBehindLimit = MOBILE_RUNTIME
+            ? -90
+            : (menuState.graphicsQuality === 'performance'
+                ? -90
+                : (menuState.graphicsQuality === 'balanced' ? -110 : -140));
+        const shouldCollapse = aheadDx > cityAheadLimit || aheadDx < cityBehindLimit;
         if (shouldCollapse !== !!b.userData.fogCollapsed) {
             b.userData.fogCollapsed = shouldCollapse;
             cityInstanceLayoutDirty = true;

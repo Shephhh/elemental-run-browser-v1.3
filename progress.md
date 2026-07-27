@@ -82,3 +82,13 @@ TODO:
 - Added Google H5 Games rewarded-ad integration through the official `adBreak({ type: "reward" })` callback flow. Rewards are granted only after `adViewed`; dismissals and no-fill statuses do not grant rewards. Localhost retains a deterministic demo provider for QA.
 - Bumped the service-worker cache and added an update check/controller refresh so returning mobile visitors receive the new build instead of an older cached shell.
 - Automated QA passed for mobile routing, mobile How to Play, loading percentage progression, optimized hand readiness/visibility, delayed-network menu fallback, rewarded demo completion, skipped mobile GLBs, and zero runtime/page errors.
+
+2026-07-27 - Cyber map frame-pacing and weak-PC optimization
+- Fixed the graphics-preset shadow bug: the CITY phase no longer turns shadows back on every frame after Performance mode disables them. Shadow maps now update at a quality/FPS-aware cadence instead of every frame.
+- Added a hysteresis-based frame-time governor. Sustained low FPS first lowers dynamic resolution, then suspends post-processing/shadows and shortens visible distance; recovery is deliberately slower to prevent quality/FPS oscillation.
+- Added lightweight instanced Cyber buildings for Performance/Balanced, retained detailed buildings for High/Ultra, and made building/decor pool density, visibility distance, and update stride quality-aware.
+- Disabled the unnecessary desktop logarithmic depth buffer, which was adding fragment cost on older integrated GPUs despite the scene fitting normal 24-bit depth precision.
+- Graphics changes now rebuild the Cyber city/decor pools immediately, so switching profiles has a measurable runtime effect without reloading.
+- Added runtime diagnostics for adaptive level, resolution scale, Cyber tier/counts, visible buildings/decor, and shadow cadence.
+- Representative SwiftShader weak-GPU comparison: Performance mode fell from about 2.28M submitted triangles / 529 draw calls to as low as 64k triangles / 255 draw calls in the same Cyber route. The original 3.5 FPS software-render baseline increased to roughly 22-32 FPS across repeated runs; normal hardware WebGL is substantially faster.
+- Automated QA passed for live settings transitions (Performance -> High -> Performance), seven-second Cyber gameplay, adaptive fallback, service-worker update, screenshots, and zero game-origin console/page errors.

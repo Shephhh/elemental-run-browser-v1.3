@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-5-mobile-ads-loading';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-6-cyber-performance';
 const SHELL = [
   './',
   './index.html',
