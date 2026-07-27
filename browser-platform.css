@@ -275,6 +275,60 @@ body.rewarded-death-delay::after {
   #main-menu .menu-button { height: 52px; }
 }
 
+@media (orientation: landscape) and (max-height: 560px) {
+  body.mobile-runtime .browser-reward-dock {
+    top: max(92px, calc(env(safe-area-inset-top) + 82px));
+    right: max(18px, calc(env(safe-area-inset-right) + 12px));
+  }
+  body.mobile-runtime .browser-reward-actions { gap: 10px; }
+  body.mobile-runtime #main-menu .browser-reward-btn { width: 64px; height: 64px; border-width: 2px; }
+  body.mobile-runtime .browser-reward-value { font-size: 20px; }
+  body.mobile-runtime .browser-reward-ad-icon { width: 19px; }
+  body.mobile-runtime .browser-reward-label { font-size: 8px; letter-spacing: .8px; }
+
+  body.mobile-runtime #rewarded-continue { padding: max(7px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
+  body.mobile-runtime .rewarded-continue-card {
+    width: min(76vw, 620px);
+    max-height: 94dvh;
+    grid-template-columns: 58px minmax(0, 1fr);
+    justify-items: stretch;
+    align-items: center;
+    gap: 7px 12px;
+    padding: 13px 16px;
+    border-radius: 13px;
+    overflow-y: auto;
+    text-align: left;
+  }
+  body.mobile-runtime .rewarded-continue-kicker,
+  body.mobile-runtime .rewarded-continue-card h2,
+  body.mobile-runtime .rewarded-continue-card p,
+  body.mobile-runtime .rewarded-continue-actions,
+  body.mobile-runtime .rewarded-continue-status { grid-column: 2; }
+  body.mobile-runtime .rewarded-continue-kicker { font-size: 8px; letter-spacing: 1.2px; }
+  body.mobile-runtime .rewarded-continue-heart { grid-column: 1; grid-row: 1 / span 4; font-size: 52px; text-align: center; }
+  body.mobile-runtime .rewarded-continue-card h2 { margin: 0; font-size: clamp(17px, 2.8vw, 23px); }
+  body.mobile-runtime .rewarded-continue-card p { max-width: none; font-size: 12px; line-height: 1.2; }
+  body.mobile-runtime .rewarded-continue-actions { grid-template-columns: minmax(0, 1.6fr) minmax(110px, .8fr); gap: 7px; margin-top: 1px; }
+  body.mobile-runtime .rewarded-continue-actions button { min-height: 42px; padding: 7px 9px; font-size: 10px; }
+  body.mobile-runtime .rewarded-continue-status { min-height: 12px; font-size: 10px; }
+
+  body.mobile-runtime .browser-demo-ad-card {
+    box-sizing: border-box;
+    width: min(72vw, 620px);
+    max-height: 92dvh;
+    gap: 7px;
+    padding: 13px 17px;
+    border-radius: 13px;
+    overflow-y: auto;
+  }
+  body.mobile-runtime .browser-demo-ad-badge { padding: 4px 8px; font-size: 8px; }
+  body.mobile-runtime .browser-demo-ad-mark { width: 48px; height: 48px; font-size: 19px; }
+  body.mobile-runtime .browser-demo-ad-placement,
+  body.mobile-runtime .browser-demo-ad-countdown { font-size: 10px; }
+  body.mobile-runtime .menu-upgrade-ad { min-height: 38px; margin-top: 3px; font-size: 9px; }
+  body.mobile-runtime .menu-upgrade-ad-icon { width: 18px; flex-basis: 18px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rewarded-continue-card, .rewarded-continue-heart, .browser-reward-value, #main-menu .browser-reward-btn::before, body.rewarded-death-delay::after { animation: none; }
   .browser-toast, #main-menu .browser-reward-btn { transition: none; }

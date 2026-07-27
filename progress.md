@@ -114,3 +114,12 @@ TODO:
 - In landscape, the desktop WASD/Space onboarding is hidden, the mobile two-stick onboarding is shown, and tapping PLAY immediately starts the run without pointer-lock.
 - Real touch QA passed for tapping PLAY and jumping from the right joystick. Separate profiles passed for Android landscape, Android portrait, a phone using a desktop Mac user agent, and a touch-capable Windows laptop; no page/runtime errors were reported.
 - Bumped the service-worker shell cache so returning mobile visitors receive the corrected routing and input behavior.
+
+2026-07-27 - Organic elemental mountains + complete mobile UI pass
+- Replaced the pointed elemental-range peaks with broad irregular summits and layered foothills. Lava ranges now use flatter volcanic crowns instead of needle tips.
+- Increased the frequency and variety of Lava, Water, and Snow mountain scenery. Lava ranges gained more emissive slope channels and smoke; Water ranges gained more waterfall ribbons and mist; Snow ranges gained broader multi-peak groups.
+- New players now begin on High graphics on both desktop and phone. The mobile High preset is tuned separately for phone GPUs, while the adaptive governor can still reduce resolution and effects if sustained frame time becomes unsafe.
+- Reflowed Upgrades, Daily Missions, Leaderboard, Settings, pause, rewarded continue, game-over, HUD, and loading/revive surfaces for phone landscape safe areas. Added a touch pause control and kept every primary action inside the visible viewport.
+- Fixed the five-second How to Play card remaining above rewarded-continue or game-over UI when a player died immediately after starting.
+- Mobile Pixel 5 landscape QA covered all menu panels, four graphics choices, pause, rewarded continue, and game over with zero horizontal overflow and no browser/page errors. High was selected for a clean first-time save.
+- Bumped the service-worker shell cache so returning browser/mobile players receive the new scenery, mobile defaults, and UI layout.

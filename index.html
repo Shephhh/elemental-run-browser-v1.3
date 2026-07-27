@@ -4262,6 +4262,30 @@
         .mobile-stick.is-action {
             right: max(18px, calc(env(safe-area-inset-right) + 12px));
         }
+        #mobile-pause-btn {
+            position: absolute;
+            top: max(10px, calc(env(safe-area-inset-top) + 7px));
+            right: max(12px, calc(env(safe-area-inset-right) + 9px));
+            width: 46px;
+            height: 46px;
+            min-width: 46px;
+            min-height: 46px;
+            display: grid;
+            place-items: center;
+            margin: 0;
+            padding: 0;
+            border: 1px solid rgba(173, 230, 255, .54);
+            border-radius: 12px;
+            background: rgba(5, 16, 29, .78);
+            box-shadow: inset 0 0 14px rgba(72, 208, 255, .09), 0 8px 20px rgba(0,0,0,.32);
+            color: #dff8ff;
+            font: 900 18px/1 Orbitron, Rajdhani, sans-serif;
+            letter-spacing: -2px;
+            pointer-events: auto;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #mobile-pause-btn:active { transform: scale(.94); border-color: #79e8ff; }
         .mobile-stick.is-active {
             opacity: 1;
             transform: scale(1.035);
@@ -4462,6 +4486,330 @@
         }
         body.mobile-runtime.mobile-controls-visible #crosshair-container {
             opacity: .55;
+        }
+        @media (orientation: landscape) and (max-height: 560px) {
+            body.mobile-runtime {
+                --mobile-safe-top: max(7px, env(safe-area-inset-top));
+                --mobile-safe-right: max(9px, env(safe-area-inset-right));
+                --mobile-safe-bottom: max(7px, env(safe-area-inset-bottom));
+                --mobile-safe-left: max(9px, env(safe-area-inset-left));
+            }
+
+            /* Gameplay HUD: one compact corner cluster, clear center and thumb area. */
+            body.mobile-runtime #ui {
+                top: var(--mobile-safe-top);
+                left: var(--mobile-safe-left);
+                width: min(170px, 24vw);
+                max-width: none;
+                padding: 7px 10px 8px;
+                gap: 1px;
+                border-radius: 10px;
+                transform: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+            }
+            body.mobile-runtime #score-container { font-size: clamp(15px, 2.35vw, 20px); }
+            body.mobile-runtime #coin-container { font-size: clamp(14px, 2.15vw, 18px); }
+            body.mobile-runtime #speed-indicator { font-size: clamp(12px, 1.9vw, 16px); }
+            body.mobile-runtime #shield-bar {
+                margin-top: 4px;
+                padding: 4px 6px;
+                border-radius: 8px;
+                font-size: clamp(10px, 1.55vw, 13px);
+            }
+            body.mobile-runtime #progress-wrapper {
+                top: var(--mobile-safe-top);
+                width: min(48vw, 410px);
+                transform: translateX(-50%);
+            }
+            body.mobile-runtime #progress-container { height: 8px; }
+            body.mobile-runtime .progress-icon { padding: 0 7px; }
+            body.mobile-runtime .progress-icon svg { width: 17px; height: 17px; }
+            body.mobile-runtime #progress-text {
+                top: 31px;
+                font-size: clamp(8px, 1.2vw, 10px);
+                transform: translateX(-50%);
+            }
+            body.mobile-runtime #bhop-container {
+                top: calc(var(--mobile-safe-top) + 49px);
+                right: var(--mobile-safe-right);
+                transform: scale(.68);
+                transform-origin: top right;
+            }
+            body.mobile-runtime #mobile-pause-btn {
+                top: var(--mobile-safe-top);
+                right: var(--mobile-safe-right);
+                width: 42px;
+                height: 42px;
+                min-width: 42px;
+                min-height: 42px;
+                border-radius: 10px;
+                font-size: 16px;
+            }
+            body.mobile-runtime #doublejump-cooldown,
+            body.mobile-runtime #doublejump-ready-flash {
+                left: 50%;
+                right: auto;
+                bottom: var(--mobile-safe-bottom);
+                font-size: 28px;
+                transform: translateX(-50%);
+            }
+            body.mobile-runtime #browser-toast {
+                left: 50%;
+                right: auto;
+                bottom: max(10px, calc(env(safe-area-inset-bottom) + 8px));
+                width: min(54vw, 390px);
+                max-width: none;
+                padding: 8px 12px;
+                font-size: 11px;
+                transform: translateX(-50%);
+            }
+
+            /* Every main-menu surface becomes a safe-area aware, scrollable phone sheet. */
+            body.mobile-runtime #menu-dialog-layer {
+                box-sizing: border-box;
+                padding: var(--mobile-safe-top) var(--mobile-safe-right) var(--mobile-safe-bottom) var(--mobile-safe-left);
+                align-items: stretch;
+                justify-content: center;
+                overflow: hidden;
+            }
+            body.mobile-runtime #menu-dialog-layer.is-open + .menu-version-tag { display: none; }
+            body.mobile-runtime #menu-dialog-layer .menu-dialog {
+                box-sizing: border-box;
+                width: min(96vw, 1060px);
+                max-width: none;
+                max-height: calc(100dvh - var(--mobile-safe-top) - var(--mobile-safe-bottom));
+                margin: 0;
+                padding: 2px 11px 10px;
+                gap: 7px;
+                overflow-x: hidden;
+                overflow-y: auto !important;
+                overscroll-behavior: contain;
+                border-radius: 12px !important;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+            }
+            body.mobile-runtime #menu-dialog-layer .menu-dialog-head {
+                min-height: 42px;
+                margin: -2px -2px 6px;
+                padding: 5px 8px;
+            }
+            body.mobile-runtime #menu-dialog-layer .menu-dialog-title {
+                font-size: clamp(12px, 2vw, 15px);
+                letter-spacing: 1px;
+            }
+            body.mobile-runtime #menu-dialog-layer .menu-dialog-close {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+
+            /* Upgrades: three readable columns with consistent touch buttons. */
+            body.mobile-runtime .menu-upgrades-dialog { width: min(98vw, 1080px) !important; }
+            body.mobile-runtime .menu-upgrade-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 7px;
+            }
+            body.mobile-runtime .menu-upgrade-card {
+                min-height: 150px;
+                gap: 5px;
+                padding: 9px 9px 8px;
+                border-radius: 10px !important;
+            }
+            body.mobile-runtime .menu-upgrade-head { gap: 5px; }
+            body.mobile-runtime .menu-upgrade-title-wrap { gap: 6px; min-width: 0; }
+            body.mobile-runtime .menu-upgrade-icon { width: 29px; height: 29px; flex: 0 0 29px; }
+            body.mobile-runtime .menu-upgrade-icon svg { width: 20px; height: 20px; }
+            body.mobile-runtime .menu-upgrade-title { font-size: clamp(9px, 1.55vw, 12px); letter-spacing: .35px; }
+            body.mobile-runtime .menu-upgrade-tag { font-size: clamp(7px, 1.1vw, 9px); }
+            body.mobile-runtime .menu-upgrade-value {
+                max-width: 42%;
+                padding: 3px 5px !important;
+                font-size: clamp(7px, 1.1vw, 9px) !important;
+            }
+            body.mobile-runtime .menu-upgrade-row {
+                min-height: 17px;
+                gap: 4px;
+                font-size: clamp(7px, 1.05vw, 9px);
+            }
+            body.mobile-runtime .menu-upgrade-steps { height: 5px; gap: 3px; }
+            body.mobile-runtime .menu-upgrade-buy {
+                min-height: 40px;
+                padding: 7px 5px;
+                font-size: clamp(8px, 1.2vw, 10px);
+            }
+            body.mobile-runtime .browser-reward-upgrade-btn {
+                min-height: 38px;
+                font-size: clamp(8px, 1.15vw, 10px);
+            }
+
+            /* Leaderboard: ten entries become a two-column phone board. */
+            body.mobile-runtime .menu-leaderboard-dialog { width: min(94vw, 760px) !important; }
+            body.mobile-runtime .menu-leaderboard-dialog .menu-board-tabs { margin: 0 0 4px; }
+            body.mobile-runtime .menu-leaderboard-dialog .menu-board-tab { min-height: 34px; font-size: 10px; }
+            body.mobile-runtime .menu-board-list {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 5px;
+            }
+            body.mobile-runtime .menu-board-entry,
+            body.mobile-runtime .menu-board-entry.is-top,
+            body.mobile-runtime .menu-board-entry.rank-1 {
+                min-height: 36px;
+                padding: 5px 8px;
+                grid-template-columns: 30px minmax(0, 1fr) minmax(58px, auto);
+                border-radius: 8px;
+                font-size: clamp(9px, 1.35vw, 11px);
+            }
+            body.mobile-runtime .menu-board-entry.is-top .menu-board-rank {
+                width: 24px;
+                height: 24px;
+            }
+            body.mobile-runtime .menu-board-score { padding-left: 5px; font-size: .92em; }
+            body.mobile-runtime .menu-board-status:not(:empty) { margin-top: 5px; padding: 5px 8px; font-size: 10px; }
+
+            /* Daily missions stay in one glance without long portrait-style rows. */
+            body.mobile-runtime .menu-daily-dialog { width: min(92vw, 760px) !important; }
+            body.mobile-runtime .menu-daily-streak { min-height: 38px; padding: 6px 9px; }
+            body.mobile-runtime .menu-daily-streak-text { font-size: 10px; }
+            body.mobile-runtime .menu-daily-streak-text b { font-size: 12px; }
+            body.mobile-runtime .menu-daily-streak-count { font-size: 10px; }
+            body.mobile-runtime .menu-daily-list { gap: 6px; }
+            body.mobile-runtime .menu-daily-row {
+                min-height: 58px;
+                padding: 7px 9px;
+                gap: 7px;
+                border-radius: 9px;
+            }
+            body.mobile-runtime .menu-daily-mark { width: 28px; height: 28px; flex: 0 0 28px; }
+            body.mobile-runtime .menu-daily-row .menu-daily-info { gap: 4px; }
+            body.mobile-runtime .menu-daily-text { font-size: clamp(9px, 1.35vw, 11px); }
+            body.mobile-runtime .menu-daily-count,
+            body.mobile-runtime .menu-daily-reward { font-size: 10px; }
+            body.mobile-runtime .menu-daily-bar { height: 6px; }
+            body.mobile-runtime .menu-daily-claim { min-width: 92px; min-height: 38px; padding: 6px 8px; }
+            body.mobile-runtime .menu-daily-reset { margin-top: 3px; font-size: 9px; }
+
+            /* Settings home/pages: compact two-column controls with full-size touch targets. */
+            body.mobile-runtime .menu-settings-dialog { width: min(94vw, 820px) !important; }
+            body.mobile-runtime .settings-hub { gap: 7px; }
+            body.mobile-runtime .settings-panel-head { min-height: 38px; gap: 7px; }
+            body.mobile-runtime .settings-title { font-size: clamp(13px, 2vw, 16px); }
+            body.mobile-runtime .settings-subtitle,
+            body.mobile-runtime .settings-row-hint { display: none; }
+            body.mobile-runtime .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+            body.mobile-runtime .settings-card {
+                min-height: 64px;
+                grid-template-columns: 40px minmax(0, 1fr);
+                gap: 8px;
+                padding: 8px;
+            }
+            body.mobile-runtime .settings-card-icon { width: 38px; height: 38px; }
+            body.mobile-runtime .settings-card-icon svg { width: 24px; height: 24px; }
+            body.mobile-runtime .settings-card-title,
+            body.mobile-runtime .settings-row-label { font-size: clamp(9px, 1.35vw, 11px); }
+            body.mobile-runtime .settings-card-desc { margin-top: 2px; font-size: 9px; line-height: 1.15; }
+            body.mobile-runtime .settings-page { gap: 6px; }
+            body.mobile-runtime .settings-row {
+                grid-template-columns: minmax(100px, .72fr) minmax(0, 1.55fr);
+                gap: 8px;
+                padding: 7px 8px;
+            }
+            body.mobile-runtime .settings-options { gap: 5px; }
+            body.mobile-runtime .settings-row:has([data-setting="graphicsQuality"]) .settings-options {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+            body.mobile-runtime .settings-row:has([data-setting="graphicsQuality"]) .settings-option-btn {
+                min-width: 0;
+                padding-inline: 4px;
+                font-size: clamp(7px, 1vw, 9px);
+                letter-spacing: .35px;
+            }
+            body.mobile-runtime .settings-option-btn,
+            body.mobile-runtime .settings-back-btn,
+            body.mobile-runtime .settings-close-btn {
+                min-height: 40px;
+                padding: 0 9px;
+                font-size: clamp(8px, 1.15vw, 10px);
+            }
+            body.mobile-runtime .settings-slider-wrap { grid-template-columns: minmax(90px, 1fr) 42px; gap: 6px; }
+            body.mobile-runtime .settings-value { font-size: 10px; }
+            body.mobile-runtime .settings-language-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                max-height: none;
+                gap: 5px;
+                padding: 5px;
+            }
+            body.mobile-runtime .settings-language-btn { min-height: 40px; padding: 5px 7px; font-size: 9px; }
+
+            /* Pause, pause settings, game-over and loading never exceed phone height. */
+            body.mobile-runtime .pause-hero-logo { display: none; }
+            body.mobile-runtime #pause-card {
+                box-sizing: border-box;
+                width: min(88vw, 760px);
+                max-width: none;
+                max-height: calc(100dvh - var(--mobile-safe-top) - var(--mobile-safe-bottom));
+                padding: 10px 13px 12px;
+                overflow: auto;
+            }
+            body.mobile-runtime .pause-run-stats { width: 58%; margin-bottom: 6px; gap: 6px; }
+            body.mobile-runtime .pause-run-stat { padding: 5px 8px; }
+            body.mobile-runtime .pause-run-stat span { font-size: 8px; }
+            body.mobile-runtime .pause-run-stat strong { font-size: 15px; }
+            body.mobile-runtime #pause-text { font-size: 12px; }
+            body.mobile-runtime #pause-subtext { margin: 3px 0 7px; font-size: 10px; }
+            body.mobile-runtime #pause-controls { display: none; }
+            body.mobile-runtime .pause-button-stack {
+                width: 100%;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 7px;
+            }
+            body.mobile-runtime .pause-menu-button {
+                height: 46px;
+                grid-template-columns: 38px minmax(0, 1fr);
+                padding: 0 6px;
+                font-size: clamp(9px, 1.4vw, 12px);
+            }
+            body.mobile-runtime .pause-button-icon { width: 36px; }
+            body.mobile-runtime .pause-button-icon svg { width: 24px; height: 24px; }
+            body.mobile-runtime .pause-settings-panel {
+                position: fixed;
+                inset: var(--mobile-safe-top) var(--mobile-safe-right) var(--mobile-safe-bottom) var(--mobile-safe-left);
+                z-index: 80;
+                box-sizing: border-box;
+                width: auto;
+                max-height: none;
+                margin: 0;
+                padding: 8px 10px;
+                overflow: auto;
+                border-radius: 12px;
+            }
+            body.mobile-runtime .loading-card {
+                box-sizing: border-box;
+                min-width: 0;
+                width: min(72vw, 560px);
+                max-width: none;
+                max-height: 90dvh;
+                padding: 14px 18px;
+            }
+            body.mobile-runtime #game-over {
+                width: min(74vw, 600px);
+                max-height: 92dvh;
+                padding: 13px 16px 14px;
+                overflow-y: auto;
+            }
+            body.mobile-runtime #game-over h2 { margin-bottom: 5px; font-size: clamp(19px, 3vw, 25px); }
+            body.mobile-runtime .gameover-reason { margin-bottom: 8px; font-size: 13px; }
+            body.mobile-runtime #game-over .stats { gap: 7px; margin-bottom: 8px; }
+            body.mobile-runtime #game-over .stats p { padding: 6px 9px; }
+            body.mobile-runtime #game-over .stats strong,
+            body.mobile-runtime #game-over .stats span[id] { font-size: 18px; }
+            body.mobile-runtime #gameover-record-badge { margin-bottom: 8px; padding: 6px 12px; font-size: 15px; }
+            body.mobile-runtime .gameover-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+            body.mobile-runtime #game-over button { min-height: 44px; padding: 7px 10px; font-size: 12px; }
+
+            body.mobile-runtime .revive-center { width: min(46vh, 300px); }
+            body.mobile-runtime .revive-heart-wrap { min-width: 82px; }
         }
         @media (prefers-reduced-motion: reduce) {
             .menu-daily-badge,
@@ -5144,6 +5492,7 @@
 </div>
 <div id="noclip-indicator" style="display:none; position:absolute; top:116px; right:24px; z-index:12; pointer-events:none; padding:8px 12px; border:1px solid rgba(116,232,255,.55); border-radius:8px; background:rgba(4,12,24,.76); color:#8cf4ff; font-family:Orbitron,Rajdhani,sans-serif; font-size:13px; font-weight:900; letter-spacing:1.8px; text-shadow:0 0 8px rgba(83,224,255,.8);">NOCLIP <span style="margin-left:8px; color:rgba(255,255,255,.72); font-size:11px;">F6</span></div>
 <div id="mobile-controls" aria-hidden="true">
+    <button id="mobile-pause-btn" type="button" aria-label="Pause">Ⅱ</button>
     <div id="mobile-look-stick" class="mobile-stick is-look" role="application" aria-label="Look control">
         <div class="mobile-stick-base">
             <span id="mobile-look-caption" class="mobile-stick-caption">LOOK</span>
@@ -6101,20 +6450,31 @@ let skyClouds = [];
         high:        { pixelRatio: 1.25, renderDistance: 1120, shadows: true,  shadowMapSize: 2048, softShadows: true,  antialias: true,  bloom: true,  bloomStrength: 0.22, bloomRadius: 0.45, bloomThreshold: 0.85, envMap: false, exposure: 1.08, maxPixelRatio: 1.75 },
         ultra:       { pixelRatio: 1.5,  renderDistance: 1280, shadows: true,  shadowMapSize: 4096, softShadows: true,  antialias: true,  bloom: true,  bloomStrength: 0.30, bloomRadius: 0.50, bloomThreshold: 0.82, envMap: false, exposure: 1.10, maxPixelRatio: 2.0 }
     };
-    const MOBILE_QUALITY_PRESET = Object.freeze({
-        pixelRatio: MOBILE_LOW_END ? 0.62 : 0.72,
-        renderDistance: MOBILE_LOW_END ? 360 : 440,
-        shadows: false,
-        shadowMapSize: 512,
-        softShadows: false,
-        antialias: false,
-        bloom: false,
-        bloomStrength: 0,
-        bloomRadius: 0,
-        bloomThreshold: 1,
-        envMap: false,
-        exposure: 1,
-        maxPixelRatio: MOBILE_LOW_END ? 0.66 : 0.76
+    const MOBILE_GRAPHICS_QUALITY_PRESETS = Object.freeze({
+        performance: {
+            pixelRatio: MOBILE_LOW_END ? 0.62 : 0.72, renderDistance: MOBILE_LOW_END ? 360 : 440,
+            shadows: false, shadowMapSize: 512, softShadows: false, antialias: false,
+            bloom: false, bloomStrength: 0, bloomRadius: 0, bloomThreshold: 1,
+            envMap: false, exposure: 1, maxPixelRatio: MOBILE_LOW_END ? 0.66 : 0.76
+        },
+        balanced: {
+            pixelRatio: MOBILE_LOW_END ? 0.68 : 0.82, renderDistance: MOBILE_LOW_END ? 400 : 500,
+            shadows: false, shadowMapSize: 512, softShadows: false, antialias: !MOBILE_LOW_END,
+            bloom: false, bloomStrength: 0, bloomRadius: 0, bloomThreshold: 1,
+            envMap: false, exposure: 1.03, maxPixelRatio: MOBILE_LOW_END ? 0.72 : 0.9
+        },
+        high: {
+            pixelRatio: MOBILE_LOW_END ? 0.74 : 0.92, renderDistance: MOBILE_LOW_END ? 450 : 580,
+            shadows: false, shadowMapSize: 512, softShadows: false, antialias: !MOBILE_LOW_END,
+            bloom: false, bloomStrength: 0, bloomRadius: 0, bloomThreshold: 1,
+            envMap: false, exposure: 1.06, maxPixelRatio: MOBILE_LOW_END ? 0.8 : 1.0
+        },
+        ultra: {
+            pixelRatio: MOBILE_LOW_END ? 0.78 : 1.0, renderDistance: MOBILE_LOW_END ? 480 : 650,
+            shadows: false, shadowMapSize: 512, softShadows: false, antialias: !MOBILE_LOW_END,
+            bloom: !MOBILE_LOW_END, bloomStrength: 0.12, bloomRadius: 0.35, bloomThreshold: 0.9,
+            envMap: false, exposure: 1.08, maxPixelRatio: MOBILE_LOW_END ? 0.84 : 1.1
+        }
     });
     const DISPLAY_MODES = ['windowed', 'borderless', 'fullscreen'];
     const SUPPORTED_LANGUAGES = [
@@ -8826,7 +9186,7 @@ let skyClouds = [];
     }
 
     function normalizeMenuSettings(saved = {}) {
-        const quality = GRAPHICS_QUALITY_PRESETS[saved.graphicsQuality] ? saved.graphicsQuality : 'balanced';
+        const quality = GRAPHICS_QUALITY_PRESETS[saved.graphicsQuality] ? saved.graphicsQuality : 'high';
         return {
             graphicsQuality: quality,
             displayMode: normalizeDisplayMode(saved.displayMode || 'fullscreen'),
@@ -8851,7 +9211,7 @@ let skyClouds = [];
     }
 
     function getQualityPreset() {
-        if (MOBILE_RUNTIME) return MOBILE_QUALITY_PRESET;
+        if (MOBILE_RUNTIME) return MOBILE_GRAPHICS_QUALITY_PRESETS[menuState.graphicsQuality] || MOBILE_GRAPHICS_QUALITY_PRESETS.high;
         return GRAPHICS_QUALITY_PRESETS[menuState.graphicsQuality] || GRAPHICS_QUALITY_PRESETS.balanced;
     }
 
@@ -9384,11 +9744,11 @@ let skyClouds = [];
     }
 
     function renderGraphicsSettings(surface) {
-        const qualityKeys = MOBILE_RUNTIME ? ['performance'] : Object.keys(GRAPHICS_QUALITY_PRESETS);
+        const qualityKeys = Object.keys(GRAPHICS_QUALITY_PRESETS);
         const qualityButtons = qualityKeys.map((quality) => {
             const baseLabel = quality === 'performance' ? tr('performance') : quality === 'balanced' ? tr('balanced') : quality === 'high' ? tr('high') : tr('ultra');
-            const label = MOBILE_RUNTIME ? `${baseLabel} · MOBILE 60 FPS` : baseLabel;
-            return optionButton(surface, 'graphicsQuality', quality, label, MOBILE_RUNTIME || menuState.graphicsQuality === quality);
+            const label = MOBILE_RUNTIME ? `${baseLabel} · MOBILE` : baseLabel;
+            return optionButton(surface, 'graphicsQuality', quality, label, menuState.graphicsQuality === quality);
         }).join('');
         const displayButtons = DISPLAY_MODES.map((mode) => {
             const label = mode === 'windowed' ? tr('windowed') : mode === 'borderless' ? tr('borderless') : tr('fullscreen');
@@ -11313,6 +11673,7 @@ let skyClouds = [];
     }
 
     function beginRewardedDeathOffer(msg) {
+        hideHowToPlayOverlay(true);
         rewardedDeathPending = true;
         rewardedDeathOfferReady = false;
         pendingRewardedDeathMessage = msg || '';
@@ -11386,6 +11747,7 @@ let skyClouds = [];
     }
 
     function finalizeGameOver(msg, options = {}) {
+        hideHowToPlayOverlay(true);
         isGameOver = true;
         mainMenuVisible = false;
         isGamePaused = false;
@@ -11430,6 +11792,7 @@ let skyClouds = [];
 
     function gameOver(msg) {
         if (isGameOver || reviveSequenceActive || rewardedDeathPending) return;
+        hideHowToPlayOverlay(true);
         if (MOBILE_RUNTIME) setMobileControlsVisible(false);
         if (tryUseRevive()) return;
         if (isBrowserBuild()) {
@@ -13491,10 +13854,14 @@ if (renderer && dirLight) {
         if (isBrowserBuild()) {
             startRewardBoostUiClock();
             if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+                const serviceWorkerWasControllingPage = !!navigator.serviceWorker.controller;
                 navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).then((registration) => {
                     registration.update().catch(() => {});
                 }).catch((error) => console.warn('Service worker registration failed:', error));
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    // A first-time install already loaded the latest files. Reload only
+                    // when an older worker was controlling this page and has been replaced.
+                    if (!serviceWorkerWasControllingPage) return;
                     if (sessionStorage.getItem('elemental-sw-reloaded') === '1') return;
                     sessionStorage.setItem('elemental-sw-reloaded', '1');
                     location.reload();
@@ -14179,9 +14546,23 @@ if (renderer && dirLight) {
         if (!MOBILE_RUNTIME || mobileControlsInitialized) return;
         const lookStick = document.getElementById('mobile-look-stick');
         const actionStick = document.getElementById('mobile-action-stick');
+        const pauseButton = document.getElementById('mobile-pause-btn');
         if (!lookStick || !actionStick) return;
         mobileControlsInitialized = true;
         updateMobileControlLabels();
+        if (pauseButton) {
+            pauseButton.setAttribute('aria-label', tr('pauseTitle'));
+            pauseButton.addEventListener('pointerdown', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+            }, { passive: false });
+            pauseButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!mobileControlsVisible || isGameOver || reviveSequenceActive || rewardedDeathPending) return;
+                pauseRunForExternalInterruption(tr('pauseTitle'), tr('pauseHint'));
+            });
+        }
 
         const updateVector = (stick, event) => {
             const rect = stick.getBoundingClientRect();
@@ -16868,7 +17249,8 @@ if (renderer && dirLight) {
     }
 
     function getRequestedCyberBuildingTier() {
-        const quality = MOBILE_RUNTIME ? 'performance' : menuState.graphicsQuality;
+        const quality = menuState.graphicsQuality;
+        if (MOBILE_RUNTIME && quality !== 'ultra') return 'lite';
         return (quality === 'performance' || quality === 'balanced') ? 'lite' : 'detailed';
     }
 
@@ -17171,7 +17553,7 @@ if (renderer && dirLight) {
         const add=(obj, role, side, edgeOffset, span)=>{ scene.add(obj); cyberDecorObjects.push({obj, role, side, edgeOffset, span}); };
         // sidewalk rail on BOTH sides — fewer signs (mostly non-sign props), road-edge-relative
         const builders=[cdBuildVerticalSign,cdBuildHoloAd,cdBuildHangingSign,cdBuildRoundSign,cdBuildLamp,cdBuildLamp,cdBuildKiosk,cdBuildKiosk,cdBuildBarrier,cdBuildBarrier,cdBuildPod,cdBuildVents,cdBuildVents];
-        const quality = MOBILE_RUNTIME ? 'performance' : menuState.graphicsQuality;
+        const quality = menuState.graphicsQuality;
         const decorProfiles = {
             performance: { edgeCount: 24, edgeStep: 32, shopCount: 2, shopStep: 420, chevronCount: 14, chevronStep: 72, carCount: 4 },
             balanced: { edgeCount: 32, edgeStep: 25, shopCount: 3, shopStep: 310, chevronCount: 18, chevronStep: 60, carCount: 6 },
@@ -17327,7 +17709,7 @@ if (renderer && dirLight) {
         const NTYPES = cityBuildingTypes.length;
 
         // 1. KaynaklarÄ± (Geometry/Material) sadece EÄER YOKSA oluÅŸtur (Reset atÄ±nca tekrar Ã¼retmesin)
-        const quality = MOBILE_RUNTIME ? 'performance' : menuState.graphicsQuality;
+        const quality = menuState.graphicsQuality;
         const layerProfiles = {
             performance: [
                 { count: 22, layerType: 0, minZOffset: 0 },
@@ -24503,10 +24885,10 @@ function initLavaResources() {
         flatShading: true
     });
     mats.lavaCore = new THREE.MeshStandardMaterial({
-        color: 0xff8a1f,
-        emissive: 0xff4a00,
-        emissiveIntensity: 1.7,
-        roughness: 0.26,
+        color: 0xffb126,
+        emissive: 0xff3d00,
+        emissiveIntensity: 2.15,
+        roughness: 0.2,
         metalness: 0.05
     });
     mats.lavaSmoke = new THREE.MeshBasicMaterial({
@@ -24532,16 +24914,20 @@ function initLavaResources() {
         flatShading: true
     });
     mats.waterGlow = new THREE.MeshStandardMaterial({
-        color: 0xb3d8c1,
-        emissive: 0x2a8c75,
-        emissiveIntensity: 0.46,
-        roughness: 0.2,
-        metalness: 0.02
+        color: 0x83ddff,
+        emissive: 0x167fc7,
+        emissiveIntensity: 0.78,
+        roughness: 0.12,
+        metalness: 0.01,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        side: THREE.DoubleSide
     });
     mats.waterMist = new THREE.MeshBasicMaterial({
-        color: 0xc8ddd1,
+        color: 0xd9f5ff,
         transparent: true,
-        opacity: 0.18,
+        opacity: 0.26,
         depthWrite: false
     });
     mats.snowRock = new THREE.MeshStandardMaterial({
@@ -25087,6 +25473,7 @@ const elementalMountainTypeCache = {
     water: { single: [], twin: [], range: [] },
     snow: { single: [], twin: [], range: [] }
 };
+const elementalMountainPeakGeos = [];
 
 function lavaCacheParts(bucket, group) {
     const parts = cbMergeByMaterial(group);
@@ -25112,7 +25499,7 @@ function instantiateLavaParts(partsList) {
 // mesh.scale.set(w,h,w) doğrudan en/boy verir, lavaSpire ile aynı ölçek semantiği.
 function makeLavaPeakGeo(seed, radialSeg) {
     const rnd = natSeedRand(seed);
-    const geo = new THREE.ConeGeometry(1, 1, radialSeg, 5, true);
+    const geo = new THREE.CylinderGeometry(0.30, 1, 1, radialSeg, 6, true);
     geo.translate(0, 0.5, 0);
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
@@ -25134,7 +25521,7 @@ function buildLavaVolcano(seed) {
     const g = new THREE.Group();
     // Ana koni: jitter'lı, pürüzlü bazalt gövde (düz koniden daha organik)
     const mainHeight = 154;
-    const mainGeo = new THREE.ConeGeometry(46, mainHeight, 11, 7, true);
+    const mainGeo = new THREE.CylinderGeometry(13.5, 49, mainHeight, 12, 7, true);
     mainGeo.translate(0, mainHeight * 0.5, 0);
     const mp = mainGeo.attributes.position;
     for (let i = 0; i < mp.count; i++) {
@@ -25166,13 +25553,13 @@ function buildLavaVolcano(seed) {
         g.add(s);
     }
     // AKAN lav dereleri: koninin ön yüzünde birden çok kıvrımlı ince şerit
-    const seamCount = 3;
+    const seamCount = 6;
     for (let i = 0; i < seamCount; i++) {
         const h = 40 + rnd() * 24;
-        const w = 4.2 + rnd() * 2.4;
+        const w = 3.8 + rnd() * 2.8;
         const seam = new THREE.Mesh(createLavaRibbonGeometry(h, w, 1.25, 6), mats.lavaCore);
-        const a = (i - 1) * 0.42;
-        seam.position.set(Math.sin(a) * 24, 86 - i * 7, Math.cos(a) * 35);
+        const a = (i - (seamCount - 1) * 0.5) * 0.3;
+        seam.position.set(Math.sin(a) * 27, 91 - i * 5.5, Math.cos(a) * 35);
         seam.rotation.z = a * 0.22;
         seam.rotation.x = -0.52;
         g.add(seam);
@@ -25185,11 +25572,11 @@ function buildLavaVolcano(seed) {
     const crater = new THREE.Mesh(new THREE.CylinderGeometry(9.2, 7.5, 2.4, 12), mats.lavaCore);
     crater.position.y = 148.4;
     g.add(crater);
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 8; i++) {
         const s = 3.4 + rnd() * 2.0;
         const puff = new THREE.Mesh(geoms.lavaSmokePuff, mats.lavaSmoke);
         puff.scale.setScalar(s);
-        puff.position.set((rnd() - 0.5) * 11, 160 + i * 10, (rnd() - 0.5) * 11);
+        puff.position.set((rnd() - 0.5) * 14, 160 + i * 8.5, (rnd() - 0.5) * 14);
         g.add(puff);
     }
     return g;
@@ -25690,11 +26077,39 @@ function mergeDirectStaticMeshesByMaterial(group, mergedName) {
     });
 }
 
+function ensureElementalMountainPeakGeos() {
+    if (elementalMountainPeakGeos.length) return;
+    for (const seed of [1049, 1061, 1087, 1093]) {
+        const rnd = natSeedRand(seed);
+        const geo = new THREE.CylinderGeometry(15 + rnd() * 5, 52, 62, 11, 7, false);
+        geo.translate(0, 31, 0);
+        const pos = geo.attributes.position;
+        const leanX = (rnd() - 0.5) * 8;
+        const leanZ = (rnd() - 0.5) * 7;
+        for (let i = 0; i < pos.count; i++) {
+            const y = pos.getY(i);
+            const t = Math.max(0, Math.min(1, y / 62));
+            const angle = Math.atan2(pos.getZ(i), pos.getX(i));
+            const shelf = 1
+                + Math.sin(t * Math.PI * 3.4 + angle * 1.6) * 0.055
+                + Math.sin(angle * 3 + seed) * 0.035;
+            const roughness = (1 - t * 0.58) * (3.2 + rnd() * 3.8);
+            pos.setX(i, pos.getX(i) * shelf + (rnd() - 0.5) * roughness + leanX * t);
+            pos.setZ(i, pos.getZ(i) * shelf + (rnd() - 0.5) * roughness + leanZ * t);
+            pos.setY(i, y + (rnd() - 0.5) * (t > 0.84 ? 2.8 : 2.1));
+        }
+        geo.computeVertexNormals();
+        geo.computeBoundingSphere();
+        lavaModelGeoms.push(geo);
+        elementalMountainPeakGeos.push(geo);
+    }
+}
+
 function buildElementalMountainGroup(theme, style, seed) {
-    ensureNatureModelTypes();
+    ensureElementalMountainPeakGeos();
     const rnd = natSeedRand(seed);
     const group = new THREE.Group();
-    const source = natureTypeCache.mountainGeos;
+    const source = elementalMountainPeakGeos;
     const layoutsByStyle = {
         single: [
             { x: 0, z: 0, sx: 1.52, sy: 2.30, sz: 1.56 },
@@ -25707,11 +26122,13 @@ function buildElementalMountainGroup(theme, style, seed) {
             { x: 0, z: 24, sx: 0.82, sy: 1.22, sz: 0.90 }
         ],
         range: [
-            { x: -92, z: 6, sx: 1.06, sy: 1.78, sz: 1.18 },
-            { x: -44, z: -12, sx: 1.40, sy: 2.34, sz: 1.48 },
-            { x: 14, z: 10, sx: 1.60, sy: 2.62, sz: 1.66 },
-            { x: 70, z: -7, sx: 1.25, sy: 2.08, sz: 1.36 },
-            { x: 114, z: 18, sx: 0.92, sy: 1.48, sz: 1.02 }
+            { x: -126, z: 18, sx: 0.82, sy: 1.30, sz: 0.94 },
+            { x: -92, z: 6, sx: 1.06, sy: 1.72, sz: 1.18 },
+            { x: -44, z: -12, sx: 1.40, sy: 2.22, sz: 1.48 },
+            { x: 14, z: 10, sx: 1.60, sy: 2.42, sz: 1.66 },
+            { x: 70, z: -7, sx: 1.25, sy: 1.98, sz: 1.36 },
+            { x: 114, z: 18, sx: 0.92, sy: 1.42, sz: 1.02 },
+            { x: 148, z: -3, sx: 0.72, sy: 1.08, sz: 0.84 }
         ]
     };
     const layouts = layoutsByStyle[style] || layoutsByStyle.single;
@@ -25729,17 +26146,16 @@ function buildElementalMountainGroup(theme, style, seed) {
         group.add(body);
 
         if (isSnow) {
-            const capHeight = 24 + p.sy * 8;
             const cap = new THREE.Mesh(source[(index + 1) % source.length], mats.snowCap);
-            cap.scale.set(p.sx * 0.46, capHeight / 62, p.sz * 0.48);
-            cap.position.set(p.x, p.sy * 46, p.z);
+            cap.scale.set(p.sx * 0.5, 0.34 + p.sy * 0.035, p.sz * 0.52);
+            cap.position.set(p.x + p.sy * 1.5, p.sy * 45, p.z - p.sy);
             cap.rotation.y = body.rotation.y + 0.18;
             group.add(cap);
         }
     });
 
     const base = new THREE.Mesh(geoms.lavaBoulder, bodyDark);
-    const rangeWidth = style === 'range' ? 126 : (style === 'twin' ? 72 : 64);
+    const rangeWidth = style === 'range' ? 158 : (style === 'twin' ? 72 : 64);
     base.scale.set(rangeWidth, isSnow ? 10 : 14, style === 'range' ? 42 : 34);
     base.position.set(style === 'range' ? 10 : 0, 2.5, 0);
     base.rotation.set(0.04, rnd() * Math.PI, (rnd() - 0.5) * 0.06);
@@ -25750,7 +26166,7 @@ function buildElementalMountainGroup(theme, style, seed) {
         drift.scale.set(rangeWidth * 1.08, 2.8, style === 'range' ? 46 : 38);
         drift.position.y = -1.2;
         group.add(drift);
-        const crystalCount = style === 'range' ? 3 : 2;
+        const crystalCount = style === 'range' ? 4 : 3;
         for (let i = 0; i < crystalCount; i++) {
             const ice = new THREE.Mesh(geoms.snowCrystal, mats.snowIce);
             ice.scale.set(2.4 + rnd() * 1.8, 14 + rnd() * 14, 2.0 + rnd() * 1.4);
@@ -25759,16 +26175,17 @@ function buildElementalMountainGroup(theme, style, seed) {
             group.add(ice);
         }
     } else {
-        const waterfallCount = style === 'range' ? 3 : 2;
+        const waterfallCount = style === 'range' ? 8 : (style === 'twin' ? 5 : 4);
         for (let i = 0; i < waterfallCount; i++) {
             const h = 58 + rnd() * 38;
-            const fall = new THREE.Mesh(createLavaRibbonGeometry(h, 7 + rnd() * 4, 1.1, 7), mats.waterGlow);
+            const fall = new THREE.Mesh(createLavaRibbonGeometry(h, 6.5 + rnd() * 4.5, 1.0, 8), mats.waterGlow);
             const spread = style === 'range' ? 62 : 34;
             fall.position.set((i - (waterfallCount - 1) * 0.5) * spread + (rnd() - 0.5) * 10, 36 + h * 0.35, 48 + rnd() * 9);
             fall.rotation.z = (rnd() - 0.5) * 0.18;
             group.add(fall);
         }
-        for (let i = 0; i < 3; i++) {
+        const mistCount = style === 'range' ? 10 : 7;
+        for (let i = 0; i < mistCount; i++) {
             const mist = new THREE.Mesh(geoms.lavaSmokePuff, mats.waterMist);
             const s = 3.6 + rnd() * 2.4;
             mist.scale.setScalar(s);
@@ -25830,7 +26247,9 @@ function createLavaMountainRange() {
         { x: -36, z: -10, sx: 24, sy: 104, sz: 26, mat: mats.lavaRock, lean: 0.10 },
         { x: -15, z: 8, sx: 32, sy: 138, sz: 34, mat: mats.lavaRockWarm, lean: -0.06 },
         { x: 14, z: -4, sx: 27, sy: 116, sz: 29, mat: mats.lavaRock, lean: 0.07 },
-        { x: 39, z: 11, sx: 19, sy: 86, sz: 21, mat: mats.lavaRockWarm, lean: -0.12 }
+        { x: 39, z: 11, sx: 19, sy: 86, sz: 21, mat: mats.lavaRockWarm, lean: -0.12 },
+        { x: -58, z: 13, sx: 16, sy: 70, sz: 19, mat: mats.lavaRockWarm, lean: 0.08 },
+        { x: 59, z: -8, sx: 15, sy: 62, sz: 18, mat: mats.lavaRock, lean: -0.09 }
     ];
     const lavaCoreBoulders = [];
     const smokePuffs = [];
@@ -25860,7 +26279,9 @@ function createLavaMountainRange() {
         { x: -25, y: 49, z: 16, h: 30, rz: -0.16, rx: -0.06, w: 7.0, d: 1.0 },
         { x: 3, y: 56, z: 16, h: 36, rz: -0.26, rx: 0.08, w: 7.6, d: 1.0 },
         { x: 25, y: 39, z: 14, h: 31, rz: 0.28, rx: -0.06, w: 6.4, d: 0.9 },
-        { x: -43, y: 32, z: 12, h: 26, rz: -0.24, rx: 0.1, w: 5.8, d: 0.85 }
+        { x: -43, y: 32, z: 12, h: 26, rz: -0.24, rx: 0.1, w: 5.8, d: 0.85 },
+        { x: 43, y: 30, z: 13, h: 24, rz: 0.18, rx: -0.04, w: 5.4, d: 0.82 },
+        { x: 9, y: 93, z: 16, h: 34, rz: -0.11, rx: 0.04, w: 6.2, d: 0.9 }
     ];
 
     lavaFlows.forEach((flow) => {
@@ -25871,7 +26292,7 @@ function createLavaMountainRange() {
         channel.rotation.x = flow.rx;
         group.add(channel);
 
-        const stream = new THREE.Mesh(createLavaRibbonGeometry(flow.h, flow.w, flow.d, 7), mats.lavaRockWarm);
+        const stream = new THREE.Mesh(createLavaRibbonGeometry(flow.h, flow.w, flow.d, 7), mats.lavaCore);
         stream.name = 'lava_ribbon';
         stream.position.set(flow.x, flow.y, flow.z + 0.25);
         stream.rotation.z = flow.rz;
@@ -28045,45 +28466,45 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
         const roll = Math.random();
         if (gamePhase >= 5) {
             // Kar v3 (2026-07-10): kardan adam / buzdağı / buz katedrali / donmuş ağaç eklendi
-            if (roll < 0.16) type = 'snow_mountain';
-            else if (roll < 0.34) type = 'snow_pine';
-            else if (roll < 0.44) type = 'snow_iceberg';
-            else if (roll < 0.54) type = 'snow_frozen_tree';
-            else if (roll < 0.62) type = 'snow_crystal';
-            else if (roll < 0.70) type = 'snow_cabin';
-            else if (roll < 0.77) type = 'snow_igloo';
-            else if (roll < 0.85) type = 'snow_snowman';
-            else if (roll < 0.90) type = 'snow_ice_cathedral';
-            else if (roll < 0.96) type = 'mountain_range';
+            if (roll < 0.22) type = 'snow_mountain';
+            else if (roll < 0.36) type = 'snow_pine';
+            else if (roll < 0.45) type = 'snow_iceberg';
+            else if (roll < 0.53) type = 'snow_frozen_tree';
+            else if (roll < 0.60) type = 'snow_crystal';
+            else if (roll < 0.67) type = 'snow_cabin';
+            else if (roll < 0.73) type = 'snow_igloo';
+            else if (roll < 0.79) type = 'snow_snowman';
+            else if (roll < 0.85) type = 'snow_ice_cathedral';
+            else if (roll < 0.97) type = 'mountain_range';
             else type = 'castle';
         } else if (gamePhase >= 4) {
             // Su fazı v2 (2026-07-09): dağ payı %58→%24 — deniz kimliği baskın
             // (yelkenli/şamandıra/kargo eklendi, ada/fener/kuş payları arttı)
-            if (roll < 0.10) type = 'mountain_range';
-            else if (roll < 0.18) type = 'mountain';
-            else if (roll < 0.24) type = 'mountain_twin';
-            else if (roll < 0.35) type = 'water_island';
-            else if (roll < 0.43) type = 'pirate_ship';
-            else if (roll < 0.55) type = 'water_sailboat';
-            else if (roll < 0.66) type = 'water_buoy';
-            else if (roll < 0.72) type = 'water_cargo_ship';
-            else if (roll < 0.78) type = 'water_container';
-            else if (roll < 0.85) type = 'water_lighthouse';
-            else if (roll < 0.92) type = 'water_birds';
+            if (roll < 0.16) type = 'mountain_range';
+            else if (roll < 0.29) type = 'mountain';
+            else if (roll < 0.38) type = 'mountain_twin';
+            else if (roll < 0.47) type = 'water_island';
+            else if (roll < 0.54) type = 'pirate_ship';
+            else if (roll < 0.64) type = 'water_sailboat';
+            else if (roll < 0.72) type = 'water_buoy';
+            else if (roll < 0.78) type = 'water_cargo_ship';
+            else if (roll < 0.83) type = 'water_container';
+            else if (roll < 0.89) type = 'water_lighthouse';
+            else if (roll < 0.94) type = 'water_birds';
             else if (roll < 0.98) type = 'water_oil_platform';
             else type = 'castle';
         } else {
             // Lav fazı — v2: yeni obsidyen/gayzer/kül-ağaç/bazalt tipleri eklendi
-            if (roll < 0.09) type = 'vent';
-            else if (roll < 0.17) type = 'rock';
-            else if (roll < 0.26) type = 'rock_shelf';
-            else if (roll < 0.33) type = 'obsidian';
-            else if (roll < 0.39) type = 'geyser';
-            else if (roll < 0.45) type = 'ashtree';
-            else if (roll < 0.51) type = 'basalt';
-            else if (roll < 0.63) type = 'mountain';
-            else if (roll < 0.74) type = 'mountain_twin';
-            else if (roll < 0.93) type = 'mountain_range';
+            if (roll < 0.07) type = 'vent';
+            else if (roll < 0.13) type = 'rock';
+            else if (roll < 0.20) type = 'rock_shelf';
+            else if (roll < 0.25) type = 'obsidian';
+            else if (roll < 0.29) type = 'geyser';
+            else if (roll < 0.33) type = 'ashtree';
+            else if (roll < 0.38) type = 'basalt';
+            else if (roll < 0.53) type = 'mountain';
+            else if (roll < 0.68) type = 'mountain_twin';
+            else if (roll < 0.95) type = 'mountain_range';
             else type = 'castle';
         }
     }
@@ -28724,6 +29145,7 @@ function startWaterPhase() {
         [900, 'mountain_twin', 1],
         [1060, 'water_island', -1],
         [1170, 'water_sailboat', -1],
+        [1240, 'mountain', -1],
         [1360, 'pirate_ship', 1],
         [1480, 'water_buoy', -1],
         [1660, 'water_birds', -1],
@@ -28731,11 +29153,13 @@ function startWaterPhase() {
         [1980, 'water_oil_platform', 1],
         [2140, 'water_lighthouse', -1],
         [2260, 'water_sailboat', 1],
+        [2340, 'mountain_twin', -1],
         [2460, 'water_container', -1],
         [2620, 'mountain_range', 1],
         [2760, 'water_buoy', 1],
         [3040, 'water_island', 1],
         [3200, 'water_sailboat', -1],
+        [3300, 'mountain_range', -1],
         [3400, 'water_cargo_ship', 1],
         [3520, 'pirate_ship', 1],
         [3800, 'mountain_twin', -1],
@@ -28801,6 +29225,7 @@ function startSnowPhase() {
         [1120, 'snow_igloo', 1],
         [1260, 'snow_snowman', -1],
         [1320, 'snow_mountain', 1],
+        [1400, 'mountain_range', -1],
         [1450, 'snow_pine', 1],
         [1540, 'snow_ice_cathedral', -1],
         [1680, 'snow_frozen_tree', -1],
@@ -28808,6 +29233,7 @@ function startSnowPhase() {
         [1980, 'snow_cabin', -1],
         [2120, 'snow_iceberg', 1],
         [2220, 'snow_mountain', -1],
+        [2300, 'mountain_range', 1],
         [2360, 'snow_pine', -1],
         [2480, 'snow_igloo', 1],
         [2620, 'snow_snowman', 1],
@@ -28816,6 +29242,7 @@ function startSnowPhase() {
         [3060, 'snow_pine', -1],
         [3220, 'snow_frozen_tree', -1],
         [3380, 'snow_mountain', 1],
+        [3460, 'mountain_range', -1],
         [3560, 'snow_iceberg', -1]
     ];
     snowIntroDecor.forEach(([offset, type, side]) => spawnLavaDecorAt(snowPlayerX + offset, type, side));
