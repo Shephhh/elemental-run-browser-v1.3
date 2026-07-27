@@ -6131,6 +6131,7 @@ let skyClouds = [];
     let controllerInputActive = false;
     let steamOverlayShortcutHeld = false;
     let noclipActive = false;
+    let localQaInvulnerable = false;
     
     let lanePositions = [...BASE_LANE_POSITIONS];
     let roadLimitZMin = BASE_ROAD_LIMIT_Z_MIN;
@@ -6155,6 +6156,8 @@ let skyClouds = [];
     const tempCloudPuffDummy = new THREE.Object3D();
     const tempLavaDecorDummy = new THREE.Object3D();
     const tempBoundsBox = new THREE.Box3();
+    const lateDecorPlacementBox = new THREE.Box3();
+    const lateDecorNeighborBox = new THREE.Box3();
     let windWasSliding = false;
     let sharedWindGeometry = null;
     let sharedWindMaterial = null;
@@ -11791,6 +11794,7 @@ let skyClouds = [];
     }
 
     function gameOver(msg) {
+        if (localQaInvulnerable) return;
         if (isGameOver || reviveSequenceActive || rewardedDeathPending) return;
         hideHowToPlayOverlay(true);
         if (MOBILE_RUNTIME) setMobileControlsVisible(false);
@@ -12692,7 +12696,64 @@ nextSnowballX = 0;
             forceMap: (phase = 0) => {
                 debugForceMap(Math.max(0, Math.min(5, Math.floor(Number(phase)) || 0)));
                 return renderGameToText();
-            }
+            },
+            setInvulnerable: (active = true) => {
+                localQaInvulnerable = !!active;
+                return renderGameToText();
+            },
+            settleMapTransition: () => {
+                transitionFactor = 1;
+                if (gamePhase >= 3) {
+                    cityBuildings.forEach((item) => { if (item) item.visible = false; });
+                    cyberDecorObjects.forEach((item) => { if (item?.obj) item.obj.visible = false; });
+                    natureObjects.forEach((item) => { if (item) item.visible = false; });
+                    skyDecorObjects.forEach((item) => { if (item) item.visible = false; });
+                }
+                if (gamePhase >= 4) {
+                    waterTransitionProgress = 1;
+                    waterTransitionActive = false;
+                    if (lavaFloor) lavaFloor.visible = false;
+                    if (waterFloor) {
+                        waterFloor.visible = gamePhase < 5;
+                        setWaterFloorAlpha(gamePhase < 5 ? WATER_FLOOR_TARGET_ALPHA : 0);
+                    }
+                }
+                if (gamePhase >= 5) {
+                    snowTransitionProgress = 1;
+                    snowTransitionActive = false;
+                    if (waterFloor) waterFloor.visible = false;
+                    if (snowFloor) {
+                        snowFloor.visible = true;
+                        setSnowFloorAlpha(SNOW_FLOOR_TARGET_ALPHA);
+                    }
+                }
+                return renderGameToText();
+            },
+            previewElementalMountain: (theme = 'water', style = 'single') => {
+                localQaInvulnerable = true;
+                cityBuildings.forEach((item) => { if (item) scene.remove(item); });
+                cyberDecorObjects.forEach((item) => { if (item?.obj) scene.remove(item.obj); });
+                natureObjects.forEach((item) => { if (item) scene.remove(item); });
+                skyDecorObjects.forEach((item) => { if (item) scene.remove(item); });
+                clearLavaDecor();
+                const resolvedStyle = ['single', 'twin', 'range'].includes(style) ? style : 'single';
+                const snow = theme === 'snow';
+                const lava = theme === 'lava';
+                const obj = snow
+                    ? createElementalSnowMountainModel(resolvedStyle)
+                    : lava
+                    ? createLavaMountainRange()
+                    : createWaterMountainModel(resolvedStyle);
+                obj.scale.setScalar(snow ? 0.42 : (lava ? 0.58 : 0.7));
+                obj.position.set(player.position.x + 120, -2.8, snow ? 72 : -72);
+                obj.rotation.y = snow ? Math.PI : 0;
+                obj.userData.roadSide = snow ? 1 : -1;
+                obj.userData.spawnType = resolvedStyle === 'single' ? 'mountain' : `mountain_${resolvedStyle}`;
+                scene.add(obj);
+                lavaDecorObjects.push(obj);
+                return renderGameToText();
+            },
+            inspectLateDecor: () => inspectLateDecorPlacement()
         });
     }
 
@@ -12979,6 +13040,91 @@ obj.position.z = centerZ + side * minCenterDistance;
 obj.userData = obj.userData || {};
 obj.userData.roadSide = side;
 obj.userData.roadClearanceMargin = margin;
+}
+
+function separateLateDecorFromNeighbors(obj, fallbackSide = 1, spawnType = '') {
+if (!obj || !obj.position || !lavaDecorObjects.length) return;
+const side = fallbackSide < 0 ? -1 : 1;
+const type = spawnType || obj.userData?.spawnType || obj.userData?.decorType || '';
+if (type === 'water_birds') return;
+const isMountain = type === 'snow_mountain'
+    || type === 'mountain'
+    || type === 'mountain_twin'
+    || type === 'mountain_range';
+const padX = isMountain ? 14 : 6;
+const padZ = isMountain ? 18 : 8;
+
+for (let attempt = 0; attempt < 18; attempt++) {
+    obj.updateMatrixWorld(true);
+    lateDecorPlacementBox.setFromObject(obj);
+    if (lateDecorPlacementBox.isEmpty()) return;
+    let outwardShift = 0;
+
+    for (let i = 0; i < lavaDecorObjects.length; i++) {
+        const other = lavaDecorObjects[i];
+        if (!other || other.userData?.roadSide !== side) continue;
+        if (other.userData?.spawnType === 'water_birds' || other.userData?.decorType === 'water_birds') continue;
+        other.updateMatrixWorld(true);
+        lateDecorNeighborBox.setFromObject(other);
+        if (lateDecorNeighborBox.isEmpty()) continue;
+        const overlapX = Math.min(lateDecorPlacementBox.max.x, lateDecorNeighborBox.max.x)
+            - Math.max(lateDecorPlacementBox.min.x, lateDecorNeighborBox.min.x);
+        const overlapZ = Math.min(lateDecorPlacementBox.max.z, lateDecorNeighborBox.max.z)
+            - Math.max(lateDecorPlacementBox.min.z, lateDecorNeighborBox.min.z);
+        if (overlapX <= -padX || overlapZ <= -padZ) continue;
+        outwardShift = Math.max(outwardShift, overlapZ + padZ);
+    }
+
+    if (outwardShift <= 0) break;
+    obj.position.z += side * Math.min(240, Math.max(10, outwardShift));
+}
+}
+
+function inspectLateDecorPlacement() {
+const mountainTypes = new Set(['snow_mountain', 'mountain', 'mountain_twin', 'mountain_range']);
+let mountainCount = 0;
+let mountainOverlapPairs = 0;
+let waterFluidMeshCount = 0;
+let waterFluidMinY = Infinity;
+
+for (let i = 0; i < lavaDecorObjects.length; i++) {
+    const obj = lavaDecorObjects[i];
+    const type = obj?.userData?.spawnType || obj?.userData?.decorType || '';
+    if (!obj || !mountainTypes.has(type)) continue;
+    mountainCount++;
+    if (obj.userData?.waterThemed) {
+        obj.traverse((child) => {
+            if (!child.isMesh || (child.material !== mats.waterGlow && child.material !== mats.waterFoam)) return;
+            lateDecorNeighborBox.setFromObject(child);
+            if (lateDecorNeighborBox.isEmpty()) return;
+            waterFluidMeshCount++;
+            waterFluidMinY = Math.min(waterFluidMinY, lateDecorNeighborBox.min.y);
+        });
+    }
+    obj.updateMatrixWorld(true);
+    lateDecorPlacementBox.setFromObject(obj);
+    for (let j = i + 1; j < lavaDecorObjects.length; j++) {
+        const other = lavaDecorObjects[j];
+        const otherType = other?.userData?.spawnType || other?.userData?.decorType || '';
+        if (!other || other.userData?.roadSide !== obj.userData?.roadSide) continue;
+        if (otherType === 'water_birds') continue;
+        other.updateMatrixWorld(true);
+        lateDecorNeighborBox.setFromObject(other);
+        const overlapX = Math.min(lateDecorPlacementBox.max.x, lateDecorNeighborBox.max.x)
+            - Math.max(lateDecorPlacementBox.min.x, lateDecorNeighborBox.min.x);
+        const overlapZ = Math.min(lateDecorPlacementBox.max.z, lateDecorNeighborBox.max.z)
+            - Math.max(lateDecorPlacementBox.min.z, lateDecorNeighborBox.min.z);
+        if (overlapX > 2 && overlapZ > 2) mountainOverlapPairs++;
+    }
+}
+
+return {
+    decorCount: lavaDecorObjects.length,
+    mountainCount,
+    mountainOverlapPairs,
+    waterFluidMeshCount,
+    waterFluidMinY: Number.isFinite(waterFluidMinY) ? Math.round(waterFluidMinY * 100) / 100 : null
+};
 }
 
 function realignNatureDecorToRoad() {
@@ -24888,8 +25034,16 @@ function initLavaResources() {
         color: 0xffb126,
         emissive: 0xff3d00,
         emissiveIntensity: 2.15,
-        roughness: 0.2,
+        roughness: 0.1,
         metalness: 0.05
+    });
+    mats.lavaFlowHighlight = new THREE.MeshBasicMaterial({
+        color: 0xffe3a0,
+        transparent: true,
+        opacity: 0.58,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
     });
     mats.lavaSmoke = new THREE.MeshBasicMaterial({
         color: 0x4f3025,
@@ -24901,27 +25055,35 @@ function initLavaResources() {
         color: 0x71808a,
         emissive: 0x101b20,
         emissiveIntensity: 0.28,
-        roughness: 0.92,
+        roughness: 0.86,
         metalness: 0.04,
-        flatShading: true
+        flatShading: false
     });
     mats.waterRockDark = new THREE.MeshStandardMaterial({
         color: 0x46535c,
         emissive: 0x0b1418,
         emissiveIntensity: 0.24,
-        roughness: 0.96,
+        roughness: 0.9,
         metalness: 0.03,
-        flatShading: true
+        flatShading: false
     });
     mats.waterGlow = new THREE.MeshStandardMaterial({
         color: 0x83ddff,
         emissive: 0x167fc7,
         emissiveIntensity: 0.78,
-        roughness: 0.12,
+        roughness: 0.04,
         metalness: 0.01,
         transparent: true,
         opacity: 0.9,
         depthWrite: false,
+        side: THREE.DoubleSide
+    });
+    mats.waterFoam = new THREE.MeshBasicMaterial({
+        color: 0xe9fbff,
+        transparent: true,
+        opacity: 0.64,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide
     });
     mats.waterMist = new THREE.MeshBasicMaterial({
@@ -24931,22 +25093,28 @@ function initLavaResources() {
         depthWrite: false
     });
     mats.snowRock = new THREE.MeshStandardMaterial({
-        color: 0xa9bdcf,
-        roughness: 0.96,
+        color: 0xe5f0f8,
+        emissive: 0x8aa8bc,
+        emissiveIntensity: 0.22,
+        roughness: 0.92,
         metalness: 0.02,
-        flatShading: true
+        flatShading: false
     });
     mats.snowRockDark = new THREE.MeshStandardMaterial({
-        color: 0x65798c,
-        roughness: 0.98,
+        color: 0xb9ccdc,
+        emissive: 0x647f94,
+        emissiveIntensity: 0.18,
+        roughness: 0.94,
         metalness: 0.02,
-        flatShading: true
+        flatShading: false
     });
     mats.snowCap = new THREE.MeshStandardMaterial({
-        color: 0xf4fbff,
-        roughness: 0.9,
+        color: 0xf8fdff,
+        emissive: 0xd8f1ff,
+        emissiveIntensity: 0.38,
+        roughness: 0.86,
         metalness: 0.0,
-        flatShading: true
+        flatShading: false
     });
     mats.snowIce = new THREE.MeshStandardMaterial({
         color: 0x9ee8ff,
@@ -25354,6 +25522,7 @@ function applyWaterThemeToLavaDecorObject(obj) {
         if (child.material === mats.lavaRockWarm) child.material = mats.waterRock;
         else if (child.material === mats.lavaRock) child.material = mats.waterRockDark;
         else if (child.material === mats.lavaCore) child.material = mats.waterGlow;
+        else if (child.material === mats.lavaFlowHighlight) child.material = mats.waterFoam;
         else if (child.material === mats.lavaSmoke) child.material = mats.waterMist;
     });
     obj.userData = obj.userData || {};
@@ -25394,6 +25563,7 @@ function applySnowThemeToLavaDecorObject(obj) {
         if (child.material === mats.lavaRockWarm || child.material === mats.waterRock || child.material === mats.waterSand || child.material === mats.waterIslandGrass) child.material = mats.snowRock;
         else if (child.material === mats.lavaRock || child.material === mats.waterRockDark) child.material = mats.snowRockDark;
         else if (child.material === mats.lavaCore || child.material === mats.waterGlow) child.material = mats.snowGlow;
+        else if (child.material === mats.lavaFlowHighlight || child.material === mats.waterFoam) child.material = mats.snowCap;
         else if (child.material === mats.lavaSmoke || child.material === mats.waterMist) child.material = mats.snowIce;
         else if (child.material === mats.waterPalmLeaf) child.material = mats.snowPineNeedle;
         else if (child.material === mats.waterPalmTrunk || child.material === mats.pirateDeck || child.material === mats.pirateHull) child.material = mats.snowWood;
@@ -25563,6 +25733,15 @@ function buildLavaVolcano(seed) {
         seam.rotation.z = a * 0.22;
         seam.rotation.x = -0.52;
         g.add(seam);
+
+        const seamHighlight = new THREE.Mesh(
+            createLavaRibbonGeometry(h * 0.94, w * 0.24, 0.24, 9),
+            mats.lavaFlowHighlight
+        );
+        seamHighlight.position.copy(seam.position);
+        seamHighlight.position.z += 0.75;
+        seamHighlight.rotation.copy(seam.rotation);
+        g.add(seamHighlight);
     }
     // krater ağzı (parlak) + duman
     const caldera = new THREE.Mesh(new THREE.TorusGeometry(11.5, 3.2, 6, 12), mats.lavaRock);
@@ -25960,21 +26139,37 @@ function createLavaRibbonGeometry(height, width, depth, segments = 6) {
     for (let i = 0; i <= segments; i++) {
         const t = i / segments;
         const y = height * t;
-        const taper = 1.0 - t * 0.48;
-        const wobble = Math.sin(t * Math.PI * 2.2) * width * 0.13 + Math.sin(t * Math.PI * 5.0) * width * 0.05;
-        const halfW = width * 0.5 * taper * (0.88 + 0.10 * Math.sin(t * Math.PI * 3.0));
+        const taper = 0.98 - t * 0.34;
+        const roundedEnds = 0.58 + Math.pow(Math.sin(Math.PI * t), 0.48) * 0.42;
+        const wobble = Math.sin(t * Math.PI * 2.15) * width * 0.17
+            + Math.sin(t * Math.PI * 5.4 + 0.7) * width * 0.065;
+        const liquidPulse = 0.9
+            + Math.sin(t * Math.PI * 3.2 + 0.35) * 0.1
+            + Math.sin(t * Math.PI * 7.1) * 0.035;
+        const halfW = width * 0.5 * taper * roundedEnds * liquidPulse;
         left.push(new THREE.Vector2(wobble - halfW, y));
         right.push(new THREE.Vector2(wobble + halfW, y));
     }
 
     const shape = new THREE.Shape();
     shape.moveTo(left[0].x, left[0].y);
-    for (let i = 1; i < left.length; i++) shape.lineTo(left[i].x, left[i].y);
-    for (let i = right.length - 1; i >= 0; i--) shape.lineTo(right[i].x, right[i].y);
+    shape.splineThru(left.slice(1));
+    const reversedRight = right.slice().reverse();
+    shape.lineTo(reversedRight[0].x, reversedRight[0].y);
+    shape.splineThru(reversedRight.slice(1));
     shape.closePath();
 
-    const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+    const bevel = Math.max(0.08, Math.min(depth * 0.38, width * 0.075));
+    const geo = new THREE.ExtrudeGeometry(shape, {
+        depth,
+        curveSegments: Math.max(8, segments * 2),
+        bevelEnabled: true,
+        bevelSegments: 2,
+        bevelSize: bevel,
+        bevelThickness: bevel
+    });
     geo.translate(0, -height * 0.5, -depth * 0.5);
+    geo.computeVertexNormals();
     _lavaRibbonCache.set(ck, geo);
     spawnPoolGeoms.push(geo); // dispose koruması (lav dekoru silinince paylaşımlı geo ölmesin)
     return geo;
@@ -26081,7 +26276,7 @@ function ensureElementalMountainPeakGeos() {
     if (elementalMountainPeakGeos.length) return;
     for (const seed of [1049, 1061, 1087, 1093]) {
         const rnd = natSeedRand(seed);
-        const geo = new THREE.CylinderGeometry(15 + rnd() * 5, 52, 62, 11, 7, false);
+        const geo = new THREE.CylinderGeometry(16 + rnd() * 5, 52, 62, 16, 8, false);
         geo.translate(0, 31, 0);
         const pos = geo.attributes.position;
         const leanX = (rnd() - 0.5) * 8;
@@ -26091,9 +26286,9 @@ function ensureElementalMountainPeakGeos() {
             const t = Math.max(0, Math.min(1, y / 62));
             const angle = Math.atan2(pos.getZ(i), pos.getX(i));
             const shelf = 1
-                + Math.sin(t * Math.PI * 3.4 + angle * 1.6) * 0.055
-                + Math.sin(angle * 3 + seed) * 0.035;
-            const roughness = (1 - t * 0.58) * (3.2 + rnd() * 3.8);
+                + Math.sin(t * Math.PI * 3.2 + angle * 1.35) * 0.042
+                + Math.sin(angle * 2.4 + seed) * 0.026;
+            const roughness = (1 - t * 0.58) * (2.2 + rnd() * 2.8);
             pos.setX(i, pos.getX(i) * shelf + (rnd() - 0.5) * roughness + leanX * t);
             pos.setZ(i, pos.getZ(i) * shelf + (rnd() - 0.5) * roughness + leanZ * t);
             pos.setY(i, y + (rnd() - 0.5) * (t > 0.84 ? 2.8 : 2.1));
@@ -26146,11 +26341,38 @@ function buildElementalMountainGroup(theme, style, seed) {
         group.add(body);
 
         if (isSnow) {
-            const cap = new THREE.Mesh(source[(index + 1) % source.length], mats.snowCap);
-            cap.scale.set(p.sx * 0.5, 0.34 + p.sy * 0.035, p.sz * 0.52);
-            cap.position.set(p.x + p.sy * 1.5, p.sy * 45, p.z - p.sy);
-            cap.rotation.y = body.rotation.y + 0.18;
-            group.add(cap);
+            const capPeak = new THREE.Mesh(geo, mats.snowCap);
+            capPeak.scale.set(p.sx * 0.59, p.sy * 0.48, p.sz * 0.59);
+            capPeak.position.set(p.x + (rnd() - 0.5) * 2.2, p.sy * 35.2, p.z + (rnd() - 0.5) * 1.8);
+            capPeak.rotation.y = body.rotation.y + (rnd() - 0.5) * 0.08;
+            capPeak.rotation.z = body.rotation.z * 0.55;
+            group.add(capPeak);
+
+            const summitSnow = new THREE.Mesh(geoms.lavaBoulder, mats.snowCap);
+            summitSnow.scale.set(p.sx * 15.5, p.sy * 4.1, p.sz * 14.5);
+            summitSnow.position.set(p.x + (rnd() - 0.5) * 3, p.sy * 57, p.z + (rnd() - 0.5) * 2);
+            summitSnow.rotation.set((rnd() - 0.5) * 0.2, rnd() * Math.PI, (rnd() - 0.5) * 0.18);
+            group.add(summitSnow);
+
+            const patchCount = style === 'range' ? 4 : 5;
+            for (let patchIndex = 0; patchIndex < patchCount; patchIndex++) {
+                const patch = new THREE.Mesh(geoms.lavaBoulder, mats.snowCap);
+                const sideOffset = (patchIndex / Math.max(1, patchCount - 1) - 0.5) * p.sx * 31;
+                const patchY = p.sy * (27 + rnd() * 18);
+                const slopeDepth = p.sz * (21 + rnd() * 7);
+                patch.scale.set(
+                    p.sx * (7.5 + rnd() * 4.5),
+                    p.sy * (0.8 + rnd() * 0.75),
+                    p.sz * (4.8 + rnd() * 3.5)
+                );
+                patch.position.set(
+                    p.x + sideOffset + (rnd() - 0.5) * 5,
+                    patchY,
+                    p.z + slopeDepth
+                );
+                patch.rotation.set((rnd() - 0.5) * 0.2, rnd() * Math.PI, (rnd() - 0.5) * 0.34);
+                group.add(patch);
+            }
         }
     });
 
@@ -26178,11 +26400,29 @@ function buildElementalMountainGroup(theme, style, seed) {
         const waterfallCount = style === 'range' ? 8 : (style === 'twin' ? 5 : 4);
         for (let i = 0; i < waterfallCount; i++) {
             const h = 58 + rnd() * 38;
-            const fall = new THREE.Mesh(createLavaRibbonGeometry(h, 6.5 + rnd() * 4.5, 1.0, 8), mats.waterGlow);
+            const width = 5.2 + rnd() * 3.8;
+            const fall = new THREE.Mesh(createLavaRibbonGeometry(h, width, 1.2, 10), mats.waterGlow);
             const spread = style === 'range' ? 62 : 34;
-            fall.position.set((i - (waterfallCount - 1) * 0.5) * spread + (rnd() - 0.5) * 10, 36 + h * 0.35, 48 + rnd() * 9);
-            fall.rotation.z = (rnd() - 0.5) * 0.18;
+            const fallX = (i - (waterfallCount - 1) * 0.5) * spread + (rnd() - 0.5) * 10;
+            const fallZ = 48 + rnd() * 9;
+            fall.name = 'waterfall_ribbon';
+            fall.position.set(fallX, h * 0.5 + 0.55, fallZ);
+            fall.rotation.x = (rnd() - 0.5) * 0.06;
+            fall.rotation.z = (rnd() - 0.5) * 0.14;
             group.add(fall);
+
+            const foam = new THREE.Mesh(createLavaRibbonGeometry(h * 0.92, width * 0.28, 0.26, 10), mats.waterFoam);
+            foam.name = 'waterfall_foam';
+            foam.position.set(fallX, h * 0.46 + 0.7, fallZ + 0.72);
+            foam.rotation.copy(fall.rotation);
+            group.add(foam);
+
+            const pool = new THREE.Mesh(geoms.lavaBoulder, mats.waterGlow);
+            pool.name = 'waterfall_pool';
+            pool.scale.set(width * 1.15, 0.34, width * 0.72);
+            pool.position.set(fallX + (rnd() - 0.5) * 2.5, 0.2, fallZ + 1.4);
+            pool.rotation.y = rnd() * Math.PI;
+            group.add(pool);
         }
         const mistCount = style === 'range' ? 10 : 7;
         for (let i = 0; i < mistCount; i++) {
@@ -26298,6 +26538,16 @@ function createLavaMountainRange() {
         stream.rotation.z = flow.rz;
         stream.rotation.x = flow.rx;
         group.add(stream);
+
+        const highlight = new THREE.Mesh(
+            createLavaRibbonGeometry(flow.h * 0.94, flow.w * 0.24, Math.max(0.2, flow.d * 0.24), 9),
+            mats.lavaFlowHighlight
+        );
+        highlight.name = 'lava_flow_highlight';
+        highlight.position.set(flow.x, flow.y + 0.2, flow.z + 0.95);
+        highlight.rotation.z = flow.rz;
+        highlight.rotation.x = flow.rx;
+        group.add(highlight);
 
         for (let j = 0; j < 2; j++) {
             const t = 0.28 + j * 0.34;
@@ -28480,18 +28730,18 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
         } else if (gamePhase >= 4) {
             // Su fazı v2 (2026-07-09): dağ payı %58→%24 — deniz kimliği baskın
             // (yelkenli/şamandıra/kargo eklendi, ada/fener/kuş payları arttı)
-            if (roll < 0.16) type = 'mountain_range';
-            else if (roll < 0.29) type = 'mountain';
-            else if (roll < 0.38) type = 'mountain_twin';
-            else if (roll < 0.47) type = 'water_island';
-            else if (roll < 0.54) type = 'pirate_ship';
-            else if (roll < 0.64) type = 'water_sailboat';
-            else if (roll < 0.72) type = 'water_buoy';
-            else if (roll < 0.78) type = 'water_cargo_ship';
-            else if (roll < 0.83) type = 'water_container';
-            else if (roll < 0.89) type = 'water_lighthouse';
-            else if (roll < 0.94) type = 'water_birds';
-            else if (roll < 0.98) type = 'water_oil_platform';
+            if (roll < 0.23) type = 'mountain_range';
+            else if (roll < 0.46) type = 'mountain';
+            else if (roll < 0.65) type = 'mountain_twin';
+            else if (roll < 0.72) type = 'water_island';
+            else if (roll < 0.76) type = 'pirate_ship';
+            else if (roll < 0.82) type = 'water_sailboat';
+            else if (roll < 0.87) type = 'water_buoy';
+            else if (roll < 0.91) type = 'water_cargo_ship';
+            else if (roll < 0.94) type = 'water_container';
+            else if (roll < 0.97) type = 'water_lighthouse';
+            else if (roll < 0.985) type = 'water_birds';
+            else if (roll < 0.997) type = 'water_oil_platform';
             else type = 'castle';
         } else {
             // Lav fazı — v2: yeni obsidyen/gayzer/kül-ağaç/bazalt tipleri eklendi
@@ -28591,7 +28841,7 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
     const scale = type === 'pirate_ship'
         ? (2.1 + Math.random() * 0.7)
         : type === 'snow_mountain'
-        ? (1.9 + Math.random() * 0.6)
+        ? (0.62 + Math.random() * 0.16)
         : type === 'snow_pine'
         ? (2.6 + Math.random() * 1.0)
         : type === 'snow_crystal'
@@ -28626,9 +28876,13 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
         ? (2.3 + Math.random() * 1.0)
         : (type === 'mountain' || type === 'mountain_twin' || type === 'mountain_range')
         ? (gamePhase >= 4
-            ? (type === 'mountain_range'
-                ? (0.70 + (Math.abs(z) / 620) * 0.18 + Math.random() * 0.08)
-                : (0.60 + (Math.abs(z) / 580) * 0.18 + Math.random() * 0.08))
+            ? (gamePhase >= 5
+                ? (type === 'mountain_range'
+                    ? (0.5 + (Math.abs(z) / 760) * 0.12 + Math.random() * 0.06)
+                    : (0.44 + (Math.abs(z) / 720) * 0.12 + Math.random() * 0.06))
+                : (type === 'mountain_range'
+                    ? (0.70 + (Math.abs(z) / 620) * 0.18 + Math.random() * 0.08)
+                    : (0.60 + (Math.abs(z) / 580) * 0.18 + Math.random() * 0.08)))
             : (type === 'mountain_range'
                 ? (0.92 + (Math.abs(z) / 520) * 0.28 + Math.random() * 0.12)
                 : (0.78 + (Math.abs(z) / 460) * 0.28 + Math.random() * 0.12)))
@@ -28687,6 +28941,7 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
         : Math.random() * Math.PI * 2;
     obj.userData = obj.userData || {};
     obj.userData.roadSide = side;
+    obj.userData.spawnType = type;
     obj.userData.roadClearanceMargin = type === 'snow_mountain' ? 16
         : type === 'snow_pine' ? 18
         : type === 'snow_crystal' ? 11
@@ -28713,6 +28968,7 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null) {
         obj.userData.baseY = obj.position.y;
     }
     alignSideSceneryOutsideRoad(obj, side, obj.userData.roadClearanceMargin);
+    separateLateDecorFromNeighbors(obj, side, type);
     // Prosedürel dekorların çocuk dönüşümleri kurulumdan sonra sabittir. Her frame
     // binlerce aynı local matrisi yeniden kurma; hareket eden özel parçalar muaf.
     freezeStaticDecorMatrices(obj);
@@ -29141,30 +29397,40 @@ function startWaterPhase() {
         [480, 'water_buoy', -1],
         [560, 'water_sailboat', 1],
         [620, 'mountain_range', 1],
+        [720, 'mountain', -1],
         [760, 'water_buoy', 1],
         [900, 'mountain_twin', 1],
         [1060, 'water_island', -1],
+        [1080, 'mountain_range', 1],
         [1170, 'water_sailboat', -1],
         [1240, 'mountain', -1],
         [1360, 'pirate_ship', 1],
         [1480, 'water_buoy', -1],
+        [1560, 'mountain', 1],
         [1660, 'water_birds', -1],
         [1800, 'water_cargo_ship', -1],
+        [1880, 'mountain_twin', -1],
         [1980, 'water_oil_platform', 1],
+        [2060, 'mountain_range', 1],
         [2140, 'water_lighthouse', -1],
         [2260, 'water_sailboat', 1],
         [2340, 'mountain_twin', -1],
         [2460, 'water_container', -1],
+        [2500, 'mountain', -1],
         [2620, 'mountain_range', 1],
         [2760, 'water_buoy', 1],
+        [2880, 'mountain_twin', -1],
         [3040, 'water_island', 1],
+        [3140, 'mountain_range', 1],
         [3200, 'water_sailboat', -1],
         [3300, 'mountain_range', -1],
         [3400, 'water_cargo_ship', 1],
         [3520, 'pirate_ship', 1],
+        [3640, 'mountain', 1],
         [3800, 'mountain_twin', -1],
         [3950, 'water_buoy', -1],
-        [4080, 'water_oil_platform', 1]
+        [4080, 'water_oil_platform', 1],
+        [4200, 'mountain_range', -1]
     ];
     waterIntroDecor.forEach(([offset, type, side]) => spawnLavaDecorAt(waterPlayerX + offset, type, side));
     obstacles.forEach((o) => {
@@ -30665,7 +30931,7 @@ function updateLava(delta) {
             spawnLavaDecorAt(nextLavaSpawnX);
             const mainDecor = lavaDecorObjects[lavaDecorObjects.length - 1];
             const mainSide = mainDecor?.userData?.roadSide || (Math.random() > 0.5 ? 1 : -1);
-            const sideFillChance = isSnowPhase ? 0.82 : (isWaterPhase ? 0.52 : (isPostLavaPhase ? 0.78 : 0.72));
+            const sideFillChance = isSnowPhase ? 0.76 : (isWaterPhase ? 0.72 : (isPostLavaPhase ? 0.78 : 0.72));
             if (Math.random() < sideFillChance) {
                 spawnLavaDecorAt(nextLavaSpawnX + 10 + Math.random() * 24, null, -mainSide);
             }

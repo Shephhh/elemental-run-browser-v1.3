@@ -123,3 +123,11 @@ TODO:
 - Fixed the five-second How to Play card remaining above rewarded-continue or game-over UI when a player died immediately after starting.
 - Mobile Pixel 5 landscape QA covered all menu panels, four graphics choices, pause, rewarded continue, and game over with zero horizontal overflow and no browser/page errors. High was selected for a clean first-time save.
 - Bumped the service-worker shell cache so returning browser/mobile players receive the new scenery, mobile defaults, and UI layout.
+
+2026-07-27 - Snow/Water terrain separation and organic fluid pass
+- Reduced Snow mountain scale, raised the snow coverage and brightness, increased peak radial/detail segments, and replaced obvious geometric rings with a smooth upper snow shell plus irregular slope patches.
+- Added late-map side-scenery separation using world-space bounds so Snow/Water mountains are pushed away from neighboring scenery before their transforms are frozen.
+- Greatly increased Water mountain density and added more curated mountain placements throughout the opening route.
+- Rebuilt Water waterfalls and Lava channels as rounded, beveled, multi-frequency spline ribbons. Waterfalls now reach the ground, terminate in irregular pools, and carry a narrow foam highlight; Lava channels use the same organic silhouette with a hot inner highlight.
+- Automated Water QA reported 17 mountains, 34 fluid meshes, minimum fluid height below the terrain surface, and zero mountain overlap pairs. A fresh Snow QA run reported zero mountain overlap pairs. Browser console/page errors remained empty.
+- Bumped the service-worker shell cache so returning browser/mobile players receive the terrain and fluid update.
