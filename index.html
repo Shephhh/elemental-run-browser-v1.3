@@ -10,7 +10,7 @@
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.3.9-detailed-trains-all-tiers">
+    <meta name="elemental-run-build" content="1.3.10-moving-shadow-stability">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -7871,6 +7871,9 @@ let skyClouds = [];
     let pendingShadowRefreshX = Number.POSITIVE_INFINITY;
     let shadowRefreshCooldown = 0;
     let shadowRefreshFrame = 0;
+    let nearbyMovingShadowHold = 0;
+    let nearbyMovingShadowType = '';
+    const MOVING_SHADOW_HOLD_SECONDS = 0.45;
     // The runner only sees the road ahead. Keeping the directional shadow
     // camera centred on the player made large casters enter its far edge while
     // already clearly visible, producing a hard shadow pop.
@@ -11519,8 +11522,35 @@ let skyClouds = [];
         pendingShadowRefreshX = Math.min(pendingShadowRefreshX, xPos);
     }
 
+    function isNearbyMovingCityShadowCaster(obstacle) {
+        if (!obstacle || !obstacle.visible || !obstacle.userData || !player) return false;
+        const type = obstacle.userData.type;
+        if (type !== 'vehicle' && type !== 'motorcycle' && type !== 'train') return false;
+        if (!Number.isFinite(obstacle.userData.speedX) || Math.abs(obstacle.userData.speedX) < 0.001) return false;
+        const distance = obstacle.position.x - player.position.x;
+        return distance >= -35 && distance <= 210;
+    }
+
+    function updateNearbyMovingShadowState(delta) {
+        nearbyMovingShadowType = '';
+        if (gamePhase === 0) {
+            const movingCaster = obstacles.find(isNearbyMovingCityShadowCaster);
+            if (movingCaster) {
+                nearbyMovingShadowHold = MOVING_SHADOW_HOLD_SECONDS;
+                nearbyMovingShadowType = movingCaster.userData.type;
+                return;
+            }
+        }
+        nearbyMovingShadowHold = Math.max(0, nearbyMovingShadowHold - Math.max(0, delta || 0));
+    }
+
     function getShadowRefreshInterval() {
         if (!shouldRenderDynamicShadows()) return Number.POSITIVE_INFINITY;
+        // Cars, motorcycles and moving trains cross the road quickly. Reusing a
+        // shadow texture for several frames made their silhouettes jump into
+        // the asphalt as a one-frame dark slab. Refresh only while one is near;
+        // static stretches keep the cheaper cadence.
+        if (nearbyMovingShadowHold > 0) return MOBILE_RUNTIME ? 2 : 1;
         const quality = menuState.graphicsQuality;
         let interval = quality === 'ultra' ? 2 : (quality === 'high' ? 4 : 6);
         if (MOBILE_RUNTIME) interval += 2;
@@ -11533,6 +11563,7 @@ let skyClouds = [];
     function updateShadowRefreshQueue(delta) {
         if (!(renderer && renderer.shadowMap && renderer.shadowMap.enabled) || !player) return;
         renderer.shadowMap.autoUpdate = false;
+        updateNearbyMovingShadowState(delta);
         if (shadowRefreshCooldown > 0) {
             shadowRefreshCooldown = Math.max(0, shadowRefreshCooldown - delta);
         }
@@ -13069,6 +13100,9 @@ nextSnowballX = 0;
                         return count + (decor.visible && (type === 'snow_mountain' || type.startsWith('mountain')) ? 1 : 0);
                     }, 0),
                     shadowRefreshInterval: Number.isFinite(getShadowRefreshInterval()) ? getShadowRefreshInterval() : null,
+                    nearbyMovingShadow: nearbyMovingShadowHold > 0,
+                    nearbyMovingShadowType: nearbyMovingShadowType || null,
+                    nearbyMovingShadowHold: roundForText(nearbyMovingShadowHold, 2),
                     shadowsEnabled: !!(renderer && renderer.shadowMap && renderer.shadowMap.enabled),
                     shadowMapSize: dirLight?.shadow?.mapSize?.width || null,
                     drawCalls: renderer && renderer.info ? renderer.info.render.calls : null,

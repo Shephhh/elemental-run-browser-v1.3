@@ -229,3 +229,15 @@ TODO:
   - Forced adaptive levels `0 -> 2` across 52 nearby Cyber objects produced zero visibility changes.
   - Inline JavaScript parsing and `git diff --check` passed; controlled gameplay produced no page/console errors.
   - Official `web_game_playwright_client.js` generated five state/screenshot samples without an `errors-*.json` report.
+
+## 2026-07-28 - Smooth near-field moving shadows
+
+- Inspected every frame of the supplied 10.6-second HEVC recording and correlated the asphalt flash with a nearby moving City traffic caster, rather than the already-fixed airborne falling wall.
+- Added a narrow, hysteresis-protected moving-shadow mode for cars, motorcycles, and moving trains. Desktop refreshes the directional shadow map each frame while a caster is within the visible near field; mobile refreshes every second frame. Once the caster leaves, the renderer returns to the selected quality tier's cheaper cadence.
+- Kept the models and their shadows intact. Performance mode still disables dynamic shadows explicitly, and static City stretches retain the previous low-cost refresh interval.
+- Added runtime diagnostics for the active moving caster type, hold time, and effective shadow refresh interval.
+- QA:
+  - Deterministic car, motorcycle, and moving-train probes all switched High desktop from interval `4` to `1`; a static wall returned to `4` after the 0.45-second hold.
+  - High mobile switched from its normal cadence to interval `2`, preserving smoother traffic shadows without an every-frame 1024px shadow pass.
+  - A 24-second natural City run remained stable at about 153-156 software-rendered FPS, entered and exited the fast cadence correctly, kept the same build/navigation, and reported no page or console errors.
+  - Inline JavaScript parsing and `git diff --check` passed. Official `web_game_playwright_client.js` completed without an `errors-*.json` report, and both desktop and mobile gameplay screenshots were visually inspected.
