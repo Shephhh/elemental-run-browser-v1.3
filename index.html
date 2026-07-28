@@ -10,7 +10,7 @@
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.3.6-stable-shadows-frame-pacing">
+    <meta name="elemental-run-build" content="1.3.7-shadow-pop-fix">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -7871,6 +7871,10 @@ let skyClouds = [];
     let pendingShadowRefreshX = Number.POSITIVE_INFINITY;
     let shadowRefreshCooldown = 0;
     let shadowRefreshFrame = 0;
+    // The runner only sees the road ahead. Keeping the directional shadow
+    // camera centred on the player made large casters enter its far edge while
+    // already clearly visible, producing a hard shadow pop.
+    const CITY_SHADOW_FOCUS_AHEAD = 78;
     let gameplayAssetsPrewarmed = false;
 
     function cacheDomReferences() {
@@ -13267,6 +13271,37 @@ nextSnowballX = 0;
             setAdaptivePerformanceLevel: (level = 0) => {
                 setAdaptivePerfLevel(Math.max(0, Math.min(2, Math.floor(Number(level)) || 0)));
                 return renderGameToText();
+            },
+            spawnShadowProbe: (type = 'vehicle', distance = 75, laneIndex = 1, worldY = null) => {
+                clearObstacleCollection();
+                localQaInvulnerable = true;
+                const lane = Math.max(0, Math.min(lanePositions.length - 1, Math.floor(Number(laneIndex)) || 0));
+                const supportedType = ['car', 'motorcycle', 'train', 'stopped_train', 'falling_wall', 'wall', 'low_wall', 'slide_barrier'].includes(type)
+                    ? type
+                    : 'car';
+                const probeDistance = Math.max(20, Number(distance) || 75);
+                const trafficProbe = ['car', 'motorcycle', 'train', 'stopped_train'].includes(supportedType);
+                const obstacle = createObstacle(supportedType, player.position.x + (trafficProbe ? 600 : probeDistance), lane);
+                if (obstacle && trafficProbe) obstacle.position.x = player.position.x + probeDistance;
+                if (obstacle && worldY !== null && Number.isFinite(Number(worldY))) obstacle.position.y = Number(worldY);
+                requestShadowMapRefresh(null, true);
+                return {
+                    created: !!obstacle,
+                    obstacleCount: obstacles.length,
+                    type: obstacle?.userData?.type || null,
+                    x: obstacle?.position?.x ?? null,
+                    y: obstacle?.position?.y ?? null,
+                    z: obstacle?.position?.z ?? null,
+                    state: JSON.parse(renderGameToText())
+                };
+            },
+            inspectFallingWallShadow: () => {
+                const wall = obstacles.find((item) => item?.userData?.type === 'falling_wall');
+                return wall ? {
+                    y: wall.position.y,
+                    landed: !!wall.userData.fwLanded,
+                    castShadow: !!wall.userData.shadowCaster?.castShadow
+                } : null;
             },
             settleMapTransition: () => {
                 transitionFactor = 1;
@@ -19884,12 +19919,12 @@ if (renderer && dirLight) {
         else if (cyberDecorBuilt) clearCyberDecor();
 
         if(dirLight) {
-            dirLight.position.x = player.position.x + 100;
+            dirLight.position.x = player.position.x + 100 + CITY_SHADOW_FOCUS_AHEAD;
             // GÃ¶lgeleri oluÅŸturan Ä±ÅŸÄ±ÄŸÄ± gÃ¶kyÃ¼zÃ¼ne doÄŸru yumuÅŸakÃ§a kaydÄ±r
             let targetLightY = (isSkyFading || onSkyLayer) ? SKY_LAYER_Y + 200 : 200;
             dirLight.position.y += (targetLightY - dirLight.position.y) * delta * 2.0;
             
-            dirLight.target.position.x = player.position.x;
+            dirLight.target.position.x = player.position.x + CITY_SHADOW_FOCUS_AHEAD;
             // IÅŸÄ±ÄŸÄ±n hedefini (odak noktasÄ±nÄ±) de yukarÄ± kaydÄ±r ki gÃ¶lgeler bozulmasÄ±n
             let targetTargetY = (isSkyFading || onSkyLayer) ? SKY_LAYER_Y : 0;
             dirLight.target.position.y += (targetTargetY - dirLight.target.position.y) * delta * 2.0;
@@ -22339,6 +22374,10 @@ function cancelLaneAnimationForLavaDrop() {
                 fallSpeed: 3.5,
                 fwLanded: false // pool reuse: spread önceki koşunun true değerini taşır, landing FX bir daha çalmazdı
             };
+            // The wall starts high above the camera and descends within a few
+            // frames. Casting from that airborne box projected a large detached
+            // rectangle onto the road. Its real shadow begins at touchdown.
+            if (obs.userData.shadowCaster) obs.userData.shadowCaster.castShadow = false;
             scene.add(obs); 
             obstacles.push(obs);
         }
@@ -31793,8 +31832,11 @@ function updateLava(delta) {
         });
         const frame = new THREE.Mesh(frameGeo, frameMat);
         frame.position.y = height / 2;
-        frame.castShadow = true;
+        // Airborne falling walls must not project a detached dark slab onto the
+        // road. updateObstacles enables this caster after the wall lands.
+        frame.castShadow = false;
         group.add(frame);
+        group.userData.shadowCaster = frame;
 
         // İç Enerji Çekirdeği (Parlak Kırmızı Neon)
         const coreGeo = new THREE.BoxGeometry(thickness + 0.2, height - 2, 5.5);
@@ -32678,6 +32720,10 @@ function setObjectOpacity(obj, alpha) {
                         o.userData.fwLanded = true;
                         o.rotation.z = 0;
                         if (marker) marker.visible = false;
+                        if (o.userData.shadowCaster && !o.userData.shadowCaster.castShadow) {
+                            o.userData.shadowCaster.castShadow = true;
+                            requestShadowMapRefresh(null, true);
+                        }
                         // Yere çarpma: şok halkası + kıvılcım saçılması + yakınsa kamera sarsıntısı
                         spawnImpactRing(o.position.x, o.userData.targetY + 0.16, o.position.z, 0xff5570, 7.5, 0.55, 0.8);
                         spawnGlobalExplosion(o.position.x, o.userData.targetY + 0.8, o.position.z, 0xffb36b, 24);

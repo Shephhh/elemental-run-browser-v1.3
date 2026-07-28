@@ -203,3 +203,15 @@ TODO:
   - Full City, Nature, Sky, Lava, Water, and Snow scans completed with no console/page errors.
   - A spoofed 4-core/4-GB mobile profile kept shadows stable at adaptive level 2 with a 1024 shadow map, used lite cyber geometry, and requested none of the car/train/motor GLBs.
   - Official `web_game_playwright_client.js` completed with a valid menu state, visually inspected screenshot, and no `errors-*.json` output.
+
+## 2026-07-28 - Remove the transient rectangular road shadow
+
+- Reproduced the reported hard-edged road shadow with a controlled City falling-wall scenario. The wall spawned 35 world units above the road while its 20-unit box frame already cast a shadow; because it descended in only a few frames, the detached projection appeared and disappeared like a random dark slab.
+- Falling-wall frames now keep `castShadow=false` throughout the airborne/descent state and enable their real shadow only on touchdown. Pool reuse explicitly resets the caster so a previously landed wall cannot bring the bug back on its next spawn.
+- Shifted the directional shadow camera focus 78 units ahead while preserving the original light vector. Obstacles now enter the shadow volume while still distant instead of crossing its boundary close to the player.
+- Synchronized Browser and Mobile v1.3, rebuilt Desktop v1.3 `app.asar`, and retained the previous desktop archive/loose index as rollback backups.
+- QA:
+  - Deterministic probe reported `y=35, landed=false, castShadow=false`, then `y=14, landed=false, castShadow=false`, and finally `y=0, landed=true, castShadow=true`.
+  - Gameplay screenshot inspection confirmed the landed wall remains fully visible without a detached rectangle in front of the player.
+  - Inline JavaScript parsing passed; controlled gameplay produced no page/console errors.
+  - Official `web_game_playwright_client.js` completed without an `errors-*.json` report.
