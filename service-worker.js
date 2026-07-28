@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-16-shadow-pop-fix';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-17-detailed-train-stable-visibility';
 const SHELL = [
   './',
   './index.html',

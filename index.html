@@ -10,7 +10,7 @@
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.3.7-shadow-pop-fix">
+    <meta name="elemental-run-build" content="1.3.8-detailed-train-stable-visibility">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -13082,6 +13082,15 @@ nextSnowballX = 0;
                     ready: viewmodelGlbReady,
                     visible: !!(viewmodelRig && viewmodelRig.visible)
                 },
+                vehicleModels: {
+                    trainRequested: trainGlbRequested,
+                    trainSettled: trainGlbSettled,
+                    trainReady: trainGlbReady,
+                    trainLoadRatio: roundForText(trainGlbLoadRatio, 2),
+                    trainDetailedRequired: shouldRequireDetailedTrainModel(),
+                    carReady: carGlbReady,
+                    motorReady: motorGlbReady
+                },
                 activeGlobalParticles: pData.reduce((count, particle) => count + (particle.life > 0 ? 1 : 0), 0),
                 renderFrame: renderer && renderer.info ? renderer.info.render.frame : 0,
                 rewardBoosts: {
@@ -13302,6 +13311,26 @@ nextSnowballX = 0;
                     landed: !!wall.userData.fwLanded,
                     castShadow: !!wall.userData.shadowCaster?.castShadow
                 } : null;
+            },
+            inspectTrainVisuals: () => obstacles
+                .filter((item) => ['train', 'stopped_train', 'static_train'].includes(item?.userData?.type))
+                .map((item) => ({
+                    type: item.userData.type,
+                    detailed: !!item.getObjectByName('train_core_batch'),
+                    visible: item.visible,
+                    x: roundForText(item.position.x - player.position.x, 1),
+                    castsShadow: item.children.some((child) => child.castShadow)
+                })),
+            inspectNearbyCyberDecor: (distance = 400) => {
+                const maxDistance = Math.max(80, Number(distance) || 400);
+                return cyberDecorObjects
+                    .map((decor, index) => ({
+                        index,
+                        role: decor.role,
+                        distance: roundForText(decor.obj.position.x - player.position.x, 1),
+                        visible: decor.obj.visible
+                    }))
+                    .filter((decor) => decor.distance >= -80 && decor.distance <= maxDistance);
             },
             settleMapTransition: () => {
                 transitionFactor = 1;
@@ -14697,6 +14726,10 @@ if (renderer && dirLight) {
 
         const tasks = [
             { func: () => initResources(), text: () => tr('loading') },
+            // The detailed train is a single instanced mesh at runtime. Start its
+            // request with the loading pipeline so the first gameplay train can
+            // never fall back to the legacy box model.
+            { func: () => startPriorityTrainModelLoad(), text: () => tr('loadingWorld') },
             // Eller varsayılan açık. 18 MB hand.glb isteğini yükleme hattının başında
             // başlat; dünya hazırlanırken ağ indirme/GLTF ayrıştırma paralel ilerlesin.
             { func: () => createViewmodelHands(), text: () => tr('preparing') },
@@ -14713,13 +14746,14 @@ if (renderer && dirLight) {
             { func: () => prewarmGameplayAssets(), text: () => tr('loadingWorld') }
         ];
 
-        if (MOBILE_RUNTIME) {
-            // Procedural vehicle fallbacks preserve hit boxes and gameplay while
-            // avoiding ~19 MB of GLB downloads and their cloned GPU resources.
+        if (shouldUseProceduralAuxVehicleModels()) {
+            // Cars and motorcycles keep their light fallbacks on constrained
+            // hardware. The train is handled independently because its GLB is
+            // instanced and much cheaper during gameplay.
             carGlbSettled = true;
-            trainGlbSettled = true;
             motorGlbSettled = true;
         }
+        if (!shouldRequireDetailedTrainModel()) trainGlbSettled = true;
         runLoadingPipeline(tasks, waitForVehicleGlbsThenFinish);
         setupEventListeners();
         setupMobileControls();
@@ -15082,21 +15116,37 @@ if (renderer && dirLight) {
     // warmGlbType guard'a takılıp false dönmüş olabilir).
     let vehicleGlbLoadsStarted = false;
 
-    function shouldUseProceduralVehicleModels() {
+    function shouldUseProceduralAuxVehicleModels() {
         return isMobilePerformanceGraphics()
             || (RUNTIME_LOW_POWER && menuState.graphicsQuality !== 'ultra');
     }
 
-    function startVehicleModelLoads() {
-        if (shouldUseProceduralVehicleModels() || vehicleGlbLoadsStarted) return;
-        vehicleGlbLoadsStarted = true;
-        loadCarGlb();
+    function shouldRequireDetailedTrainModel() {
+        // Performance mode remains the explicit low-memory option. Every other
+        // tier uses the detailed instanced train, including low-power High.
+        return !isMobilePerformanceGraphics();
+    }
+
+    function startPriorityTrainModelLoad() {
+        if (!shouldRequireDetailedTrainModel()) {
+            trainGlbSettled = true;
+            return;
+        }
         loadTrainGlb();
-        loadMotorGlb();
+    }
+
+    function startVehicleModelLoads() {
+        if (vehicleGlbLoadsStarted) return;
+        vehicleGlbLoadsStarted = true;
+        if (!shouldUseProceduralAuxVehicleModels()) {
+            loadCarGlb();
+            loadMotorGlb();
+        }
+        startPriorityTrainModelLoad();
     }
 
     function scheduleVehicleModelLoads() {
-        if (shouldUseProceduralVehicleModels() || vehicleGlbLoadsStarted) return;
+        if ((shouldUseProceduralAuxVehicleModels() && !shouldRequireDetailedTrainModel()) || vehicleGlbLoadsStarted) return;
         const scheduledAt = performance.now();
         const waitForHands = () => {
             if (!menuState.handsEnabled || viewmodelGlbSettled || performance.now() - scheduledAt > 30000) {
@@ -15123,12 +15173,19 @@ if (renderer && dirLight) {
         const tick = () => {
             const handsSettled = !menuState.handsEnabled || viewmodelGlbSettled;
             const handProgress = handsSettled ? 1 : Math.max(0, Math.min(.99, viewmodelHandLoadRatio));
+            const detailedTrainRequired = shouldRequireDetailedTrainModel();
+            const trainSettledForMenu = !detailedTrainRequired || trainGlbReady || trainGlbSettled;
+            const trainProgress = trainSettledForMenu ? 1 : Math.max(0, Math.min(.99, trainGlbLoadRatio));
+            const combinedProgress = handProgress * 0.58 + trainProgress * 0.42;
             const elapsed = performance.now() - waitStart;
-            updateLoading(82 + handProgress * 17, tr('loadingWorld'), handsSettled ? tr('preparing') : `HANDS ${Math.floor(handProgress * 100)}%`);
+            const detail = !handsSettled
+                ? `HANDS ${Math.floor(handProgress * 100)}%`
+                : (!trainSettledForMenu ? `TRAIN ${Math.floor(trainProgress * 100)}%` : tr('preparing'));
+            updateLoading(82 + combinedProgress * 17, tr('loadingWorld'), detail);
             // The menu must never be held hostage by a slow or saturated network.
-            // The optimized hand request continues in the background and appears
-            // automatically when it completes.
-            if (!handsSettled && elapsed < 12000) {
+            // Pending detailed trains are withheld from spawning, so a timed-out
+            // network can continue in the background without showing the old model.
+            if ((!handsSettled || !trainSettledForMenu) && elapsed < 15000) {
                 setTimeout(tick, 100);
                 return;
             }
@@ -18453,12 +18510,20 @@ if (renderer && dirLight) {
                 : (menuState.graphicsQuality === 'balanced' ? 2 : 1));
         if (adaptivePerfLevel === 1) decorStride = Math.max(decorStride, 2);
         else if (adaptivePerfLevel === 2) decorStride = Math.max(decorStride, 3);
+        // Adaptive quality may change while the player is looking at an object.
+        // Never apply stride thinning inside the stable near field; otherwise a
+        // sign, traffic prop or its shadow vanishes for one quality sample and
+        // appears again when FPS recovers. Far objects are still culled before
+        // the stride changes become perceptible.
+        const stableNearDistance = Math.min(420, Math.max(280, fogCullAhead * 0.62));
         for(let decorIndex = 0; decorIndex < cyberDecorObjects.length; decorIndex++){
             const d = cyberDecorObjects[decorIndex];
             const o = d.obj;
+            const distanceAhead = o.position.x - px;
             if (decorStride > 1
                 && (d.role === 'edge' || d.role === 'chev' || d.role === 'car')
-                && decorIndex % decorStride !== 0) {
+                && decorIndex % decorStride !== 0
+                && distanceAhead > stableNearDistance) {
                 o.visible = false;
                 continue;
             }
@@ -20466,6 +20531,7 @@ function createHeadlightBeam() {
     // yükleme ekranı bunları bekler; warmed = warmGlbType gerçekten çalıştı.
     let carGlbSettled = false, carGlbWarmed = false;
     let trainGlbSettled = false, trainGlbWarmed = false;
+    let trainGlbRequested = false, trainGlbLoadRatio = 0, trainGlbRetryCount = 0;
     let motorGlbSettled = false, motorGlbWarmed = false;
     let carGlbScale = 1, carGlbYRot = 0, carGlbOffX = 0, carGlbOffY = 0, carGlbOffZ = 0;
     const carTexCache = {};
@@ -20577,7 +20643,10 @@ function createHeadlightBeam() {
     }
 
     function loadTrainGlb() {
-        if (trainGlbReady || typeof THREE.GLTFLoader !== 'function') { trainGlbSettled = true; return; }
+        if (trainGlbReady) { trainGlbSettled = true; trainGlbLoadRatio = 1; return; }
+        if (trainGlbRequested) return;
+        if (typeof THREE.GLTFLoader !== 'function') { trainGlbSettled = true; return; }
+        trainGlbRequested = true;
         try {
             const loader = new THREE.GLTFLoader();
             loader.load('assets/train.glb', (gltf) => {
@@ -20614,8 +20683,32 @@ function createHeadlightBeam() {
                 holder.traverse((node) => { if (!trainGlbMeshProto && node.isMesh) trainGlbMeshProto = node; });
                 trainGlbReady = true;
                 trainGlbWarmed = warmGlbType((c) => makeGlbTrainWagon(c, false, false, false));
+                trainGlbLoadRatio = 1;
+                trainGlbRetryCount = 0;
                 trainGlbSettled = true;
-            }, undefined, (err) => { trainGlbSettled = true; console.warn('train.glb load failed', err && err.message ? err.message : err); });
+            }, (event) => {
+                if (event && event.lengthComputable && event.total > 0) {
+                    trainGlbLoadRatio = Math.max(trainGlbLoadRatio, Math.min(0.99, event.loaded / event.total));
+                } else if (event && event.loaded > 0) {
+                    trainGlbLoadRatio = Math.max(trainGlbLoadRatio, Math.min(0.94, event.loaded / 7354912));
+                }
+            }, (err) => {
+                trainGlbRequested = false;
+                trainGlbSettled = true;
+                trainGlbLoadRatio = 0;
+                console.warn('train.glb load failed', err && err.message ? err.message : err);
+                // Browser connections can fail transiently. Retry in the
+                // background, while detailed tiers keep trains out of the spawn
+                // set instead of flashing the legacy fallback model.
+                if (shouldRequireDetailedTrainModel() && trainGlbRetryCount < 3) {
+                    const retryDelay = 1000 * Math.pow(2, trainGlbRetryCount++);
+                    setTimeout(() => {
+                        if (trainGlbReady || trainGlbRequested) return;
+                        trainGlbSettled = false;
+                        loadTrainGlb();
+                    }, retryDelay);
+                }
+            });
         } catch (e) { trainGlbSettled = true; console.warn('loadTrainGlb error', e); }
     }
 
@@ -22499,6 +22592,13 @@ function cancelLaneAnimationForLavaDrop() {
             currentHasBarrier = true;
         }
         else if (type === 'static_train' || type === 'stopped_train' || type === 'train') {
+            if (shouldRequireDetailedTrainModel() && !trainGlbReady) {
+                startPriorityTrainModelLoad();
+                // Never create the legacy box train in a detailed tier. Slow or
+                // failed requests postpone this spawn while background retries
+                // continue; gameplay remains live with the other obstacle types.
+                return null;
+            }
             let lane = lanePositions[startLaneIdx]; const isRamp = type === 'static_train'; const isMoving = type === 'train';
             const wagonCount = Math.floor(Math.random() * 4) + 3; const segmentLength = 16; const gap = 0.8;
             const trainColorMat = mats.vehicles[Math.floor(Math.random() * mats.vehicles.length)]; // one paint per train
