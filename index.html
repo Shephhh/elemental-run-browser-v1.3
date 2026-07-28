@@ -3754,6 +3754,311 @@
                 font-size: 10px;
             }
         }
+        /* Mobile input/layout v2: portrait swipe mode and compact landscape dual sticks. */
+        .mobile-how-arrow.is-right { right: 4px; top: 50%; transform: translateY(-50%); }
+        .how-to-mobile-portrait { display: none; }
+        #mobile-swipe-surface {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            touch-action: none;
+        }
+        #mobile-controls .mobile-stick { z-index: 2; }
+        #mobile-pause-btn { z-index: 4; }
+        .mobile-action-marker.is-left { left: 7px; top: 50%; min-width: 22px; transform: translateY(-50%); }
+        .mobile-action-marker.is-right { right: 7px; top: 50%; min-width: 22px; transform: translateY(-50%); }
+        #mobile-portrait-hint {
+            display: none;
+            position: absolute;
+            left: 50%;
+            bottom: max(18px, calc(env(safe-area-inset-bottom) + 12px));
+            z-index: 2;
+            grid-template-columns: auto auto auto;
+            align-items: center;
+            justify-items: center;
+            gap: 10px;
+            padding: 7px 12px 6px;
+            border: 1px solid rgba(142, 229, 255, .28);
+            border-radius: 999px;
+            background: rgba(4, 15, 28, .56);
+            color: rgba(226, 249, 255, .82);
+            font: 900 10px/1 Orbitron, Rajdhani, sans-serif;
+            letter-spacing: 1px;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+        #mobile-portrait-hint small {
+            grid-column: 1 / -1;
+            color: rgba(184, 222, 239, .68);
+            font-size: 7px;
+            letter-spacing: .55px;
+        }
+        body.mobile-runtime #mobile-orientation-hint { display: none !important; }
+        body.mobile-landscape .mobile-stick {
+            --stick-size: clamp(92px, 23vh, 122px);
+        }
+        body.mobile-landscape .mobile-stick.is-action {
+            left: max(12px, calc(env(safe-area-inset-left) + 8px));
+            right: auto;
+        }
+        body.mobile-landscape .mobile-stick.is-look {
+            left: auto;
+            right: max(12px, calc(env(safe-area-inset-right) + 8px));
+        }
+        body.mobile-landscape .mobile-stick-caption { top: -11px; font-size: 8px; }
+        body.mobile-landscape .mobile-action-marker { font-size: 7px; }
+        body.mobile-landscape .mobile-action-marker b { font-size: 14px; }
+
+        @media (orientation: landscape) and (max-height: 560px) {
+            body.mobile-runtime #ui {
+                width: min(148px, 21vw);
+                padding: 5px 8px 6px;
+            }
+            body.mobile-runtime #score-container { font-size: clamp(13px, 2vw, 17px); }
+            body.mobile-runtime #coin-container { font-size: clamp(12px, 1.8vw, 16px); }
+            body.mobile-runtime #speed-indicator { font-size: clamp(10px, 1.55vw, 14px); }
+            body.mobile-runtime #progress-wrapper { width: min(43vw, 360px); }
+            body.mobile-runtime #progress-text { top: 27px; font-size: clamp(7px, 1vw, 9px); }
+            body.mobile-runtime #mobile-pause-btn {
+                width: 36px;
+                height: 36px;
+                min-width: 36px;
+                min-height: 36px;
+                font-size: 14px;
+            }
+            body.mobile-runtime #main-menu .menu-button {
+                height: 42px;
+                grid-template-columns: 40px minmax(0, 1fr);
+                font-size: clamp(10px, 1.75vw, 14px);
+            }
+            body.mobile-runtime .menu-button-icon { width: 40px; }
+            body.mobile-runtime .menu-button-icon svg { width: 23px; height: 23px; }
+            body.mobile-runtime #menu-dialog-layer .menu-dialog {
+                width: min(94vw, 980px);
+                padding: 2px 9px 8px;
+            }
+            body.mobile-runtime .menu-upgrade-card { min-height: 134px; padding: 7px; }
+            body.mobile-runtime .menu-upgrade-buy,
+            body.mobile-runtime .browser-reward-upgrade-btn { min-height: 34px; }
+            body.mobile-runtime .settings-card { min-height: 54px; padding: 6px; }
+            body.mobile-runtime .settings-option-btn,
+            body.mobile-runtime .settings-back-btn,
+            body.mobile-runtime .settings-close-btn { min-height: 34px; }
+        }
+
+        @media (orientation: portrait) and (max-width: 900px) {
+            body.mobile-runtime {
+                --mobile-safe-top: max(8px, env(safe-area-inset-top));
+                --mobile-safe-right: max(8px, env(safe-area-inset-right));
+                --mobile-safe-bottom: max(10px, env(safe-area-inset-bottom));
+                --mobile-safe-left: max(8px, env(safe-area-inset-left));
+            }
+            body.mobile-portrait.mobile-controls-visible #mobile-swipe-surface { pointer-events: auto; }
+            body.mobile-portrait .mobile-stick { display: none !important; }
+            body.mobile-portrait.mobile-controls-visible #mobile-portrait-hint { display: grid; }
+            body.mobile-portrait.mobile-controls-visible #crosshair-container { display: none; }
+
+            body.mobile-runtime #ui {
+                top: var(--mobile-safe-top);
+                left: var(--mobile-safe-left);
+                width: 142px;
+                max-width: calc(46vw - var(--mobile-safe-left));
+                padding: 6px 8px 7px;
+                gap: 0;
+                border-radius: 10px;
+                transform: none;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+            }
+            body.mobile-runtime #score-container { font-size: clamp(14px, 4vw, 17px); }
+            body.mobile-runtime #coin-container { font-size: clamp(13px, 3.7vw, 16px); }
+            body.mobile-runtime #speed-indicator { font-size: clamp(11px, 3.2vw, 14px); }
+            body.mobile-runtime #shield-bar { margin-top: 3px; padding: 3px 5px; font-size: 9px; }
+            body.mobile-runtime #progress-wrapper {
+                top: var(--mobile-safe-top);
+                width: 43vw;
+                transform: translateX(-50%);
+            }
+            body.mobile-runtime #progress-container { height: 7px; }
+            body.mobile-runtime .progress-icon { padding: 0 4px; }
+            body.mobile-runtime .progress-icon svg { width: 14px; height: 14px; }
+            body.mobile-runtime #progress-text {
+                top: 27px;
+                width: 45vw;
+                font-size: 7px;
+                transform: translateX(-50%);
+            }
+            body.mobile-runtime #mobile-pause-btn {
+                top: var(--mobile-safe-top);
+                right: var(--mobile-safe-right);
+                width: 38px;
+                height: 38px;
+                min-width: 38px;
+                min-height: 38px;
+                border-radius: 9px;
+                font-size: 14px;
+            }
+            body.mobile-runtime #bhop-container {
+                top: calc(var(--mobile-safe-top) + 45px);
+                right: var(--mobile-safe-right);
+                transform: scale(.58);
+                transform-origin: top right;
+            }
+
+            body.mobile-runtime #how-to-play-overlay {
+                left: 50%;
+                right: auto;
+                top: max(58px, calc(var(--mobile-safe-top) + 48px));
+                width: min(330px, calc(100vw - 28px));
+                min-width: 0;
+            }
+            body.mobile-runtime.mobile-portrait .how-to-mobile-landscape { display: none !important; }
+            body.mobile-runtime.mobile-portrait .how-to-mobile-portrait {
+                display: grid;
+                grid-template-columns: 92px minmax(0, 1fr);
+                align-items: center;
+                gap: 10px;
+            }
+            .portrait-how-swipe {
+                display: grid;
+                grid-template-columns: repeat(3, 24px);
+                grid-template-rows: repeat(3, 24px);
+                place-items: center;
+                color: #dff9ff;
+                font: 900 14px/1 Orbitron, sans-serif;
+            }
+            .portrait-how-swipe b:nth-child(1) { grid-column: 2; grid-row: 1; }
+            .portrait-how-swipe b:nth-child(2) { grid-column: 1; grid-row: 2; }
+            .portrait-how-swipe i { grid-column: 2; grid-row: 2; width: 23px; height: 23px; border: 2px solid #78e8ff; border-radius: 50%; box-shadow: 0 0 10px rgba(76, 218, 255, .35); }
+            .portrait-how-swipe b:nth-child(4) { grid-column: 3; grid-row: 2; }
+            .portrait-how-swipe b:nth-child(5) { grid-column: 2; grid-row: 3; }
+            .portrait-how-copy { display: grid; gap: 5px; color: rgba(216, 241, 252, .84); font: 800 9px/1.25 Orbitron, sans-serif; }
+            .portrait-how-copy strong { color: #8beaff; font-size: 9px; }
+
+            body.mobile-runtime .menu-logo-btn {
+                top: max(78px, calc(var(--mobile-safe-top) + 66px));
+                left: 50%;
+                width: min(86vw, 390px);
+                justify-items: center;
+                transform: translateX(-50%);
+                text-align: center;
+            }
+            body.mobile-runtime .menu-logo-btn:hover { transform: translateX(-50%); }
+            body.mobile-runtime .menu-logo-main { font-size: clamp(29px, 10vw, 43px); }
+            body.mobile-runtime .menu-logo-sub {
+                grid-template-columns: minmax(32px, 13vw) auto minmax(32px, 13vw);
+                gap: 9px;
+                margin-left: 0;
+                font-size: clamp(16px, 5.5vw, 25px);
+                letter-spacing: clamp(6px, 2.4vw, 10px);
+            }
+            body.mobile-runtime .menu-score-panel {
+                top: var(--mobile-safe-top);
+                left: var(--mobile-safe-left);
+                right: calc(var(--mobile-safe-right) + 46px);
+                width: auto;
+                height: 56px;
+                gap: 7px;
+                padding: 6px 8px;
+            }
+            body.mobile-runtime .menu-score-icon { width: 27px; height: 27px; }
+            body.mobile-runtime .menu-score-copy span { font-size: 7px; }
+            body.mobile-runtime .menu-score-copy strong,
+            body.mobile-runtime #menu-best-coins { font-size: 14px; }
+            body.mobile-runtime .menu-button-stack {
+                left: 50%;
+                top: min(29vh, 240px);
+                width: min(82vw, 350px);
+                gap: 6px;
+                transform: translateX(-50%);
+            }
+            body.mobile-runtime #main-menu .menu-button {
+                height: 48px;
+                grid-template-columns: 48px minmax(0, 1fr);
+                font-size: clamp(13px, 4.4vw, 18px);
+            }
+            body.mobile-runtime #main-menu .menu-button:not(.primary) .menu-button-text { font-size: .75em; }
+            body.mobile-runtime .menu-button-icon { width: 48px; }
+            body.mobile-runtime .menu-button-icon svg { width: 27px; height: 27px; }
+            body.mobile-runtime .browser-reward-dock {
+                right: 50%;
+                bottom: max(28px, calc(var(--mobile-safe-bottom) + 18px));
+                transform: translateX(50%) scale(.68);
+                transform-origin: bottom center;
+            }
+            body.mobile-runtime .menu-version-tag { right: var(--mobile-safe-right); bottom: var(--mobile-safe-bottom); font-size: 8px; }
+
+            body.mobile-runtime #menu-dialog-layer {
+                box-sizing: border-box;
+                padding: var(--mobile-safe-top) var(--mobile-safe-right) var(--mobile-safe-bottom) var(--mobile-safe-left);
+                align-items: stretch;
+                overflow: hidden;
+            }
+            body.mobile-runtime #menu-dialog-layer .menu-dialog {
+                box-sizing: border-box;
+                width: 100% !important;
+                max-width: none;
+                max-height: calc(100dvh - var(--mobile-safe-top) - var(--mobile-safe-bottom));
+                margin: 0;
+                padding: 4px 9px 10px;
+                gap: 6px;
+                overflow-x: hidden;
+                overflow-y: auto !important;
+                border-radius: 12px !important;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+            }
+            body.mobile-runtime #menu-dialog-layer .menu-dialog-head { min-height: 38px; margin-bottom: 4px; padding: 4px 6px; }
+            body.mobile-runtime #menu-dialog-layer .menu-dialog-title { font-size: 12px; }
+            body.mobile-runtime #menu-dialog-layer .menu-dialog-close { width: 36px; height: 36px; }
+            body.mobile-runtime .menu-upgrade-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+            body.mobile-runtime .menu-upgrade-card { min-height: 132px; padding: 7px; gap: 4px; }
+            body.mobile-runtime .menu-upgrade-icon { width: 27px; height: 27px; flex-basis: 27px; }
+            body.mobile-runtime .menu-upgrade-title { font-size: 9px; }
+            body.mobile-runtime .menu-upgrade-tag { font-size: 7px; }
+            body.mobile-runtime .menu-upgrade-row { min-height: 15px; font-size: 7px; }
+            body.mobile-runtime .menu-upgrade-buy,
+            body.mobile-runtime .browser-reward-upgrade-btn { min-height: 34px; padding: 5px; font-size: 8px; }
+            body.mobile-runtime .menu-board-entry { min-height: 34px; padding: 4px 7px; font-size: 9px; }
+            body.mobile-runtime .menu-daily-row { min-height: 54px; padding: 6px 7px; }
+            body.mobile-runtime .menu-daily-text,
+            body.mobile-runtime .menu-daily-count,
+            body.mobile-runtime .menu-daily-reward { font-size: 9px; }
+            body.mobile-runtime .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+            body.mobile-runtime .settings-card { min-height: 55px; grid-template-columns: 34px minmax(0, 1fr); gap: 6px; padding: 6px; }
+            body.mobile-runtime .settings-card-icon { width: 32px; height: 32px; }
+            body.mobile-runtime .settings-card-title,
+            body.mobile-runtime .settings-row-label { font-size: 9px; }
+            body.mobile-runtime .settings-card-desc,
+            body.mobile-runtime .settings-row-hint { display: none; }
+            body.mobile-runtime .settings-row { grid-template-columns: 92px minmax(0, 1fr); gap: 6px; padding: 6px; }
+            body.mobile-runtime .settings-option-btn,
+            body.mobile-runtime .settings-back-btn,
+            body.mobile-runtime .settings-close-btn { min-height: 34px; padding: 0 7px; font-size: 8px; }
+            body.mobile-runtime .settings-language-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+            body.mobile-runtime .settings-language-btn { min-height: 36px; font-size: 8px; }
+            body.mobile-runtime #pause-card,
+            body.mobile-runtime #game-over,
+            body.mobile-runtime .loading-card {
+                box-sizing: border-box;
+                width: min(90vw, 390px);
+                max-height: 88dvh;
+                padding: 12px;
+                overflow-y: auto;
+            }
+            body.mobile-runtime .pause-button-stack { width: 100%; gap: 6px; }
+            body.mobile-runtime .pause-menu-button { height: 44px; font-size: 12px; }
+            body.mobile-runtime #game-over h2 { font-size: 24px; }
+            body.mobile-runtime #game-over button { min-height: 42px; font-size: 11px; }
+        }
+
+        @media (orientation: portrait) and (max-width: 360px) {
+            body.mobile-runtime .menu-upgrade-grid { grid-template-columns: 1fr; }
+            body.mobile-runtime .menu-button-stack { top: min(31vh, 225px); }
+            body.mobile-runtime #main-menu .menu-button { height: 44px; }
+        }
+
         @media (prefers-reduced-motion: reduce) {
             .menu-board-entry,
             .menu-upgrade-card,
@@ -4878,25 +5183,36 @@
                 <span id="how-to-play-look" class="how-to-control-label">LOOK</span>
             </div>
         </div>
-        <div class="how-to-mobile-controls" aria-label="Mobile controls">
-            <div class="mobile-how-control">
-                <span class="mobile-how-stick" aria-hidden="true"></span>
-                <span class="mobile-how-copy">
-                    <strong id="how-to-mobile-look">LOOK</strong>
-                    <span id="how-to-mobile-look-hint">DRAG TO LOOK</span>
-                </span>
-            </div>
+        <div class="how-to-mobile-controls how-to-mobile-landscape" aria-label="Landscape mobile controls">
             <div class="mobile-how-control">
                 <span class="mobile-how-stick is-action" aria-hidden="true">
                     <i class="mobile-how-arrow is-up">↑</i>
                     <i class="mobile-how-arrow is-down">↓</i>
                     <i class="mobile-how-arrow is-left">←</i>
+                    <i class="mobile-how-arrow is-right">→</i>
                 </span>
                 <span class="mobile-how-copy">
+                    <strong id="how-to-mobile-move">MOVE</strong>
                     <span><b>↑</b> <span id="how-to-mobile-jump">JUMP</span></span>
                     <span><b>↓</b> <span id="how-to-mobile-slide">SLIDE</span></span>
-                    <span><b>←</b> <span id="how-to-mobile-skill">SKILL</span></span>
                 </span>
+            </div>
+            <div class="mobile-how-control">
+                <span class="mobile-how-stick" aria-hidden="true"></span>
+                <span class="mobile-how-copy">
+                    <strong id="how-to-mobile-look">LOOK</strong>
+                    <span id="how-to-mobile-look-hint">DRAG TO LOOK</span>
+                    <span>2× <span id="how-to-mobile-skill">SKILL</span></span>
+                </span>
+            </div>
+        </div>
+        <div class="how-to-mobile-portrait" aria-label="Portrait mobile controls">
+            <div class="portrait-how-swipe" aria-hidden="true"><b>↑</b><b>←</b><i></i><b>→</b><b>↓</b></div>
+            <div class="portrait-how-copy">
+                <span>← → <strong id="how-to-portrait-move">MOVE</strong></span>
+                <span>↑ <strong id="how-to-portrait-jump">JUMP</strong></span>
+                <span>↓ <strong id="how-to-portrait-slide">SLIDE</strong></span>
+                <span>2× <strong id="how-to-portrait-skill">SKILL</strong></span>
             </div>
         </div>
     </div>
@@ -5492,6 +5808,7 @@
 </div>
 <div id="noclip-indicator" style="display:none; position:absolute; top:116px; right:24px; z-index:12; pointer-events:none; padding:8px 12px; border:1px solid rgba(116,232,255,.55); border-radius:8px; background:rgba(4,12,24,.76); color:#8cf4ff; font-family:Orbitron,Rajdhani,sans-serif; font-size:13px; font-weight:900; letter-spacing:1.8px; text-shadow:0 0 8px rgba(83,224,255,.8);">NOCLIP <span style="margin-left:8px; color:rgba(255,255,255,.72); font-size:11px;">F6</span></div>
 <div id="mobile-controls" aria-hidden="true">
+    <div id="mobile-swipe-surface" aria-hidden="true"></div>
     <button id="mobile-pause-btn" type="button" aria-label="Pause">Ⅱ</button>
     <div id="mobile-look-stick" class="mobile-stick is-look" role="application" aria-label="Look control">
         <div class="mobile-stick-base">
@@ -5503,10 +5820,12 @@
         <div class="mobile-stick-base">
             <span class="mobile-action-marker is-up"><b>↑</b><span id="mobile-jump-label">JUMP</span></span>
             <span class="mobile-action-marker is-down"><span id="mobile-slide-label">SLIDE</span><b>↓</b></span>
-            <span class="mobile-action-marker is-left"><b>⚡</b><span id="mobile-skill-label">SKILL</span></span>
+            <span class="mobile-action-marker is-left"><b>←</b></span>
+            <span class="mobile-action-marker is-right"><b>→</b></span>
             <span class="mobile-stick-knob" aria-hidden="true"></span>
         </div>
     </div>
+    <div id="mobile-portrait-hint" aria-hidden="true"><span>←</span><span>SWIPE</span><span>→</span><small>↑ JUMP · ↓ SLIDE · 2× SKILL</small></div>
 </div>
 <div id="mobile-orientation-hint" aria-hidden="true"><span>TURN YOUR PHONE</span></div>
 <div id="revive-sequence" aria-hidden="true">
@@ -6087,6 +6406,23 @@ let skyClouds = [];
     let mobileLookPointer = null;
     let mobileActionPointer = null;
     let mobileActionDirection = '';
+    let mobileMoveX = 0;
+    let mobileLayoutMode = 'landscape';
+    let mobilePortraitTargetZ = null;
+    let mobileGesturePointer = null;
+    let mobileGestureStartX = 0;
+    let mobileGestureStartY = 0;
+    let mobileGestureStartAt = 0;
+    let mobileLastTapAt = 0;
+    let mobileLastTapX = 0;
+    let mobileLastTapY = 0;
+    let portraitRunnerAvatar = null;
+    let portraitRunnerLeftArm = null;
+    let portraitRunnerRightArm = null;
+    let portraitRunnerLeftLeg = null;
+    let portraitRunnerRightLeg = null;
+    const portraitCameraPosition = new THREE.Vector3();
+    const portraitCameraLookAt = new THREE.Vector3();
     let mobileControlsVisible = false;
     let mobileControlsInitialized = false;
     
@@ -6215,6 +6551,11 @@ let skyClouds = [];
         if (ui.howToMobileJump) ui.howToMobileJump.textContent = copy.jump;
         if (ui.howToMobileSlide) ui.howToMobileSlide.textContent = tr('slide');
         if (ui.howToMobileSkill) ui.howToMobileSkill.textContent = tr('ability');
+        if (ui.howToMobileMove) ui.howToMobileMove.textContent = copy.move;
+        if (ui.howToPortraitMove) ui.howToPortraitMove.textContent = copy.move;
+        if (ui.howToPortraitJump) ui.howToPortraitJump.textContent = copy.jump;
+        if (ui.howToPortraitSlide) ui.howToPortraitSlide.textContent = tr('slide');
+        if (ui.howToPortraitSkill) ui.howToPortraitSkill.textContent = tr('ability');
         if (ui.howToPlayOverlay) {
             ui.howToPlayOverlay.setAttribute('dir', normalizeLanguage(menuState.language) === 'ar' ? 'rtl' : 'ltr');
         }
@@ -6455,28 +6796,28 @@ let skyClouds = [];
     };
     const MOBILE_GRAPHICS_QUALITY_PRESETS = Object.freeze({
         performance: {
-            pixelRatio: MOBILE_LOW_END ? 0.62 : 0.72, renderDistance: MOBILE_LOW_END ? 360 : 440,
+            pixelRatio: MOBILE_LOW_END ? 0.68 : 0.8, renderDistance: MOBILE_LOW_END ? 390 : 500,
             shadows: false, shadowMapSize: 512, softShadows: false, antialias: false,
             bloom: false, bloomStrength: 0, bloomRadius: 0, bloomThreshold: 1,
-            envMap: false, exposure: 1, maxPixelRatio: MOBILE_LOW_END ? 0.66 : 0.76
+            envMap: false, exposure: 1, maxPixelRatio: MOBILE_LOW_END ? 0.72 : 0.86
         },
         balanced: {
-            pixelRatio: MOBILE_LOW_END ? 0.68 : 0.82, renderDistance: MOBILE_LOW_END ? 400 : 500,
+            pixelRatio: MOBILE_LOW_END ? 0.76 : 0.94, renderDistance: MOBILE_LOW_END ? 450 : 620,
             shadows: false, shadowMapSize: 512, softShadows: false, antialias: !MOBILE_LOW_END,
             bloom: false, bloomStrength: 0, bloomRadius: 0, bloomThreshold: 1,
-            envMap: false, exposure: 1.03, maxPixelRatio: MOBILE_LOW_END ? 0.72 : 0.9
+            envMap: false, exposure: 1.03, maxPixelRatio: MOBILE_LOW_END ? 0.8 : 1.0
         },
         high: {
-            pixelRatio: MOBILE_LOW_END ? 0.74 : 0.92, renderDistance: MOBILE_LOW_END ? 450 : 580,
-            shadows: false, shadowMapSize: 512, softShadows: false, antialias: !MOBILE_LOW_END,
+            pixelRatio: MOBILE_LOW_END ? 0.84 : 1.08, renderDistance: MOBILE_LOW_END ? 520 : 740,
+            shadows: !MOBILE_LOW_END, shadowMapSize: 1024, softShadows: false, antialias: true,
             bloom: false, bloomStrength: 0, bloomRadius: 0, bloomThreshold: 1,
-            envMap: false, exposure: 1.06, maxPixelRatio: MOBILE_LOW_END ? 0.8 : 1.0
+            envMap: false, exposure: 1.06, maxPixelRatio: MOBILE_LOW_END ? 0.9 : 1.16
         },
         ultra: {
-            pixelRatio: MOBILE_LOW_END ? 0.78 : 1.0, renderDistance: MOBILE_LOW_END ? 480 : 650,
-            shadows: false, shadowMapSize: 512, softShadows: false, antialias: !MOBILE_LOW_END,
-            bloom: !MOBILE_LOW_END, bloomStrength: 0.12, bloomRadius: 0.35, bloomThreshold: 0.9,
-            envMap: false, exposure: 1.08, maxPixelRatio: MOBILE_LOW_END ? 0.84 : 1.1
+            pixelRatio: MOBILE_LOW_END ? 0.9 : 1.2, renderDistance: MOBILE_LOW_END ? 580 : 860,
+            shadows: !MOBILE_LOW_END, shadowMapSize: MOBILE_LOW_END ? 512 : 1024, softShadows: !MOBILE_LOW_END, antialias: true,
+            bloom: !MOBILE_LOW_END, bloomStrength: 0.14, bloomRadius: 0.35, bloomThreshold: 0.9,
+            envMap: false, exposure: 1.08, maxPixelRatio: MOBILE_LOW_END ? 0.96 : 1.3
         }
     });
     const DISPLAY_MODES = ['windowed', 'borderless', 'fullscreen'];
@@ -7472,6 +7813,11 @@ let skyClouds = [];
         ui.howToMobileJump = document.getElementById('how-to-mobile-jump');
         ui.howToMobileSlide = document.getElementById('how-to-mobile-slide');
         ui.howToMobileSkill = document.getElementById('how-to-mobile-skill');
+        ui.howToMobileMove = document.getElementById('how-to-mobile-move');
+        ui.howToPortraitMove = document.getElementById('how-to-portrait-move');
+        ui.howToPortraitJump = document.getElementById('how-to-portrait-jump');
+        ui.howToPortraitSlide = document.getElementById('how-to-portrait-slide');
+        ui.howToPortraitSkill = document.getElementById('how-to-portrait-skill');
         ui.shieldBar = document.getElementById('shield-bar');
         ui.hudControls = document.getElementById('hud-controls');
         ui.noclipIndicator = document.getElementById('noclip-indicator');
@@ -9275,8 +9621,8 @@ let skyClouds = [];
         if (preset.pixelRatio <= 1.0) dpr = Math.min(native, preset.pixelRatio);
         else dpr = Math.min(preset.maxPixelRatio || preset.pixelRatio, Math.max(native, preset.pixelRatio));
         // Dinamik çözünürlük ölçeği (FPS koruması) preset'in üstüne çarpılır
-        const absoluteFloor = MOBILE_RUNTIME ? 0.42 : 0.55;
-        const presetFloor = MOBILE_RUNTIME ? 0.52 : 0.75;
+        const absoluteFloor = MOBILE_RUNTIME ? 0.5 : 0.55;
+        const presetFloor = MOBILE_RUNTIME ? 0.6 : 0.75;
         return Math.max(absoluteFloor, Math.max(presetFloor, dpr) * gfxDynResScale);
     }
 
@@ -9344,7 +9690,7 @@ let skyClouds = [];
 
         gfxDynResTimer -= sampleDelta;
         if (gfxDynResTimer > 0) return;
-        const scaleFloor = MOBILE_RUNTIME ? 0.48 : 0.58;
+        const scaleFloor = MOBILE_RUNTIME ? 0.55 : 0.58;
         let changed = false;
         if (smoothedFps < criticalFps && gfxDynResScale > scaleFloor) {
             gfxDynResScale = Math.max(scaleFloor, gfxDynResScale - (MOBILE_RUNTIME ? 0.16 : 0.18));
@@ -9538,7 +9884,7 @@ let skyClouds = [];
             if (typeof renderer.setPixelRatio === 'function') renderer.setPixelRatio(dpr);
             if (renderer.shadowMap) {
                 const shadowsEnabled = !!preset.shadows
-                    && adaptivePerfLevel < 2
+                    && adaptivePerfLevel < (MOBILE_RUNTIME ? 1 : 2)
                     && (typeof gamePhase === 'undefined' || gamePhase === 0);
                 renderer.shadowMap.enabled = shadowsEnabled;
                 renderer.shadowMap.autoUpdate = false;
@@ -9548,7 +9894,7 @@ let skyClouds = [];
         }
         if (dirLight) {
             dirLight.castShadow = !!preset.shadows
-                && adaptivePerfLevel < 2
+                && adaptivePerfLevel < (MOBILE_RUNTIME ? 1 : 2)
                 && (typeof gamePhase === 'undefined' || gamePhase === 0);
         }
         applyDisplayMode(false);
@@ -12518,9 +12864,13 @@ nextSnowballX = 0;
                 mobile: {
                     runtime: MOBILE_RUNTIME,
                     lowEndProfile: MOBILE_LOW_END,
+                    layout: mobileLayoutMode,
                     controlsVisible: mobileControlsVisible,
                     lookX: roundForText(mobileLookX, 2),
                     lookY: roundForText(mobileLookY, 2),
+                    moveX: roundForText(mobileMoveX, 2),
+                    portraitTargetZ: mobilePortraitTargetZ === null ? null : roundForText(mobilePortraitTargetZ, 2),
+                    portraitAvatarVisible: !!(portraitRunnerAvatar && portraitRunnerAvatar.visible),
                     actionDirection: mobileActionDirection,
                     effectivePixelRatio: renderer ? roundForText(renderer.getPixelRatio(), 2) : null,
                     renderDistance: adaptiveRenderDistance,
@@ -12671,9 +13021,24 @@ nextSnowballX = 0;
                 return renderGameToText();
             },
             mobileAction: (direction = '') => {
+                if (isMobilePortraitLayout() && (direction === 'left' || direction === 'right')) {
+                    queuePortraitLaneShift(direction === 'right' ? 1 : -1);
+                } else if (direction === 'left' || direction === 'right') {
+                    mobileMoveX = direction === 'right' ? 1 : -1;
+                } else {
+                    setMobileActionDirection('');
+                    setMobileActionDirection(direction);
+                    setMobileActionDirection('');
+                }
+                return renderGameToText();
+            },
+            releaseMobileAction: () => {
+                mobileMoveX = 0;
                 setMobileActionDirection('');
-                setMobileActionDirection(direction);
-                if (direction !== 'left') setMobileActionDirection('');
+                return renderGameToText();
+            },
+            mobileDoubleTap: () => {
+                triggerMobileActiveSkill();
                 return renderGameToText();
             },
             setMobileLook: (x = 0, y = 0) => {
@@ -13428,7 +13793,9 @@ if (gfxBloomPass && gamePhase !== gfxLastBloomPhase) {
 
 if (renderer && dirLight) {
     const presetAllowsShadows = !!getQualityPreset().shadows;
-    const shadowsOn = gamePhase === 0 && presetAllowsShadows && adaptivePerfLevel < 2;
+    const shadowsOn = gamePhase === 0
+        && presetAllowsShadows
+        && adaptivePerfLevel < (MOBILE_RUNTIME ? 1 : 2);
     
     // GÃ¶lge motorunu (shadowMap) tamamen kapatÄ±p kasmaya yol aÃ§mak yerine, 
     // sadece Ä±ÅŸÄ±ÄŸÄ±n gÃ¶lge kamerasÄ±nÄ± devre dÄ±ÅŸÄ± bÄ±rakÄ±yoruz.
@@ -14117,6 +14484,7 @@ if (renderer && dirLight) {
         setupEventListeners();
         setupMobileControls();
         window.addEventListener('resize', onWindowResize);
+        window.addEventListener('orientationchange', () => requestAnimationFrame(onWindowResize));
     }
 
     // ===== Birinci-şahıs taş eller (CS/Valorant tarzı viewmodel) =====
@@ -14538,30 +14906,48 @@ if (renderer && dirLight) {
         }
     }
 
+    function isMobilePortraitLayout() {
+        return MOBILE_RUNTIME && mobileLayoutMode === 'portrait';
+    }
+
+    function updateMobileLayoutMode() {
+        if (!MOBILE_RUNTIME) return 'desktop';
+        const nextMode = window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
+        const changed = mobileLayoutMode !== nextMode;
+        mobileLayoutMode = nextMode;
+        document.body.classList.toggle('mobile-portrait', nextMode === 'portrait');
+        document.body.classList.toggle('mobile-landscape', nextMode === 'landscape');
+        if (changed) {
+            mobileLookX = 0;
+            mobileLookY = 0;
+            mobileMoveX = 0;
+            mobilePortraitTargetZ = null;
+            setMobileActionDirection('');
+            resetMobileStick(document.getElementById('mobile-look-stick'));
+            resetMobileStick(document.getElementById('mobile-action-stick'));
+            yaw = -Math.PI / 2;
+            pitch = 0;
+        }
+        if (portraitRunnerAvatar) {
+            portraitRunnerAvatar.visible = nextMode === 'portrait' && mobileControlsVisible;
+        }
+        return nextMode;
+    }
+
     function updateMobileControlLabels() {
         if (!MOBILE_RUNTIME) return;
         const copy = getHowToPlayCopy();
         const look = document.getElementById('mobile-look-caption');
         const jump = document.getElementById('mobile-jump-label');
         const slide = document.getElementById('mobile-slide-label');
-        const skill = document.getElementById('mobile-skill-label');
-        const rotate = document.querySelector('#mobile-orientation-hint span');
+        const move = document.getElementById('mobile-action-caption');
+        const portraitHint = document.getElementById('mobile-portrait-hint');
         if (look) look.textContent = copy.look;
         if (jump) jump.textContent = copy.jump;
         if (slide) slide.textContent = tr('slide');
-        if (skill) skill.textContent = tr('ability');
-        if (rotate) {
-            const rotateText = {
-                tr: 'TELEFONU YAN ÇEVİR',
-                de: 'HANDY DREHEN',
-                fr: 'TOURNEZ LE TÉLÉPHONE',
-                it: 'RUOTA IL TELEFONO',
-                'es-ES': 'GIRA EL TELÉFONO',
-                'es-419': 'GIRA EL TELÉFONO',
-                'pt-BR': 'GIRE O CELULAR',
-                'pt-PT': 'RODE O TELEMÓVEL'
-            };
-            rotate.textContent = rotateText[normalizeLanguage(menuState.language)] || 'TURN YOUR PHONE';
+        if (move) move.textContent = copy.move;
+        if (portraitHint) {
+            portraitHint.innerHTML = `<span>←</span><span>${copy.move}</span><span>→</span><small>↑ ${copy.jump} · ↓ ${tr('slide')} · 2× ${tr('ability')}</small>`;
         }
     }
 
@@ -14580,27 +14966,11 @@ if (renderer && dirLight) {
         try { navigator.vibrate(duration); } catch (error) {}
     }
 
-    function releaseMobileSkillHold() {
-        if (gamepadGlideHeld) {
-            gamepadGlideHeld = false;
-            setGlideWindActive(false);
-        }
-    }
-
-    function triggerMobileSkill(active = true) {
-        if (!active || isGamePaused || isGameOver || mainMenuVisible) {
-            releaseMobileSkillHold();
-            return false;
-        }
+    function triggerMobileActiveSkill() {
+        if (isGamePaused || isGameOver || mainMenuVisible) return false;
         const ability = getActiveSpecialAbility();
-        if (ability === 'glide') {
-            gamepadGlideHeld = true;
-            mobileHaptic(8);
-            return true;
-        }
         let used = false;
-        if (ability === 'doubleJump') used = tryUseDoubleJump();
-        else if (ability === 'timeSlow') used = tryActivateTimeSlow();
+        if (ability === 'timeSlow') used = tryActivateTimeSlow();
         else if (ability === 'magnet') used = tryActivateMagnet();
         if (used) mobileHaptic(12);
         return used;
@@ -14624,11 +14994,30 @@ if (renderer && dirLight) {
 
     function setMobileActionDirection(nextDirection) {
         if (mobileActionDirection === nextDirection) return;
-        if (mobileActionDirection === 'left') releaseMobileSkillHold();
         mobileActionDirection = nextDirection;
         if (nextDirection === 'up') triggerMobileJump();
         else if (nextDirection === 'down') triggerMobileSlide();
-        else if (nextDirection === 'left') triggerMobileSkill(true);
+    }
+
+    function queuePortraitLaneShift(direction) {
+        if (!isMobilePortraitLayout() || !mobileControlsVisible || !player || direction === 0) return false;
+        const lanes = [...lanePositions].sort((a, b) => a - b);
+        if (!lanes.length) return false;
+        const referenceZ = mobilePortraitTargetZ === null ? player.position.z : mobilePortraitTargetZ;
+        let laneIndex = 0;
+        let bestDistance = Infinity;
+        lanes.forEach((laneZ, index) => {
+            const distance = Math.abs(laneZ - referenceZ);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                laneIndex = index;
+            }
+        });
+        const nextIndex = Math.max(0, Math.min(lanes.length - 1, laneIndex + Math.sign(direction)));
+        if (nextIndex === laneIndex && Math.abs(lanes[nextIndex] - player.position.z) < 0.35) return false;
+        mobilePortraitTargetZ = lanes[nextIndex];
+        mobileHaptic(7);
+        return true;
     }
 
     function setMobileControlsVisible(visible) {
@@ -14641,12 +15030,16 @@ if (renderer && dirLight) {
         if (!visible) {
             mobileLookX = 0;
             mobileLookY = 0;
+            mobileMoveX = 0;
+            mobilePortraitTargetZ = null;
+            mobileGesturePointer = null;
             mobileLookPointer = null;
             mobileActionPointer = null;
             setMobileActionDirection('');
             resetMobileStick(document.getElementById('mobile-look-stick'));
             resetMobileStick(document.getElementById('mobile-action-stick'));
         }
+        if (portraitRunnerAvatar) portraitRunnerAvatar.visible = visible && isMobilePortraitLayout();
     }
 
     function updateMobileControlsVisibility() {
@@ -14663,7 +15056,7 @@ if (renderer && dirLight) {
     }
 
     function updateMobileLook(delta) {
-        if (!MOBILE_RUNTIME || !mobileControlsVisible || (Math.abs(mobileLookX) < 0.015 && Math.abs(mobileLookY) < 0.015)) return;
+        if (!MOBILE_RUNTIME || isMobilePortraitLayout() || !mobileControlsVisible || (Math.abs(mobileLookX) < 0.015 && Math.abs(mobileLookY) < 0.015)) return;
         const sensitivity = clampNumber(menuState.mouseSensitivity, 0.45, 1.85, 1);
         yaw -= mobileLookX * 1.85 * sensitivity * delta;
         pitch += mobileLookY * 1.45 * sensitivity * delta * (menuState.invertY ? 1 : -1);
@@ -14688,59 +15081,38 @@ if (renderer && dirLight) {
         return true;
     }
 
-    function setupMobileControls() {
-        if (!MOBILE_RUNTIME || mobileControlsInitialized) return;
-        const lookStick = document.getElementById('mobile-look-stick');
-        const actionStick = document.getElementById('mobile-action-stick');
-        const pauseButton = document.getElementById('mobile-pause-btn');
-        if (!lookStick || !actionStick) return;
-        mobileControlsInitialized = true;
-        updateMobileControlLabels();
-        if (pauseButton) {
-            pauseButton.setAttribute('aria-label', tr('pauseTitle'));
-            pauseButton.addEventListener('pointerdown', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-            }, { passive: false });
-            pauseButton.addEventListener('click', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                if (!mobileControlsVisible || isGameOver || reviveSequenceActive || rewardedDeathPending) return;
-                pauseRunForExternalInterruption(tr('pauseTitle'), tr('pauseHint'));
-            });
+    function readMobileStickVector(stick, event) {
+        const rect = stick.getBoundingClientRect();
+        const half = Math.max(1, rect.width * 0.5);
+        let x = (event.clientX - (rect.left + half)) / half;
+        let y = (event.clientY - (rect.top + half)) / half;
+        const length = Math.hypot(x, y);
+        if (length > 1) { x /= length; y /= length; }
+        const travel = rect.width * 0.28;
+        const knob = stick.querySelector('.mobile-stick-knob');
+        if (knob) {
+            knob.style.setProperty('--knob-x', `${(x * travel).toFixed(1)}px`);
+            knob.style.setProperty('--knob-y', `${(y * travel).toFixed(1)}px`);
         }
+        return { x, y, length: Math.min(1, length) };
+    }
 
-        const updateVector = (stick, event) => {
-            const rect = stick.getBoundingClientRect();
-            const half = Math.max(1, rect.width * 0.5);
-            let x = (event.clientX - (rect.left + half)) / half;
-            let y = (event.clientY - (rect.top + half)) / half;
-            const length = Math.hypot(x, y);
-            if (length > 1) { x /= length; y /= length; }
-            const travel = rect.width * 0.28;
-            const knob = stick.querySelector('.mobile-stick-knob');
-            if (knob) {
-                knob.style.setProperty('--knob-x', `${(x * travel).toFixed(1)}px`);
-                knob.style.setProperty('--knob-y', `${(y * travel).toFixed(1)}px`);
-            }
-            return { x, y, length: Math.min(1, length) };
-        };
-
+    function setupMobileLandscapeControls(lookStick, actionStick) {
         lookStick.addEventListener('pointerdown', (event) => {
-            if (!mobileControlsVisible || mobileLookPointer !== null) return;
+            if (!mobileControlsVisible || isMobilePortraitLayout() || mobileLookPointer !== null) return;
             event.preventDefault();
             event.stopPropagation();
             mobileLookPointer = event.pointerId;
             lookStick.setPointerCapture(event.pointerId);
             lookStick.classList.add('is-active');
-            const vector = updateVector(lookStick, event);
+            const vector = readMobileStickVector(lookStick, event);
             mobileLookX = vector.x;
             mobileLookY = vector.y;
         }, { passive: false });
         lookStick.addEventListener('pointermove', (event) => {
             if (event.pointerId !== mobileLookPointer) return;
             event.preventDefault();
-            const vector = updateVector(lookStick, event);
+            const vector = readMobileStickVector(lookStick, event);
             mobileLookX = vector.x;
             mobileLookY = vector.y;
         }, { passive: false });
@@ -14762,36 +15134,32 @@ if (renderer && dirLight) {
             resetMobileStick(lookStick);
         });
 
+        const applyActionVector = (vector) => {
+            mobileMoveX = Math.abs(vector.x) < 0.16 ? 0 : vector.x;
+            const direction = vector.length >= 0.38 && Math.abs(vector.y) >= Math.abs(vector.x) * 0.82
+                ? (vector.y < 0 ? 'up' : 'down')
+                : '';
+            setMobileActionDirection(direction);
+        };
         actionStick.addEventListener('pointerdown', (event) => {
-            if (!mobileControlsVisible || mobileActionPointer !== null) return;
+            if (!mobileControlsVisible || isMobilePortraitLayout() || mobileActionPointer !== null) return;
             event.preventDefault();
             event.stopPropagation();
             mobileActionPointer = event.pointerId;
             actionStick.setPointerCapture(event.pointerId);
             actionStick.classList.add('is-active');
-            const vector = updateVector(actionStick, event);
-            const direction = vector.length < 0.38
-                ? ''
-                : (Math.abs(vector.y) >= Math.abs(vector.x) * 0.82
-                    ? (vector.y < 0 ? 'up' : 'down')
-                    : (vector.x < 0 ? 'left' : ''));
-            setMobileActionDirection(direction);
+            applyActionVector(readMobileStickVector(actionStick, event));
         }, { passive: false });
         actionStick.addEventListener('pointermove', (event) => {
             if (event.pointerId !== mobileActionPointer) return;
             event.preventDefault();
-            const vector = updateVector(actionStick, event);
-            const direction = vector.length < 0.38
-                ? ''
-                : (Math.abs(vector.y) >= Math.abs(vector.x) * 0.82
-                    ? (vector.y < 0 ? 'up' : 'down')
-                    : (vector.x < 0 ? 'left' : ''));
-            setMobileActionDirection(direction);
+            applyActionVector(readMobileStickVector(actionStick, event));
         }, { passive: false });
         const releaseAction = (event) => {
             if (event.pointerId !== mobileActionPointer) return;
             event.preventDefault();
             mobileActionPointer = null;
+            mobileMoveX = 0;
             setMobileActionDirection('');
             resetMobileStick(actionStick);
         };
@@ -14800,9 +15168,97 @@ if (renderer && dirLight) {
         actionStick.addEventListener('lostpointercapture', (event) => {
             if (event.pointerId !== mobileActionPointer) return;
             mobileActionPointer = null;
+            mobileMoveX = 0;
             setMobileActionDirection('');
             resetMobileStick(actionStick);
         });
+    }
+
+    function setupMobilePortraitControls(swipeSurface) {
+        if (!swipeSurface) return;
+        swipeSurface.addEventListener('pointerdown', (event) => {
+            if (!mobileControlsVisible || !isMobilePortraitLayout() || mobileGesturePointer !== null) return;
+            event.preventDefault();
+            mobileGesturePointer = event.pointerId;
+            mobileGestureStartX = event.clientX;
+            mobileGestureStartY = event.clientY;
+            mobileGestureStartAt = performance.now();
+            swipeSurface.setPointerCapture(event.pointerId);
+        }, { passive: false });
+        swipeSurface.addEventListener('pointermove', (event) => {
+            if (event.pointerId === mobileGesturePointer) event.preventDefault();
+        }, { passive: false });
+        const finishSwipe = (event) => {
+            if (event.pointerId !== mobileGesturePointer) return;
+            event.preventDefault();
+            const dx = event.clientX - mobileGestureStartX;
+            const dy = event.clientY - mobileGestureStartY;
+            const distance = Math.hypot(dx, dy);
+            const threshold = Math.max(32, Math.min(window.innerWidth, window.innerHeight) * 0.075);
+            mobileGesturePointer = null;
+            if (distance < threshold || performance.now() - mobileGestureStartAt > 850) return;
+            if (Math.abs(dx) > Math.abs(dy)) queuePortraitLaneShift(dx > 0 ? 1 : -1);
+            else if (dy < 0) triggerMobileJump();
+            else triggerMobileSlide();
+        };
+        swipeSurface.addEventListener('pointerup', finishSwipe, { passive: false });
+        swipeSurface.addEventListener('pointercancel', (event) => {
+            if (event.pointerId === mobileGesturePointer) mobileGesturePointer = null;
+        }, { passive: false });
+    }
+
+    function setupMobileDoubleTapControls(controls) {
+        controls.addEventListener('pointerdown', (event) => {
+            if (!mobileControlsVisible || event.target.closest('#mobile-pause-btn')) return;
+            mobileGestureStartX = event.clientX;
+            mobileGestureStartY = event.clientY;
+            mobileGestureStartAt = performance.now();
+        }, { capture: true });
+        controls.addEventListener('pointerup', (event) => {
+            if (!mobileControlsVisible || event.target.closest('#mobile-pause-btn')) return;
+            const now = performance.now();
+            const quickTap = now - mobileGestureStartAt < 300
+                && Math.hypot(event.clientX - mobileGestureStartX, event.clientY - mobileGestureStartY) < 22;
+            if (!quickTap) return;
+            const doubleTap = now - mobileLastTapAt < 340
+                && Math.hypot(event.clientX - mobileLastTapX, event.clientY - mobileLastTapY) < 52;
+            mobileLastTapAt = now;
+            mobileLastTapX = event.clientX;
+            mobileLastTapY = event.clientY;
+            if (doubleTap) {
+                mobileLastTapAt = 0;
+                triggerMobileActiveSkill();
+            }
+        }, { capture: true });
+    }
+
+    function setupMobileControls() {
+        if (!MOBILE_RUNTIME || mobileControlsInitialized) return;
+        const controls = document.getElementById('mobile-controls');
+        const lookStick = document.getElementById('mobile-look-stick');
+        const actionStick = document.getElementById('mobile-action-stick');
+        const swipeSurface = document.getElementById('mobile-swipe-surface');
+        const pauseButton = document.getElementById('mobile-pause-btn');
+        if (!controls || !lookStick || !actionStick) return;
+        mobileControlsInitialized = true;
+        updateMobileLayoutMode();
+        updateMobileControlLabels();
+        if (pauseButton) {
+            pauseButton.setAttribute('aria-label', tr('pauseTitle'));
+            pauseButton.addEventListener('pointerdown', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+            }, { passive: false });
+            pauseButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!mobileControlsVisible || isGameOver || reviveSequenceActive || rewardedDeathPending) return;
+                pauseRunForExternalInterruption(tr('pauseTitle'), tr('pauseHint'));
+            });
+        }
+        setupMobileLandscapeControls(lookStick, actionStick);
+        setupMobilePortraitControls(swipeSurface);
+        setupMobileDoubleTapControls(controls);
         document.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });
     }
 
@@ -17396,7 +17852,10 @@ if (renderer && dirLight) {
 
     function getRequestedCyberBuildingTier() {
         const quality = menuState.graphicsQuality;
-        if (MOBILE_RUNTIME && quality !== 'ultra') return 'lite';
+        if (MOBILE_RUNTIME) {
+            if (MOBILE_LOW_END) return 'lite';
+            return (quality === 'high' || quality === 'ultra') ? 'detailed' : 'lite';
+        }
         return (quality === 'performance' || quality === 'balanced') ? 'lite' : 'detailed';
     }
 
@@ -17706,8 +18165,14 @@ if (renderer && dirLight) {
             high: { edgeCount: 38, edgeStep: 21, shopCount: 4, shopStep: 230, chevronCount: 22, chevronStep: 52, carCount: 8 },
             ultra: { edgeCount: 44, edgeStep: 18, shopCount: 4, shopStep: 230, chevronCount: 26, chevronStep: 44, carCount: 10 }
         };
+        const mobileDecorProfiles = {
+            performance: { edgeCount: 14, edgeStep: 48, shopCount: 1, shopStep: 680, chevronCount: 10, chevronStep: 72, carCount: 3 },
+            balanced: { edgeCount: 18, edgeStep: 39, shopCount: 1, shopStep: 560, chevronCount: 12, chevronStep: 66, carCount: 3 },
+            high: { edgeCount: 24, edgeStep: 31, shopCount: 2, shopStep: 430, chevronCount: 15, chevronStep: 58, carCount: 4 },
+            ultra: { edgeCount: 28, edgeStep: 27, shopCount: 2, shopStep: 380, chevronCount: 18, chevronStep: 52, carCount: 5 }
+        };
         const decorProfile = MOBILE_RUNTIME
-            ? { edgeCount: 14, edgeStep: 48, shopCount: 1, shopStep: 680, chevronCount: 10, chevronStep: 72, carCount: 3 }
+            ? (MOBILE_LOW_END ? mobileDecorProfiles.performance : mobileDecorProfiles[quality])
             : decorProfiles[quality];
         const COUNT=decorProfile.edgeCount, STEP=decorProfile.edgeStep; const span=COUNT*STEP;
         for(const side of [-1,1]){
@@ -17749,7 +18214,11 @@ if (renderer && dirLight) {
     }
 
     function getCyberVisibleAheadDistance() {
-        if (MOBILE_RUNTIME) return Math.min(adaptiveRenderDistance + 70, MOBILE_LOW_END ? 350 : 430);
+        if (MOBILE_RUNTIME) {
+            const mobileCaps = { performance: 470, balanced: 560, high: 680, ultra: 780 };
+            const cap = MOBILE_LOW_END ? 430 : (mobileCaps[menuState.graphicsQuality] || 620);
+            return Math.min(adaptiveRenderDistance + 70, cap);
+        }
         const capByQuality = {
             performance: 420,
             balanced: 520,
@@ -20895,6 +21364,7 @@ function createHeadlightBeam() {
     }
 
     function onWindowResize() {
+        updateMobileLayoutMode();
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         const preset = getQualityPreset();
@@ -21472,10 +21942,73 @@ function cancelLaneAnimationForLavaDrop() {
     }
 }
 
+    function createPortraitRunnerAvatar() {
+        if (!MOBILE_RUNTIME || !player || portraitRunnerAvatar) return;
+        const avatar = new THREE.Group();
+        avatar.name = 'portrait-runner-avatar';
+        avatar.visible = false;
+        avatar.position.y = -normalHeight * 0.5;
+
+        const suitMaterial = new THREE.MeshStandardMaterial({
+            color: 0x17243f,
+            roughness: 0.48,
+            metalness: 0.28,
+            emissive: 0x071326,
+            emissiveIntensity: 0.45
+        });
+        const accentMaterial = new THREE.MeshStandardMaterial({
+            color: 0x34f2ff,
+            roughness: 0.28,
+            metalness: 0.42,
+            emissive: 0x0aa8c5,
+            emissiveIntensity: 0.9
+        });
+        const skinMaterial = new THREE.MeshStandardMaterial({ color: 0xd8a07d, roughness: 0.72 });
+        const addPart = (geometry, material, x, y, z) => {
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = false;
+            avatar.add(mesh);
+            return mesh;
+        };
+
+        addPart(new THREE.BoxGeometry(1.35, 2.25, 1.1), suitMaterial, 0, 3.55, 0);
+        addPart(new THREE.BoxGeometry(0.18, 1.65, 1.16), accentMaterial, 0.69, 3.55, 0);
+        addPart(new THREE.SphereGeometry(0.67, 12, 9), skinMaterial, 0, 5.28, 0);
+        addPart(new THREE.BoxGeometry(0.16, 0.38, 0.9), accentMaterial, 0.62, 5.32, 0);
+        portraitRunnerLeftArm = addPart(new THREE.BoxGeometry(0.48, 2.0, 0.5), suitMaterial, 0, 3.45, -0.94);
+        portraitRunnerRightArm = addPart(new THREE.BoxGeometry(0.48, 2.0, 0.5), suitMaterial, 0, 3.45, 0.94);
+        portraitRunnerLeftLeg = addPart(new THREE.BoxGeometry(0.64, 2.45, 0.65), suitMaterial, 0, 1.25, -0.43);
+        portraitRunnerRightLeg = addPart(new THREE.BoxGeometry(0.64, 2.45, 0.65), suitMaterial, 0, 1.25, 0.43);
+        addPart(new THREE.BoxGeometry(1.15, 0.26, 0.72), accentMaterial, 0.32, 0.08, -0.43);
+        addPart(new THREE.BoxGeometry(1.15, 0.26, 0.72), accentMaterial, 0.32, 0.08, 0.43);
+
+        player.add(avatar);
+        portraitRunnerAvatar = avatar;
+    }
+
+    function updatePortraitRunnerAvatar() {
+        if (!portraitRunnerAvatar) return;
+        const visible = isMobilePortraitLayout() && mobileControlsVisible && !isGameOver && !reviveSequenceActive;
+        portraitRunnerAvatar.visible = visible;
+        if (!visible) return;
+        const speedFactor = Math.min(1.25, Math.max(0.45, moveSpeed * 0.82));
+        const swing = Math.sin(bobTimer * 0.72) * 0.7 * speedFactor;
+        portraitRunnerLeftArm.rotation.z = swing;
+        portraitRunnerRightArm.rotation.z = -swing;
+        portraitRunnerLeftLeg.rotation.z = -swing * 0.72;
+        portraitRunnerRightLeg.rotation.z = swing * 0.72;
+        portraitRunnerAvatar.rotation.z += ((isSliding ? -0.42 : 0) - portraitRunnerAvatar.rotation.z) * 0.18;
+        portraitRunnerAvatar.position.y += ((-normalHeight * 0.5 + (isSliding ? 0.5 : 0)) - portraitRunnerAvatar.position.y) * 0.18;
+        portraitRunnerAvatar.scale.y += ((isSliding ? 0.72 : 1) - portraitRunnerAvatar.scale.y) * 0.2;
+    }
+
     function createPlayer() {
         const geometry = new THREE.BoxGeometry(PLAYER_WIDTH, normalHeight, PLAYER_DEPTH);
         const material = new THREE.MeshPhongMaterial({ color: 0x00ff88, wireframe: true, visible: false });
         player = new THREE.Mesh(geometry, material); player.position.set(startPosX, normalHeight/2, 0); scene.add(player);
+        createPortraitRunnerAvatar();
     }
 
     function setTrafficLightVisualAlpha(group, alpha) {
@@ -23676,16 +24209,36 @@ function cancelLaneAnimationForLavaDrop() {
         const activeSnowIceRoad = getActiveSnowIceRoadUnderPlayer();
         snowIceRoadUnderPlayer = !!activeSnowIceRoad && !isJumping;
 
-        let targetVelocity = 0; if (CONTROL_ACTION_STATE.moveLeft) targetVelocity = -maxStrafeSpeed; if (CONTROL_ACTION_STATE.moveRight) targetVelocity = maxStrafeSpeed; if (Math.abs(gamepadMoveInput) > 0.01) targetVelocity = gamepadMoveInput * maxStrafeSpeed;
+        let targetVelocity = 0;
+        if (CONTROL_ACTION_STATE.moveLeft) targetVelocity = -maxStrafeSpeed;
+        if (CONTROL_ACTION_STATE.moveRight) targetVelocity = maxStrafeSpeed;
+        if (Math.abs(gamepadMoveInput) > 0.01) targetVelocity = gamepadMoveInput * maxStrafeSpeed;
+        if (MOBILE_RUNTIME && mobileControlsVisible) {
+            if (isMobilePortraitLayout() && mobilePortraitTargetZ !== null) {
+                const laneDelta = mobilePortraitTargetZ - player.position.z;
+                targetVelocity = Math.sign(laneDelta) * maxStrafeSpeed * Math.min(1.45, Math.max(0.6, Math.abs(laneDelta) / Math.max(1, LANE_WIDTH * 0.45)));
+            } else if (!isMobilePortraitLayout() && Math.abs(mobileMoveX) > 0.01) {
+                targetVelocity = mobileMoveX * maxStrafeSpeed;
+            }
+        }
         const lookSlipDir = Math.abs(forward.z) > 0.045 ? Math.sign(forward.z) : 0;
         const iceControlScale = snowIceRoadUnderPlayer ? 0.42 : 1.0;
         const iceAccelScale = snowIceRoadUnderPlayer ? (targetVelocity !== 0 ? 0.32 : 0.08) : 1.0;
         currentStrafeVelocity += ((targetVelocity * iceControlScale) - currentStrafeVelocity) * (targetVelocity !== 0 ? strafeAccel * iceAccelScale : strafeFriction * iceAccelScale) * frameScale;
         player.position.z += currentStrafeVelocity * frameScale;
+        if (isMobilePortraitLayout() && mobilePortraitTargetZ !== null) {
+            const remainingLaneDelta = mobilePortraitTargetZ - player.position.z;
+            if (Math.abs(remainingLaneDelta) < 0.16 || Math.sign(remainingLaneDelta) !== Math.sign(targetVelocity)) {
+                player.position.z = mobilePortraitTargetZ;
+                mobilePortraitTargetZ = null;
+                currentStrafeVelocity *= 0.12;
+            }
+        }
         if (snowIceRoadUnderPlayer) {
             snowIceRoadSlipTimer = 0.18;
             snowIceRoadSlipRamp = Math.min(1, snowIceRoadSlipRamp + delta * 2.6);
-            const inputDir = CONTROL_ACTION_STATE.moveLeft ? -1 : (CONTROL_ACTION_STATE.moveRight ? 1 : (Math.abs(gamepadMoveInput) > 0.2 ? Math.sign(gamepadMoveInput) : 0));
+            const mobileInputDir = MOBILE_RUNTIME && mobileControlsVisible && Math.abs(targetVelocity) > 0.2 ? Math.sign(targetVelocity) : 0;
+            const inputDir = CONTROL_ACTION_STATE.moveLeft ? -1 : (CONTROL_ACTION_STATE.moveRight ? 1 : (Math.abs(gamepadMoveInput) > 0.2 ? Math.sign(gamepadMoveInput) : mobileInputDir));
             const velocityDir = Math.abs(currentStrafeVelocity) > 0.03 ? Math.sign(currentStrafeVelocity) : 0;
             if (Math.abs(snowIceRoadSlipDir) < 0.05) {
                 snowIceRoadSlipDir = inputDir || lookSlipDir || velocityDir || 0;
@@ -24071,11 +24624,27 @@ function cancelLaneAnimationForLavaDrop() {
         shakeIntense = Math.min(0.06, score * 0.00008) + earthquakeIntensity + impactShake;
         const sX = (Math.random() - 0.5) * shakeIntense; const sY = (Math.random() - 0.5) * shakeIntense; const sZ = (Math.random() - 0.5) * shakeIntense;
         const feetY = player.position.y - (actualPhysicsHeight / 2); const eyeHeightFromFeet = currentCameraHeight - 0.3;
-        camera.position.set(player.position.x + sX, feetY + eyeHeightFromFeet + bY + sY + impY, player.position.z + bZ + sZ);
         const iceSlipTilt = (snowIceRoadSlipTimer > 0 ? snowIceRoadSlipDir * Math.min(0.08, snowIceRoadSlipSpeed * 0.006) : 0);
-        const tilt = (-currentStrafeVelocity * 0.15) + iceSlipTilt; camera.rotation.set(pitch + currentSlideTilt, yaw, tilt, 'YXZ');
-        
-        const targetFov = 85 + (score * 0.0015) + (bhopCombo * 1.5); 
+        const tilt = (-currentStrafeVelocity * 0.15) + iceSlipTilt;
+        let targetFov;
+        updatePortraitRunnerAvatar();
+        if (isMobilePortraitLayout()) {
+            portraitCameraPosition.set(
+                player.position.x - 15.5 + sX,
+                feetY + 8.2 + sY + impY * 0.25,
+                player.position.z + sZ
+            );
+            camera.position.lerp(portraitCameraPosition, Math.min(1, delta * 9));
+            portraitCameraLookAt.set(player.position.x + 15, feetY + 3.0, player.position.z);
+            camera.lookAt(portraitCameraLookAt);
+            camera.rotateZ(tilt * 0.26);
+            targetFov = 68 + Math.min(7, score * 0.0006) + Math.min(4, bhopCombo * 0.65);
+        } else {
+            camera.position.set(player.position.x + sX, feetY + eyeHeightFromFeet + bY + sY + impY, player.position.z + bZ + sZ);
+            camera.rotation.set(pitch + currentSlideTilt, yaw, tilt, 'YXZ');
+            targetFov = 85 + (score * 0.0015) + (bhopCombo * 1.5);
+        }
+
         currentFov += (targetFov - currentFov) * 3.0 * delta; 
         
         camera.fov = Math.min(110, currentFov); 
@@ -26276,7 +26845,7 @@ function ensureElementalMountainPeakGeos() {
     if (elementalMountainPeakGeos.length) return;
     for (const seed of [1049, 1061, 1087, 1093]) {
         const rnd = natSeedRand(seed);
-        const geo = new THREE.CylinderGeometry(16 + rnd() * 5, 52, 62, 16, 8, false);
+        const geo = new THREE.CylinderGeometry(14 + rnd() * 4, 52, 62, 20, 10, false);
         geo.translate(0, 31, 0);
         const pos = geo.attributes.position;
         const leanX = (rnd() - 0.5) * 8;
@@ -26285,15 +26854,24 @@ function ensureElementalMountainPeakGeos() {
             const y = pos.getY(i);
             const t = Math.max(0, Math.min(1, y / 62));
             const angle = Math.atan2(pos.getZ(i), pos.getX(i));
+            // Periodic deformation keeps duplicated seam vertices identical. The old
+            // per-vertex random offset split the ±PI seam and exposed the mountain interior.
             const shelf = 1
-                + Math.sin(t * Math.PI * 3.2 + angle * 1.35) * 0.042
-                + Math.sin(angle * 2.4 + seed) * 0.026;
-            const roughness = (1 - t * 0.58) * (2.2 + rnd() * 2.8);
-            pos.setX(i, pos.getX(i) * shelf + (rnd() - 0.5) * roughness + leanX * t);
-            pos.setZ(i, pos.getZ(i) * shelf + (rnd() - 0.5) * roughness + leanZ * t);
-            pos.setY(i, y + (rnd() - 0.5) * (t > 0.84 ? 2.8 : 2.1));
+                + Math.sin(t * Math.PI * 3.15 + angle * 2 + seed * 0.013) * 0.038
+                + Math.sin(angle * 4 + seed * 0.021) * 0.022;
+            const ridge = (1 - t * 0.62) * (
+                Math.sin(angle * 3 + t * Math.PI * 2.1 + seed * 0.017) * 2.1
+                + Math.sin(angle * 7 - t * Math.PI * 1.4 + seed * 0.009) * 0.75
+            );
+            const radialX = Math.cos(angle) * ridge;
+            const radialZ = Math.sin(angle) * ridge;
+            pos.setX(i, pos.getX(i) * shelf + radialX + leanX * t);
+            pos.setZ(i, pos.getZ(i) * shelf + radialZ + leanZ * t);
+            pos.setY(i, y + Math.sin(angle * 5 + t * Math.PI * 4 + seed * 0.011) * (t > 0.84 ? 1.35 : 0.82));
         }
+        pos.needsUpdate = true;
         geo.computeVertexNormals();
+        geo.computeBoundingBox();
         geo.computeBoundingSphere();
         lavaModelGeoms.push(geo);
         elementalMountainPeakGeos.push(geo);
@@ -26399,28 +26977,39 @@ function buildElementalMountainGroup(theme, style, seed) {
     } else {
         const waterfallCount = style === 'range' ? 8 : (style === 'twin' ? 5 : 4);
         for (let i = 0; i < waterfallCount; i++) {
-            const h = 58 + rnd() * 38;
+            const anchor = layouts[i % layouts.length];
             const width = 5.2 + rnd() * 3.8;
-            const fall = new THREE.Mesh(createLavaRibbonGeometry(h, width, 1.2, 10), mats.waterGlow);
-            const spread = style === 'range' ? 62 : 34;
-            const fallX = (i - (waterfallCount - 1) * 0.5) * spread + (rnd() - 0.5) * 10;
-            const fallZ = 48 + rnd() * 9;
+            const fallX = anchor.x + (rnd() - 0.5) * anchor.sx * 18;
+            const peakHeight = anchor.sy * 62;
+            const topY = peakHeight * (0.54 + rnd() * 0.16);
+            const bottomY = 0.35;
+            const topT = Math.max(0, Math.min(1, topY / peakHeight));
+            const topRadius = (52 + (15 - 52) * topT) * anchor.sz;
+            const bottomRadius = 52 * anchor.sz;
+            const topZ = anchor.z + topRadius + 0.9;
+            const bottomZ = anchor.z + bottomRadius + 2.2;
+            const verticalSpan = Math.max(12, topY - bottomY);
+            const depthSpan = Math.max(0, bottomZ - topZ);
+            const ribbonLength = Math.hypot(verticalSpan, depthSpan);
+            const slopeAngle = -Math.atan2(depthSpan, verticalSpan);
+            const fallZ = (topZ + bottomZ) * 0.5;
+            const fall = new THREE.Mesh(createLavaRibbonGeometry(ribbonLength, width, 1.0, 12), mats.waterGlow);
             fall.name = 'waterfall_ribbon';
-            fall.position.set(fallX, h * 0.5 + 0.55, fallZ);
-            fall.rotation.x = (rnd() - 0.5) * 0.06;
+            fall.position.set(fallX, (topY + bottomY) * 0.5, fallZ);
+            fall.rotation.x = slopeAngle;
             fall.rotation.z = (rnd() - 0.5) * 0.14;
             group.add(fall);
 
-            const foam = new THREE.Mesh(createLavaRibbonGeometry(h * 0.92, width * 0.28, 0.26, 10), mats.waterFoam);
+            const foam = new THREE.Mesh(createLavaRibbonGeometry(ribbonLength * 0.965, width * 0.27, 0.22, 12), mats.waterFoam);
             foam.name = 'waterfall_foam';
-            foam.position.set(fallX, h * 0.46 + 0.7, fallZ + 0.72);
+            foam.position.set(fallX, (topY + bottomY) * 0.5, fallZ + 0.64);
             foam.rotation.copy(fall.rotation);
             group.add(foam);
 
             const pool = new THREE.Mesh(geoms.lavaBoulder, mats.waterGlow);
             pool.name = 'waterfall_pool';
-            pool.scale.set(width * 1.15, 0.34, width * 0.72);
-            pool.position.set(fallX + (rnd() - 0.5) * 2.5, 0.2, fallZ + 1.4);
+            pool.scale.set(width * 1.3, 0.28, width * 0.88);
+            pool.position.set(fallX + (rnd() - 0.5) * 2.0, 0.08, bottomZ + 0.8);
             pool.rotation.y = rnd() * Math.PI;
             group.add(pool);
         }

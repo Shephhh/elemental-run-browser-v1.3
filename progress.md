@@ -131,3 +131,21 @@ TODO:
 - Rebuilt Water waterfalls and Lava channels as rounded, beveled, multi-frequency spline ribbons. Waterfalls now reach the ground, terminate in irregular pools, and carry a narrow foam highlight; Lava channels use the same organic silhouette with a hot inner highlight.
 - Automated Water QA reported 17 mountains, 34 fluid meshes, minimum fluid height below the terrain surface, and zero mountain overlap pairs. A fresh Snow QA run reported zero mountain overlap pairs. Browser console/page errors remained empty.
 - Bumped the service-worker shell cache so returning browser/mobile players receive the terrain and fluid update.
+## 2026-07-28 - Mobile control split, portrait runner camera, and mountain seam repair
+
+- Rebuilt elemental mountain peak deformation with periodic seam-safe harmonics, denser capped geometry, regenerated normals, and stable bounds. Duplicate cylinder seam vertices now receive identical offsets, preventing open cracks/backface exposure.
+- Re-anchored Water mountain waterfall ribbons to the actual generated peak slope. Top/bottom points, length, angle, foam, and pool placement now follow the mountain silhouette instead of floating as independent vertical strips.
+- Raised mobile visual quality without removing the adaptive safety net: quality-aware DPR/render-distance tiers, improved mobile render targets, selective high-quality cyber geometry, and shadows that turn off only when runtime performance pressure is detected.
+- Added responsive compact HUD/menu/settings/upgrades/daily/leaderboard/game-over layouts for both phone orientations.
+- Split mobile input into independent modules:
+  - Portrait: fixed third-person runner camera, lightweight animated runner avatar, swipe lane changes, swipe jump/slide.
+  - Landscape: left movement/action joystick and right free-look joystick.
+  - Shared double-tap activates only manual `timeSlow` / `magnet` abilities; passive/mechanical `doubleJump` is deliberately excluded.
+- Added orientation-safe state resets, mobile layout telemetry, and QA hooks.
+- QA:
+  - Inline JavaScript parse passed.
+  - Playwright desktop, 844×390 mobile landscape, and 390×844 mobile portrait sessions reported no console/page errors.
+  - Real pointer drags verified landscape movement/free-look; real portrait swipes verified lane shift and jump.
+  - Real double taps activated Time Slow and did not consume Double Jump.
+  - Water map screenshot inspection confirmed slope-attached waterfalls and closed mountain surfaces.
+  - Official `web_game_playwright_client.js` produced two state snapshots with no `errors-*.json` output.
