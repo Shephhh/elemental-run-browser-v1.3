@@ -149,3 +149,19 @@ TODO:
   - Real double taps activated Time Slow and did not consume Double Jump.
   - Water map screenshot inspection confirmed slope-attached waterfalls and closed mountain surfaces.
   - Official `web_game_playwright_client.js` produced two state snapshots with no `errors-*.json` output.
+
+## 2026-07-28 - First-person mobile controls, desktop-quality tiers, and automatic locale
+
+- Removed the portrait third-person camera, runner avatar, free-look state, and right joystick. Both phone orientations now use the original first-person camera and first-person hands.
+- Portrait retains lane-based horizontal swipes plus vertical jump/slide swipes. Landscape uses one left joystick for unrestricted lateral movement; horizontal swipes are ignored and vertical swipes jump/slide.
+- Mobile Balanced, High, and Ultra now use the matching desktop presets, cyber density, draw distance, shadows, post-processing, map particles, vehicle models, and hand model. Only Performance keeps the reduced mobile presentation.
+- Reflowed the landscape menu to the viewport center, made the Steam link a third circular reward-dock item, and normalized score/gold panel columns and icon sizing.
+- Added navigator-locale detection plus country refinement through the CORS-enabled country.is endpoint. Manual language selection remains authoritative.
+- Completed all six daily-mission templates and reward/status copy for every one of the 30 supported languages; number formatting now follows the active locale.
+- QA:
+  - Inline JavaScript parse and `git diff --check` passed.
+  - 390×844 and 844×390 mobile sessions had no page or console errors.
+  - Landscape horizontal swipe produced no lane target; the joystick moved freely and vertical swipe jumped. Portrait horizontal swipe still selected the next lane.
+  - High mobile reported 1120 draw distance, detailed cyber buildings, shadows, desktop-density cyber decor, and ready/visible first-person hands.
+  - Localization audit reported 30 supported languages with zero missing UI, onboarding, daily-mission, or browser copy packs.
+  - Official `web_game_playwright_client.js` completed with a main-menu state snapshot and no error report.

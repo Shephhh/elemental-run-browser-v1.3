@@ -135,6 +135,24 @@
 .browser-reward-ad-icon rect { fill: rgba(3, 15, 24, .14); stroke: currentColor; stroke-width: 2; }
 .browser-reward-ad-icon path { fill: currentColor; }
 .browser-reward-wrapper { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.browser-steam-wrapper { display: none; }
+.browser-steam-orb {
+  width: clamp(84px, 7.2vw, 112px);
+  height: clamp(84px, 7.2vw, 112px);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 3px solid rgba(255, 255, 255, .72);
+  border-radius: 50%;
+  color: #dff6ff;
+  background: radial-gradient(circle at 34% 27%, rgba(255,255,255,.34), transparent 28%), linear-gradient(145deg, #2396d7, #12659c 52%, #09263e);
+  box-shadow: inset 0 0 0 4px rgba(5, 20, 33, .2), inset -8px -10px 18px rgba(0,0,0,.2), 0 8px 28px rgba(36, 160, 230, .42);
+  pointer-events: auto;
+  transition: filter .16s ease, box-shadow .16s ease;
+}
+.browser-steam-orb svg { width: 48%; height: 48%; filter: drop-shadow(0 0 8px rgba(133, 224, 255, .35)); }
+.browser-steam-orb:hover,
+.browser-steam-orb:focus-visible { filter: brightness(1.14) saturate(1.12); box-shadow: inset 0 0 0 4px rgba(255,255,255,.12), 0 11px 36px rgba(36,160,230,.5); }
 .browser-reward-label {
   display: block;
   font-size: clamp(9px, 0.9vw, 12px);
@@ -147,6 +165,7 @@
 }
 .browser-reward-label.is-score-label { color: #64ffb7; }
 .browser-reward-label.is-gold-label { color: #ffc33f; }
+.browser-reward-label.is-steam-label { color: #69c7ff; }
 @keyframes browserRewardFloat { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3px) scale(1.07); } }
 @keyframes browserRewardRing { 0% { transform: scale(.92); opacity: .66; } 68%, 100% { transform: scale(1.14); opacity: 0; } }
 
@@ -262,7 +281,14 @@ body.rewarded-death-delay::after {
 }
 
 @media (max-height: 650px) and (orientation: landscape) {
-  #main-menu .menu-button-stack { top: 25vh; width: min(360px, 40vw); gap: 5px; }
+  body.mobile-runtime #main-menu .menu-button-stack {
+    left: 50%;
+    right: auto;
+    top: 94px;
+    width: min(390px, 44vw);
+    gap: 5px;
+    transform: translateX(-50%);
+  }
   #main-menu .menu-button { height: 48px; grid-template-columns: 58px 1fr; font-size: 17px; }
   #main-menu .menu-button-icon { width: 58px; }
   #main-menu .menu-button-icon svg { width: 29px; height: 29px; }
@@ -276,12 +302,15 @@ body.rewarded-death-delay::after {
 }
 
 @media (orientation: landscape) and (max-height: 560px) {
+  body.mobile-runtime #menu-steam-link { display: none !important; }
+  body.mobile-runtime .browser-steam-wrapper { display: flex; }
   body.mobile-runtime .browser-reward-dock {
     top: max(92px, calc(env(safe-area-inset-top) + 82px));
     right: max(18px, calc(env(safe-area-inset-right) + 12px));
   }
   body.mobile-runtime .browser-reward-actions { gap: 10px; }
   body.mobile-runtime #main-menu .browser-reward-btn { width: 64px; height: 64px; border-width: 2px; }
+  body.mobile-runtime #main-menu .browser-steam-orb { width: 64px; height: 64px; border-width: 2px; }
   body.mobile-runtime .browser-reward-value { font-size: 20px; }
   body.mobile-runtime .browser-reward-ad-icon { width: 19px; }
   body.mobile-runtime .browser-reward-label { font-size: 8px; letter-spacing: .8px; }
