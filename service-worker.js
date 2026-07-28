@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-14-shadow-floating-stick';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-15-stable-shadows-frame-pacing';
 const SHELL = [
   './',
   './index.html',

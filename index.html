@@ -10,7 +10,7 @@
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.3.5-shadow-floating-stick">
+    <meta name="elemental-run-build" content="1.3.6-stable-shadows-frame-pacing">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -5971,6 +5971,10 @@
         (Number(navigator.deviceMemory) > 0 && Number(navigator.deviceMemory) <= 4)
         || (Number(navigator.hardwareConcurrency) > 0 && Number(navigator.hardwareConcurrency) <= 4)
     );
+    const RUNTIME_LOW_POWER = (
+        (Number(navigator.deviceMemory) > 0 && Number(navigator.deviceMemory) <= 4)
+        || (Number(navigator.hardwareConcurrency) > 0 && Number(navigator.hardwareConcurrency) <= 4)
+    );
     let nextNatureSpawnX = 0;
     let scene, camera, renderer, player, clock, dirLight;
     // --- Cinematic GFX module state ---
@@ -9760,13 +9764,15 @@ let skyClouds = [];
     let adaptiveLowFpsSeconds = 0;
     let adaptiveCriticalFpsSeconds = 0;
     let adaptiveRecoverySeconds = 0;
+    let adaptiveRunSeconds = 0;
+    let adaptiveLastLevelChangeAt = 0;
 
     function setAdaptivePerfLevel(nextLevel) {
         const level = Math.max(0, Math.min(2, Math.floor(nextLevel) || 0));
         if (level === adaptivePerfLevel) return;
         adaptivePerfLevel = level;
         adaptiveRecoverySeconds = 0;
-        cityInstanceLayoutDirty = true;
+        adaptiveLastLevelChangeAt = adaptiveRunSeconds;
         applyGraphicsQuality();
         if (timeSlowActive && !gfxComposerActive && !timeSlowGrayMats) collectTimeSlowGrayTargets();
     }
@@ -9787,9 +9793,20 @@ let skyClouds = [];
     function updateDynamicResolution(rawFrameDelta) {
         if (!renderer || isGamePaused || mainMenuVisible || !runStartedFromMenu) return;
         const sampleDelta = Math.max(0, Math.min(0.25, rawFrameDelta || 0));
+        adaptiveRunSeconds += sampleDelta;
         const criticalFps = MOBILE_RUNTIME ? 39 : 34;
         const lowFps = MOBILE_RUNTIME ? 53 : 49;
         const recoverFps = MOBILE_RUNTIME ? 58 : 56;
+
+        // Ignore tab restores/debug pauses and let initial shaders settle before
+        // judging the hardware. These one-off stalls previously caused an
+        // immediate quality flip and a visible shadow pop.
+        if (rawFrameDelta > 0.18) {
+            adaptiveLowFpsSeconds = Math.max(0, adaptiveLowFpsSeconds - sampleDelta);
+            adaptiveCriticalFpsSeconds = Math.max(0, adaptiveCriticalFpsSeconds - sampleDelta);
+            return;
+        }
+        if (adaptiveRunSeconds < 2.5) return;
 
         if (smoothedFps < lowFps) {
             adaptiveLowFpsSeconds += sampleDelta;
@@ -9800,12 +9817,16 @@ let skyClouds = [];
         if (smoothedFps < criticalFps) adaptiveCriticalFpsSeconds += sampleDelta;
         else adaptiveCriticalFpsSeconds = Math.max(0, adaptiveCriticalFpsSeconds - sampleDelta);
 
-        if (adaptiveCriticalFpsSeconds > 0.45) setAdaptivePerfLevel(2);
-        else if (adaptiveLowFpsSeconds > 0.75 && adaptivePerfLevel < 1) setAdaptivePerfLevel(1);
+        if (adaptiveCriticalFpsSeconds > 2.2) setAdaptivePerfLevel(2);
+        else if (adaptiveLowFpsSeconds > 1.4 && adaptivePerfLevel < 1) setAdaptivePerfLevel(1);
 
         if (smoothedFps > recoverFps) {
             adaptiveRecoverySeconds += sampleDelta;
-            if (adaptiveRecoverySeconds > (adaptivePerfLevel === 2 ? 4.5 : 6.5)) {
+            // Recovery is intentionally very slow. Rapid 2 -> 1 -> 2 oscillation
+            // rebuilt render targets and caused periodic freezes on borderline PCs.
+            if (adaptivePerfLevel > 0
+                && adaptiveRecoverySeconds > 24
+                && adaptiveRunSeconds - adaptiveLastLevelChangeAt > 24) {
                 setAdaptivePerfLevel(adaptivePerfLevel - 1);
                 adaptiveLowFpsSeconds = 0;
                 adaptiveCriticalFpsSeconds = 0;
@@ -9951,12 +9972,26 @@ let skyClouds = [];
         gfxColorReady = true;
     }
 
+    function shouldRenderDynamicShadows(preset = getQualityPreset()) {
+        return !!preset.shadows
+            && (typeof gamePhase === 'undefined' || gamePhase === 0);
+    }
+
+    function getRuntimeShadowMapSize(preset = getQualityPreset()) {
+        const requested = Math.max(512, Number(preset.shadowMapSize) || 1024);
+        const maxTexture = renderer?.capabilities?.maxTextureSize || 4096;
+        let cap = 2048;
+        if (RUNTIME_LOW_POWER) cap = 1024;
+        else if (MOBILE_RUNTIME && menuState.graphicsQuality !== 'ultra') cap = 1024;
+        return Math.max(512, Math.min(requested, cap, maxTexture));
+    }
+
     function applyGfxQuality(preset) {
         if (!renderer) return;
         if (GFX_CINEMATIC_COLOR) renderer.toneMappingExposure = preset.exposure || GFX_DEFAULT_EXPOSURE;
         if (renderer.shadowMap) renderer.shadowMap.type = preset.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
         if (dirLight && dirLight.shadow) {
-            const szl = preset.shadowMapSize || 2048;
+            const szl = getRuntimeShadowMapSize(preset);
             if (dirLight.shadow.mapSize.width !== szl) {
                 dirLight.shadow.mapSize.set(szl, szl);
                 if (dirLight.shadow.map) { dirLight.shadow.map.dispose(); dirLight.shadow.map = null; }
@@ -10009,9 +10044,7 @@ let skyClouds = [];
             const dpr = gfxComputePixelRatio(preset);
             if (typeof renderer.setPixelRatio === 'function') renderer.setPixelRatio(dpr);
             if (renderer.shadowMap) {
-                const shadowsEnabled = !!preset.shadows
-                    && adaptivePerfLevel < 2
-                    && (typeof gamePhase === 'undefined' || gamePhase === 0);
+                const shadowsEnabled = shouldRenderDynamicShadows(preset);
                 renderer.shadowMap.enabled = shadowsEnabled;
                 renderer.shadowMap.autoUpdate = false;
                 renderer.shadowMap.needsUpdate = true;
@@ -10019,9 +10052,7 @@ let skyClouds = [];
             applyGfxQuality(preset);
         }
         if (dirLight) {
-            dirLight.castShadow = !!preset.shadows
-                && adaptivePerfLevel < 2
-                && (typeof gamePhase === 'undefined' || gamePhase === 0);
+            dirLight.castShadow = shouldRenderDynamicShadows(preset);
         }
         applyDisplayMode(false);
     }
@@ -11485,16 +11516,13 @@ let skyClouds = [];
     }
 
     function getShadowRefreshInterval() {
-        if (adaptivePerfLevel >= 2) return Number.POSITIVE_INFINITY;
+        if (!shouldRenderDynamicShadows()) return Number.POSITIVE_INFINITY;
         const quality = menuState.graphicsQuality;
-        let interval = quality === 'ultra' ? 1 : (quality === 'high' ? 2 : 3);
-        // The world moves toward the fixed first-person camera. A frozen mobile
-        // shadow map leaves shadows visibly detached from vehicles and obstacles.
-        // Performance mode already disables shadows, so other phone tiers can
-        // safely refresh them at this restrained cadence.
-        if (MOBILE_RUNTIME) interval += quality === 'ultra' ? 0 : 1;
-        if (adaptivePerfLevel === 1) interval += 2;
-        if (smoothedFps < 48) interval += 1;
+        let interval = quality === 'ultra' ? 2 : (quality === 'high' ? 4 : 6);
+        if (MOBILE_RUNTIME) interval += 2;
+        if (RUNTIME_LOW_POWER) interval += 2;
+        interval += adaptivePerfLevel * 3;
+        if (smoothedFps < 48) interval += 2;
         return interval;
     }
 
@@ -12450,6 +12478,8 @@ let skyClouds = [];
         adaptiveLowFpsSeconds = 0;
         adaptiveCriticalFpsSeconds = 0;
         adaptiveRecoverySeconds = 0;
+        adaptiveRunSeconds = 0;
+        adaptiveLastLevelChangeAt = 0;
         adaptiveRenderDistance = getRuntimeRenderDistanceTarget();
         smoothedFps = 60;
         gfxDynResScale = 1;
@@ -12859,8 +12889,12 @@ nextSnowballX = 0;
             }
             
             const tunnelElapsed = clock.getElapsedTime();
-            const updateTunnelParticlesThisFrame = !MOBILE_RUNTIME || (hudTick % 2 === 0);
+            const tunnelParticleStride = adaptivePerfLevel >= 2
+                ? 4
+                : (adaptivePerfLevel === 1 || MOBILE_RUNTIME || RUNTIME_LOW_POWER ? 2 : 1);
+            const updateTunnelParticlesThisFrame = hudTick % tunnelParticleStride === 0;
             tunnels.forEach(t => { 
+                if (t?.mesh && !t.mesh.visible) return;
                 t.mesh.children.forEach(child => {
                     if (updateTunnelParticlesThisFrame && child.userData && child.userData.isTunnelParticle) {
                         const positions = child.geometry.attributes.position.array;
@@ -12882,9 +12916,12 @@ nextSnowballX = 0;
         }
         updateViewmodelHands(realDelta);
         applyTimeSlowVisuals();
-        updateTimeSlowUi();
-        updateMagnetUi();
+        if (hudTick % 3 === 0) {
+            updateTimeSlowUi();
+            updateMagnetUi();
+        }
         applyWorldRebase();
+        if (renderer.info && typeof renderer.info.reset === 'function') renderer.info.reset();
         if (gfxComposerActive && gfxComposer) gfxComposer.render();
         else renderer.render(scene, camera);
         renderViewmodelOverlay();
@@ -12999,6 +13036,7 @@ nextSnowballX = 0;
                 mobile: {
                     runtime: MOBILE_RUNTIME,
                     lowEndProfile: MOBILE_LOW_END,
+                    lowPowerHardware: RUNTIME_LOW_POWER,
                     layout: mobileLayoutMode,
                     controlsVisible: mobileControlsVisible,
                     moveX: roundForText(mobileMoveX, 2),
@@ -13008,6 +13046,7 @@ nextSnowballX = 0;
                     renderDistance: adaptiveRenderDistance,
                     smoothedFps: roundForText(smoothedFps, 1),
                     adaptivePerformanceLevel: adaptivePerfLevel,
+                    adaptiveRunSeconds: roundForText(adaptiveRunSeconds, 2),
                     dynamicResolutionScale: roundForText(gfxDynResScale, 2),
                     cyberBuildingTier: activeCyberBuildingTier,
                     cyberBuildingCount: cityBuildings.length,
@@ -13027,6 +13066,7 @@ nextSnowballX = 0;
                     }, 0),
                     shadowRefreshInterval: Number.isFinite(getShadowRefreshInterval()) ? getShadowRefreshInterval() : null,
                     shadowsEnabled: !!(renderer && renderer.shadowMap && renderer.shadowMap.enabled),
+                    shadowMapSize: dirLight?.shadow?.mapSize?.width || null,
                     drawCalls: renderer && renderer.info ? renderer.info.render.calls : null,
                     triangles: renderer && renderer.info ? renderer.info.render.triangles : null,
                     points: renderer && renderer.info ? renderer.info.render.points : null
@@ -13222,6 +13262,10 @@ nextSnowballX = 0;
             },
             setInvulnerable: (active = true) => {
                 localQaInvulnerable = !!active;
+                return renderGameToText();
+            },
+            setAdaptivePerformanceLevel: (level = 0) => {
+                setAdaptivePerfLevel(Math.max(0, Math.min(2, Math.floor(Number(level)) || 0)));
                 return renderGameToText();
             },
             settleMapTransition: () => {
@@ -13950,10 +13994,7 @@ if (gfxBloomPass && gamePhase !== gfxLastBloomPhase) {
 }
 
 if (renderer && dirLight) {
-    const presetAllowsShadows = !!getQualityPreset().shadows;
-    const shadowsOn = gamePhase === 0
-        && presetAllowsShadows
-        && adaptivePerfLevel < 2;
+    const shadowsOn = shouldRenderDynamicShadows();
     
     // GÃ¶lge motorunu (shadowMap) tamamen kapatÄ±p kasmaya yol aÃ§mak yerine, 
     // sadece Ä±ÅŸÄ±ÄŸÄ±n gÃ¶lge kamerasÄ±nÄ± devre dÄ±ÅŸÄ± bÄ±rakÄ±yoruz.
@@ -14562,6 +14603,10 @@ if (renderer && dirLight) {
 
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
         renderer.setSize(window.innerWidth, window.innerHeight);
+        // Accumulate the world, post-process and viewmodel passes as one frame.
+        // Manual reset before rendering makes diagnostics truthful and avoids
+        // Three.js reporting only the final two-call hand overlay.
+        renderer.info.autoReset = false;
         // Cinematic color pipeline (optional): sRGB output + ACES filmic tone mapping.
         // Default off to preserve the original neon palette; additive effects still apply.
         if (GFX_CINEMATIC_COLOR) {
@@ -15002,8 +15047,13 @@ if (renderer && dirLight) {
     // warmGlbType guard'a takılıp false dönmüş olabilir).
     let vehicleGlbLoadsStarted = false;
 
+    function shouldUseProceduralVehicleModels() {
+        return isMobilePerformanceGraphics()
+            || (RUNTIME_LOW_POWER && menuState.graphicsQuality !== 'ultra');
+    }
+
     function startVehicleModelLoads() {
-        if (isMobilePerformanceGraphics() || vehicleGlbLoadsStarted) return;
+        if (shouldUseProceduralVehicleModels() || vehicleGlbLoadsStarted) return;
         vehicleGlbLoadsStarted = true;
         loadCarGlb();
         loadTrainGlb();
@@ -15011,11 +15061,19 @@ if (renderer && dirLight) {
     }
 
     function scheduleVehicleModelLoads() {
-        if (isMobilePerformanceGraphics() || vehicleGlbLoadsStarted) return;
+        if (shouldUseProceduralVehicleModels() || vehicleGlbLoadsStarted) return;
         const scheduledAt = performance.now();
         const waitForHands = () => {
             if (!menuState.handsEnabled || viewmodelGlbSettled || performance.now() - scheduledAt > 30000) {
-                const start = () => startVehicleModelLoads();
+                const start = () => {
+                    // Never begin large GLB download/decode work during a run.
+                    // Procedural traffic remains available until the next idle menu.
+                    if (!mainMenuVisible || !isGamePaused || performance.now() - scheduledAt < 1800) {
+                        setTimeout(waitForHands, 1400);
+                        return;
+                    }
+                    startVehicleModelLoads();
+                };
                 if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 2500 });
                 else setTimeout(start, 1200);
                 return;
@@ -17551,7 +17609,9 @@ if (renderer && dirLight) {
     }
     
     function createSky() {
-        const starGeo = new THREE.BufferGeometry(); const starCount = isMobilePerformanceGraphics() ? 800 : 3000; const starPos = new Float32Array(starCount * 3);
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = isMobilePerformanceGraphics() ? 800 : (RUNTIME_LOW_POWER ? 1600 : 3000);
+        const starPos = new Float32Array(starCount * 3);
         const starCol = new Float32Array(starCount * 3);
         for(let i=0; i<starCount; i++) {
             starPos[i*3] = (Math.random() - 0.5) * 3000;
@@ -17967,7 +18027,9 @@ if (renderer && dirLight) {
 
     function getRequestedCyberBuildingTier() {
         const quality = menuState.graphicsQuality;
-        return (quality === 'performance' || quality === 'balanced') ? 'lite' : 'detailed';
+        return (quality === 'performance'
+            || quality === 'balanced'
+            || (RUNTIME_LOW_POWER && quality !== 'ultra')) ? 'lite' : 'detailed';
     }
 
     function ensureCyberBuildingTypes(){
@@ -18282,9 +18344,10 @@ if (renderer && dirLight) {
             high: { edgeCount: 24, edgeStep: 31, shopCount: 2, shopStep: 430, chevronCount: 15, chevronStep: 58, carCount: 4 },
             ultra: { edgeCount: 28, edgeStep: 27, shopCount: 2, shopStep: 380, chevronCount: 18, chevronStep: 52, carCount: 5 }
         };
-        const decorProfile = MOBILE_RUNTIME && quality === 'performance'
-            ? mobileDecorProfiles.performance
-            : decorProfiles[quality];
+        const lowPowerDesktopQuality = RUNTIME_LOW_POWER && quality === 'high' ? 'balanced' : quality;
+        const decorProfile = MOBILE_RUNTIME
+            ? mobileDecorProfiles[quality]
+            : decorProfiles[lowPowerDesktopQuality];
         const COUNT=decorProfile.edgeCount, STEP=decorProfile.edgeStep; const span=COUNT*STEP;
         for(const side of [-1,1]){
             for(let i=0;i<COUNT;i++){
@@ -18455,13 +18518,14 @@ if (renderer && dirLight) {
                 { count: 16, layerType: 2, minZOffset: 150 }
             ]
         };
+        const effectiveLayerQuality = RUNTIME_LOW_POWER && quality === 'high' ? 'balanced' : quality;
         const layers = MOBILE_RUNTIME
             ? [
                 { count: 16, layerType: 0, minZOffset: 0 },
                 { count: 8, layerType: 1, minZOffset: 78 },
                 { count: 4, layerType: 2, minZOffset: 165 }
             ]
-            : layerProfiles[quality];
+            : layerProfiles[effectiveLayerQuality];
         
         const rangeX = 1500;
         const originX = player ? player.position.x : 0;
@@ -19951,7 +20015,10 @@ function getNatureVisibleAheadDistance() {
 }
 
 function getNatureObjectAheadLimit(type, aheadDistance) {
-    return aheadDistance + (type === 'mountain' ? NATURE_MOUNTAIN_VISIBLE_AHEAD_EXTRA : NATURE_SCENERY_VISIBLE_AHEAD_EXTRA);
+    const mountainScale = adaptivePerfLevel >= 2 ? 0.55 : (adaptivePerfLevel === 1 ? 0.76 : 1);
+    return aheadDistance + (type === 'mountain'
+        ? NATURE_MOUNTAIN_VISIBLE_AHEAD_EXTRA * mountainScale
+        : NATURE_SCENERY_VISIBLE_AHEAD_EXTRA);
 }
 
 function updateNatureMountainReveal(obj, aheadDistance) {
@@ -19980,7 +20047,7 @@ function shouldCullNatureObject(obj, aheadDistance) {
     const type = obj.userData.natureType;
     const behindLimit = type === 'mountain' ? NATURE_REMOVE_BEHIND_MOUNTAIN : NATURE_REMOVE_BEHIND_NEAR;
     const aheadLimit = type === 'mountain'
-        ? aheadDistance + NATURE_MOUNTAIN_CULL_AHEAD_EXTRA
+        ? aheadDistance + NATURE_MOUNTAIN_CULL_AHEAD_EXTRA * (adaptivePerfLevel >= 2 ? 0.58 : (adaptivePerfLevel === 1 ? 0.78 : 1))
         : aheadDistance + NATURE_SCENERY_CULL_AHEAD_EXTRA;
     const dx = obj.position.x - player.position.x;
     return dx < -behindLimit || dx > aheadLimit + 220;
@@ -20092,7 +20159,9 @@ function updateNature(delta) {
         }
     }
 
-    if (natureFloor && natureFloor.visible && natureFloor.userData.leafSystem) {
+    const natureParticleStride = adaptivePerfLevel >= 2 || RUNTIME_LOW_POWER ? 2 : 1;
+    if (natureFloor && natureFloor.visible && natureFloor.userData.leafSystem
+        && hudTick % natureParticleStride === 0) {
         const leaves = natureFloor.userData.leafSystem;
         leaves.visible = true;
 
@@ -20102,8 +20171,8 @@ function updateNature(delta) {
         const time = clock.getElapsedTime();
 
         for (let i = 0; i < speeds.length; i++) {
-            positions[i * 3 + 1] -= speeds[i].y;
-            positions[i * 3] -= moveSpeed * 1.5 * (currentFrameScale || 1);
+            positions[i * 3 + 1] -= speeds[i].y * natureParticleStride;
+            positions[i * 3] -= moveSpeed * 1.5 * (currentFrameScale || 1) * natureParticleStride;
             positions[i * 3] += Math.sin(time * 2.0 + i) * 0.1;
             positions[i * 3 + 2] += Math.cos(time * 1.5 + i) * 0.05;
 
@@ -24026,7 +24095,7 @@ function cancelLaneAnimationForLavaDrop() {
         } else if (bhopContainer) { bhopContainer.classList.remove('bhop-active'); }
         if (jumpQueue) { jumpQueueTimer -= delta; if (jumpQueueTimer <= 0) { jumpQueue = false; if (isJumping) bhopAttemptFailed = true; } }
         if (doubleJumpCooldownTimer > 0) doubleJumpCooldownTimer = Math.max(0, doubleJumpCooldownTimer - delta);
-        updateDoubleJumpCooldownUi();
+        if (hudTick % 3 === 0) updateDoubleJumpCooldownUi();
         if (!isJumping && bhopCombo > 0 && elapsedTime - lastLandTime > bhopWindow + 0.1) { bhopCombo = 0; }
         if (!isAnimatingLane && !lavaDropTransitionActive && Math.floor(score) >= getNextLaneAdditionScore()) startLaneAddition();
         if (isSliding) {
@@ -31084,8 +31153,12 @@ function updateSkyDecor(delta, allowSpawn = true) {
 
         // FPS: sis penceresi dışındaki dekoru çizme (dağ silüetleri dev — daha geniş pencere)
         const ddx = obj.position.x - player.position.x;
-        const aheadWin = (obj.userData && obj.userData.decorType === 'mountain') ? 2200 : 1500;
-        obj.visible = (skyAlpha > 0.2 || onSkyLayer) && ddx < aheadWin && ddx > -700;
+        const isMountain = obj.userData && obj.userData.decorType === 'mountain';
+        const aheadWin = isMountain
+            ? Math.min(2200, adaptiveRenderDistance + (adaptivePerfLevel >= 2 ? 620 : 760))
+            : Math.min(1500, adaptiveRenderDistance + (adaptivePerfLevel >= 2 ? 220 : 320));
+        const behindWin = adaptivePerfLevel >= 2 ? -320 : (adaptivePerfLevel === 1 ? -480 : -700);
+        obj.visible = (skyAlpha > 0.2 || onSkyLayer) && ddx < aheadWin && ddx > behindWin;
 
         const moverType = obj.userData && obj.userData.decorType;
         if (moverType === 'plane' || moverType === 'balloon' || moverType === 'blimp') {

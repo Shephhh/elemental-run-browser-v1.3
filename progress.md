@@ -189,3 +189,17 @@ TODO:
   - High mobile reported live shadow refresh intervals while shadows were enabled; adaptive shadow shutdown remained functional under software-GPU pressure.
   - Mobile gameplay screenshot was visually inspected, inline JavaScript parsed successfully, and no page/console errors were reported.
   - Official `web_game_playwright_client.js` completed with a valid state snapshot and no error report.
+
+## 2026-07-28 - Stable shadow lifetime and frame-pacing pass
+
+- Traced the intermittent shadow disappearance to the adaptive governor reaching level 2, disabling the shadow renderer, then recovering quickly enough to enable it again. Adaptive levels now change refresh cadence and scene workload without switching High/Balanced/Ultra shadows off mid-run.
+- Added shader-warmup and interruption filtering, sustained-pressure thresholds, and 24-second recovery hysteresis. This prevents a single compile/download/tab-restoration stall from changing quality and prevents repeated render-target rebuilds on borderline hardware.
+- Capped runtime shadow maps at 2048, or 1024 on low-power/mobile non-Ultra hardware, and introduced stable quality/hardware/adaptive refresh intervals. Performance mode remains the explicit no-shadow option.
+- Reduced frame spikes without changing the selected visual preset: low-power procedural traffic avoids GLB download/decode, heavy vehicle loading waits for an idle menu, mobile uses mobile decor budgets, low-power High uses lite cyber geometry, distant Nature/Sky content is culled more aggressively under sustained pressure, and particle/HUD work is spread across frames.
+- Corrected renderer diagnostics so world, post-processing, and viewmodel passes are measured together rather than reporting only the final hand overlay.
+- Synchronized the Browser and Mobile v1.3 folders. Rebuilt the Desktop v1.3 Electron `app.asar` with the same runtime fixes while keeping AdSense, manifest, and browser-only scripts out of the desktop package; the previous desktop archive and loose index were backed up.
+- QA:
+  - Forced adaptive levels `0 -> 1 -> 2 -> 1 -> 0`; shadows stayed enabled throughout and only refresh interval changed (`4 -> 7 -> 10 -> 7 -> 4`).
+  - Full City, Nature, Sky, Lava, Water, and Snow scans completed with no console/page errors.
+  - A spoofed 4-core/4-GB mobile profile kept shadows stable at adaptive level 2 with a 1024 shadow map, used lite cyber geometry, and requested none of the car/train/motor GLBs.
+  - Official `web_game_playwright_client.js` completed with a valid menu state, visually inspected screenshot, and no `errors-*.json` output.
