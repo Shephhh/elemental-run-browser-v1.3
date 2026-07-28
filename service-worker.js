@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-17-detailed-train-stable-visibility';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-18-detailed-trains-all-tiers';
 const SHELL = [
   './',
   './index.html',

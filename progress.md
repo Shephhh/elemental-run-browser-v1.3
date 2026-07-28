@@ -220,10 +220,11 @@ TODO:
 
 - Moved the detailed train GLB into the priority loading pipeline. High, Balanced, and Ultra now prepare it before gameplay instead of waiting for menu idle time, so an early spawn cannot silently use the legacy box train.
 - Kept the train detailed on low-power computers while retaining procedural cars and motorcycles there. The train is a single instanced runtime mesh, making this a much smaller gameplay cost than the auxiliary vehicle models.
-- Added a model spawn gate with capped background retries: if the train request is downloading, decoding, or temporarily failed, that spawn is postponed instead of displaying the old train. The legacy train remains only in the explicit mobile Performance tier.
+- Added a model spawn gate with capped background retries: if the train request is downloading, decoding, or temporarily failed, that spawn is postponed instead of displaying the old train. No graphics tier or platform can now fall back to the obsolete train.
 - Stabilized adaptive Cyber decor thinning. FPS-level changes may still reduce distant signs, chevrons, and flying traffic, but never hide objects inside the player's visible near field. This removes the obstacle/shadow vanish-and-return impression without increasing the full scene budget.
 - QA:
   - Normal High and spoofed 2-core/2-GB High profiles both loaded exactly one `train.glb` request before the menu completed.
+  - A mobile Performance profile also loaded only `train.glb` (not car/motor GLBs) and reported the detailed train ready, preserving the low-cost tier without the obsolete model.
   - The low-power profile kept car and motorcycle GLBs unloaded while a controlled train spawn reported `detailed=true`, `visible=true`, and `castsShadow=true`.
   - Forced adaptive levels `0 -> 2` across 52 nearby Cyber objects produced zero visibility changes.
   - Inline JavaScript parsing and `git diff --check` passed; controlled gameplay produced no page/console errors.

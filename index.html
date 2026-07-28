@@ -10,7 +10,7 @@
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.3.8-detailed-train-stable-visibility">
+    <meta name="elemental-run-build" content="1.3.9-detailed-trains-all-tiers">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -15122,9 +15122,10 @@ if (renderer && dirLight) {
     }
 
     function shouldRequireDetailedTrainModel() {
-        // Performance mode remains the explicit low-memory option. Every other
-        // tier uses the detailed instanced train, including low-power High.
-        return !isMobilePerformanceGraphics();
+        // The train is one instanced runtime mesh, so every tier can keep the
+        // current model. Performance mode still reduces cars, motorcycles,
+        // effects and scenery, but never falls back to the obsolete box train.
+        return true;
     }
 
     function startPriorityTrainModelLoad() {
