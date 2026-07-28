@@ -165,3 +165,13 @@ TODO:
   - High mobile reported 1120 draw distance, detailed cyber buildings, shadows, desktop-density cyber decor, and ready/visible first-person hands.
   - Localization audit reported 30 supported languages with zero missing UI, onboarding, daily-mission, or browser copy packs.
   - Official `web_game_playwright_client.js` completed with a main-menu state snapshot and no error report.
+
+## 2026-07-28 - Prevent random loading screen during an active run
+
+- Traced the intermittent loading screen to the service-worker `controllerchange` handler: every newly activated deployment called `location.reload()` even while the player was running.
+- Removed the automatic page reload. A newly controlling worker is now marked as ready and supplies the fresh shell on the player's next natural navigation without interrupting the current run.
+- Added `serviceWorkerUpdateReady` and `loadingScreenVisible` runtime diagnostics plus a localhost QA hook.
+- QA:
+  - Both the direct update hook and a real synthetic `controllerchange` event were triggered during active gameplay.
+  - The run continued, score advanced, URL/navigation count stayed unchanged, and the loading overlay remained `display:none` / opacity `0`.
+  - No page or console errors were reported. Official `web_game_playwright_client.js` also completed without an error report.

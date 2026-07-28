@@ -10,7 +10,7 @@
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.3.3-first-person-mobile">
+    <meta name="elemental-run-build" content="1.3.4-no-midrun-reload">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -6389,6 +6389,7 @@ let skyClouds = [];
     let pendingRewardedDeathMessage = '';
     let browserToastTimer = null;
     let rewardBoostUiTimer = null;
+    let serviceWorkerUpdateReady = false;
 
     let bobTimer = 0;
     const bobFreq = 12;
@@ -12943,6 +12944,10 @@ nextSnowballX = 0;
                 rewardedDeathPending,
                 rewardedDeathOfferReady,
                 rewardedAdBusy,
+                serviceWorkerUpdateReady,
+                loadingScreenVisible: !!(ui.loadingScreen
+                    && getComputedStyle(ui.loadingScreen).display !== 'none'
+                    && Number(getComputedStyle(ui.loadingScreen).opacity) > 0.01),
                 howToPlayVisible: !!(ui.howToPlayOverlay && !ui.howToPlayOverlay.hidden),
                 howToPlayRemainingMs: Math.max(0, howToPlayVisibleUntil - performance.now()),
                 browserBuild: isBrowserBuild(),
@@ -13119,6 +13124,10 @@ nextSnowballX = 0;
                 const detected = languageFromCountryCode(countryCode) || detectInitialLanguage();
                 menuState.language = detected;
                 applyMainMenuSettings();
+                return renderGameToText();
+            },
+            simulateServiceWorkerUpdate: () => {
+                markServiceWorkerUpdateReady();
                 return renderGameToText();
             },
             mobileAction: (direction = '') => {
@@ -14227,6 +14236,12 @@ if (renderer && dirLight) {
         if (ui.loadingSubtext) ui.loadingSubtext.innerText = subText || tr('preparing');
     }
 
+    function markServiceWorkerUpdateReady() {
+        serviceWorkerUpdateReady = true;
+        document.documentElement.dataset.serviceWorkerUpdate = 'ready';
+        try { sessionStorage.setItem('elemental-sw-update-ready', '1'); } catch (error) {}
+    }
+
     function updatePauseRunStats() {
         if (ui.pauseCurrentScore) ui.pauseCurrentScore.innerText = Math.floor(score).toLocaleString('tr-TR');
         if (ui.pauseCurrentCoins) ui.pauseCurrentCoins.innerText = Math.floor(totalCoins).toLocaleString('tr-TR');
@@ -14472,18 +14487,16 @@ if (renderer && dirLight) {
         if (isBrowserBuild()) {
             startRewardBoostUiClock();
             if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-                const serviceWorkerWasControllingPage = !!navigator.serviceWorker.controller;
                 navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' }).then((registration) => {
                     registration.update().catch(() => {});
                 }).catch((error) => console.warn('Service worker registration failed:', error));
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    // A first-time install already loaded the latest files. Reload only
-                    // when an older worker was controlling this page and has been replaced.
-                    if (!serviceWorkerWasControllingPage) return;
-                    if (sessionStorage.getItem('elemental-sw-reloaded') === '1') return;
-                    sessionStorage.setItem('elemental-sw-reloaded', '1');
-                    location.reload();
-                });
+                    // Never reload an active run. The old behavior refreshed the whole page
+                    // as soon as a deployment activated, which looked like a random loading
+                    // screen and discarded the player's current run. The newly controlling
+                    // worker serves the next natural navigation with the fresh shell.
+                    markServiceWorkerUpdateReady();
+                }, { once: true });
             }
         }
         initArrowEffectPool();

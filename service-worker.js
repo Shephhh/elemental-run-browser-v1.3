@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-12-first-person-mobile';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-13-no-midrun-reload';
 const SHELL = [
   './',
   './index.html',
