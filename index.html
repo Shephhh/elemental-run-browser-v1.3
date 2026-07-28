@@ -10,7 +10,7 @@
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.3.4-no-midrun-reload">
+    <meta name="elemental-run-build" content="1.3.5-shadow-floating-stick">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -3771,6 +3771,18 @@
             touch-action: none;
         }
         body.mobile-runtime.mobile-controls-visible #mobile-swipe-surface { pointer-events: auto; }
+        #mobile-left-control-zone {
+            display: none;
+            position: absolute;
+            inset: 0 50% 0 0;
+            z-index: 1;
+            pointer-events: none;
+            touch-action: none;
+        }
+        body.mobile-landscape.mobile-controls-visible #mobile-left-control-zone {
+            display: block;
+            pointer-events: auto;
+        }
         #mobile-controls .mobile-stick { z-index: 2; }
         #mobile-pause-btn { z-index: 4; }
         .mobile-action-marker.is-left { left: 7px; top: 50%; min-width: 22px; transform: translateY(-50%); }
@@ -3803,11 +3815,19 @@
         }
         body.mobile-runtime #mobile-orientation-hint { display: none !important; }
         body.mobile-landscape .mobile-stick {
-            --stick-size: clamp(92px, 23vh, 122px);
+            --stick-size: clamp(82px, 21vh, 108px);
         }
         body.mobile-landscape .mobile-stick.is-action {
             left: max(12px, calc(env(safe-area-inset-left) + 8px));
             right: auto;
+            top: auto;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(.82);
+        }
+        body.mobile-landscape .mobile-stick.is-action.is-active {
+            opacity: .94;
+            transform: scale(1);
         }
         body.mobile-landscape .mobile-stick-caption { top: -11px; font-size: 8px; }
         body.mobile-landscape .mobile-action-marker { font-size: 7px; }
@@ -4607,6 +4627,25 @@
                 inset 0 0 24px rgba(39, 203, 255, .17),
                 0 0 0 1px rgba(0, 0, 0, .45),
                 0 8px 28px rgba(0, 0, 0, .42);
+        }
+        /* A restrained white floating stick protects the landscape playfield. */
+        body.mobile-landscape .mobile-stick.is-action .mobile-stick-base {
+            border: 2px solid rgba(255, 255, 255, .78);
+            background: rgba(255, 255, 255, .055);
+            box-shadow: 0 3px 18px rgba(0, 0, 0, .26);
+        }
+        body.mobile-landscape .mobile-stick.is-action .mobile-stick-base::before,
+        body.mobile-landscape .mobile-stick.is-action .mobile-stick-base::after,
+        body.mobile-landscape .mobile-stick.is-action .mobile-action-marker,
+        body.mobile-landscape .mobile-stick.is-action .mobile-stick-caption {
+            display: none;
+        }
+        body.mobile-landscape .mobile-stick.is-action .mobile-stick-knob {
+            width: 38%;
+            height: 38%;
+            border: 2px solid rgba(255, 255, 255, .94);
+            background: rgba(255, 255, 255, .28);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .24);
         }
         .mobile-stick-base::before,
         .mobile-stick-base::after {
@@ -5818,6 +5857,7 @@
 <div id="noclip-indicator" style="display:none; position:absolute; top:116px; right:24px; z-index:12; pointer-events:none; padding:8px 12px; border:1px solid rgba(116,232,255,.55); border-radius:8px; background:rgba(4,12,24,.76); color:#8cf4ff; font-family:Orbitron,Rajdhani,sans-serif; font-size:13px; font-weight:900; letter-spacing:1.8px; text-shadow:0 0 8px rgba(83,224,255,.8);">NOCLIP <span style="margin-left:8px; color:rgba(255,255,255,.72); font-size:11px;">F6</span></div>
 <div id="mobile-controls" aria-hidden="true">
     <div id="mobile-swipe-surface" aria-hidden="true"></div>
+    <div id="mobile-left-control-zone" aria-hidden="true"></div>
     <button id="mobile-pause-btn" type="button" aria-label="Pause">Ⅱ</button>
     <div id="mobile-action-stick" class="mobile-stick is-action" role="application" aria-label="Move control">
         <div class="mobile-stick-base">
@@ -11445,9 +11485,14 @@ let skyClouds = [];
     }
 
     function getShadowRefreshInterval() {
-        if (MOBILE_RUNTIME || adaptivePerfLevel >= 2) return Number.POSITIVE_INFINITY;
+        if (adaptivePerfLevel >= 2) return Number.POSITIVE_INFINITY;
         const quality = menuState.graphicsQuality;
         let interval = quality === 'ultra' ? 1 : (quality === 'high' ? 2 : 3);
+        // The world moves toward the fixed first-person camera. A frozen mobile
+        // shadow map leaves shadows visibly detached from vehicles and obstacles.
+        // Performance mode already disables shadows, so other phone tiers can
+        // safely refresh them at this restrained cadence.
+        if (MOBILE_RUNTIME) interval += quality === 'ultra' ? 0 : 1;
         if (adaptivePerfLevel === 1) interval += 2;
         if (smoothedFps < 48) interval += 1;
         return interval;
@@ -13917,13 +13962,10 @@ if (renderer && dirLight) {
         renderer.shadowMap.enabled = shadowsOn;
         renderer.shadowMap.autoUpdate = false;
         
-        // EÄŸer geÃ§iÅŸte hala ufak bir takÄ±lma olursa diye gÃ¶lge koyuluÄŸunu sÄ±fÄ±rlayarak 
-        // materyal yeniden derlenmesinin Ã¶nÃ¼ne geÃ§iyoruz.
-        if (!shadowsOn) {
-            dirLight.shadow.bias = 1000; // GÃ¶lgeleri sahnenin dÄ±ÅŸÄ±na atarak gizle
-        } else {
-            dirLight.shadow.bias = -0.0001; // Åehirdeki normal gÃ¶lge ayarÄ±na geri dÃ¶n
-        }
+        // Keep a stable acne-resistant bias. An extreme disabled-state bias can
+        // leak into the first refreshed frame after a map or quality transition.
+        dirLight.shadow.bias = -0.0003;
+        dirLight.shadow.normalBias = 0.03;
         renderer.shadowMap.needsUpdate = true;
         shadowRefreshFrame = 0;
         pendingShadowRefreshX = Number.POSITIVE_INFINITY;
@@ -15189,21 +15231,39 @@ if (renderer && dirLight) {
         return { x, y, length: Math.min(1, length) };
     }
 
-    function setupMobileLandscapeControls(actionStick) {
+    function placeFloatingMobileStick(actionStick, clientX, clientY) {
+        // Use layout size rather than the hidden-state transform size so the
+        // revealed stick remains centered exactly under the initial thumb.
+        const size = Math.max(1, actionStick.offsetWidth);
+        const half = size * 0.5;
+        const safeLeft = 8 + half;
+        const safeRight = Math.max(safeLeft, window.innerWidth * 0.5 - 8 - half);
+        const safeTop = 8 + half;
+        const safeBottom = Math.max(safeTop, window.innerHeight - 8 - half);
+        const centerX = Math.max(safeLeft, Math.min(safeRight, clientX));
+        const centerY = Math.max(safeTop, Math.min(safeBottom, clientY));
+        actionStick.style.left = `${(centerX - half).toFixed(1)}px`;
+        actionStick.style.top = `${(centerY - half).toFixed(1)}px`;
+        actionStick.style.bottom = 'auto';
+    }
+
+    function setupMobileLandscapeControls(actionStick, actionZone) {
+        if (!actionZone) return;
         const applyActionVector = (vector) => {
             mobileMoveX = Math.abs(vector.x) < 0.16 ? 0 : vector.x;
             setMobileActionDirection('');
         };
-        actionStick.addEventListener('pointerdown', (event) => {
+        actionZone.addEventListener('pointerdown', (event) => {
             if (!mobileControlsVisible || isMobilePortraitLayout() || mobileActionPointer !== null) return;
             event.preventDefault();
             event.stopPropagation();
             mobileActionPointer = event.pointerId;
-            actionStick.setPointerCapture(event.pointerId);
+            placeFloatingMobileStick(actionStick, event.clientX, event.clientY);
+            actionZone.setPointerCapture(event.pointerId);
             actionStick.classList.add('is-active');
-            applyActionVector(readMobileStickVector(actionStick, event));
+            mobileMoveX = 0;
         }, { passive: false });
-        actionStick.addEventListener('pointermove', (event) => {
+        actionZone.addEventListener('pointermove', (event) => {
             if (event.pointerId !== mobileActionPointer) return;
             event.preventDefault();
             applyActionVector(readMobileStickVector(actionStick, event));
@@ -15216,9 +15276,9 @@ if (renderer && dirLight) {
             setMobileActionDirection('');
             resetMobileStick(actionStick);
         };
-        actionStick.addEventListener('pointerup', releaseAction, { passive: false });
-        actionStick.addEventListener('pointercancel', releaseAction, { passive: false });
-        actionStick.addEventListener('lostpointercapture', (event) => {
+        actionZone.addEventListener('pointerup', releaseAction, { passive: false });
+        actionZone.addEventListener('pointercancel', releaseAction, { passive: false });
+        actionZone.addEventListener('lostpointercapture', (event) => {
             if (event.pointerId !== mobileActionPointer) return;
             mobileActionPointer = null;
             mobileMoveX = 0;
@@ -15264,13 +15324,13 @@ if (renderer && dirLight) {
 
     function setupMobileDoubleTapControls(controls) {
         controls.addEventListener('pointerdown', (event) => {
-            if (!mobileControlsVisible || event.target.closest('#mobile-pause-btn')) return;
+            if (!mobileControlsVisible || event.target.closest('#mobile-pause-btn, #mobile-left-control-zone')) return;
             mobileGestureStartX = event.clientX;
             mobileGestureStartY = event.clientY;
             mobileGestureStartAt = performance.now();
         }, { capture: true });
         controls.addEventListener('pointerup', (event) => {
-            if (!mobileControlsVisible || event.target.closest('#mobile-pause-btn')) return;
+            if (!mobileControlsVisible || event.target.closest('#mobile-pause-btn, #mobile-left-control-zone')) return;
             const now = performance.now();
             const quickTap = now - mobileGestureStartAt < 300
                 && Math.hypot(event.clientX - mobileGestureStartX, event.clientY - mobileGestureStartY) < 22;
@@ -15291,6 +15351,7 @@ if (renderer && dirLight) {
         if (!MOBILE_RUNTIME || mobileControlsInitialized) return;
         const controls = document.getElementById('mobile-controls');
         const actionStick = document.getElementById('mobile-action-stick');
+        const actionZone = document.getElementById('mobile-left-control-zone');
         const swipeSurface = document.getElementById('mobile-swipe-surface');
         const pauseButton = document.getElementById('mobile-pause-btn');
         if (!controls || !actionStick) return;
@@ -15310,7 +15371,7 @@ if (renderer && dirLight) {
                 pauseRunForExternalInterruption(tr('pauseTitle'), tr('pauseHint'));
             });
         }
-        setupMobileLandscapeControls(actionStick);
+        setupMobileLandscapeControls(actionStick, actionZone);
         setupMobileSwipeControls(swipeSurface);
         setupMobileDoubleTapControls(controls);
         document.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });

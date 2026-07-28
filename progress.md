@@ -175,3 +175,17 @@ TODO:
   - Both the direct update hook and a real synthetic `controllerchange` event were triggered during active gameplay.
   - The run continued, score advanced, URL/navigation count stayed unchanged, and the loading overlay remained `display:none` / opacity `0`.
   - No page or console errors were reported. Official `web_game_playwright_client.js` also completed without an error report.
+
+## 2026-07-28 - Stable moving shadows and floating landscape joystick
+
+- Fixed detached/frozen mobile shadows by restoring a quality-aware shadow-map refresh cadence on Balanced, High, and Ultra. Performance mode still keeps shadows disabled for speed, and the adaptive governor may still suspend them only under sustained GPU pressure.
+- Removed the extreme `1000` shadow bias used during phase transitions. All transitions now retain a stable acne-resistant bias/normal-bias pair, preventing the first refreshed shadow frame from rendering incorrectly.
+- Replaced the fixed pink landscape joystick with a smaller, minimal white floating stick.
+- Added a dedicated left-half touch zone: touching anywhere on the landscape screen's left half places the joystick directly under the thumb; dragging controls free lateral movement and releasing immediately returns movement to zero.
+- Kept the right half available for vertical jump/slide swipes and excluded joystick drags from double-tap skill detection.
+- QA:
+  - Real CDP touch sequences at `(110,72)` and `(220,310)` placed the joystick at those exact centers and produced `moveX` values of `1` and `-1`; release cleared both the active visual and movement input.
+  - A right-side upward swipe still triggered jump without activating the joystick.
+  - High mobile reported live shadow refresh intervals while shadows were enabled; adaptive shadow shutdown remained functional under software-GPU pressure.
+  - Mobile gameplay screenshot was visually inspected, inline JavaScript parsed successfully, and no page/console errors were reported.
+  - Official `web_game_playwright_client.js` completed with a valid state snapshot and no error report.

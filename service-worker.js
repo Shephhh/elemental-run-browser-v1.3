@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-13-no-midrun-reload';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-14-shadow-floating-stick';
 const SHELL = [
   './',
   './index.html',
