@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-19-moving-shadow-stability';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-20-first-run-stability';
 const SHELL = [
   './',
   './index.html',
@@ -19,7 +19,14 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL)));
+  // One temporarily unavailable optional file must not reject the whole
+  // service-worker install and leave an older shell controlling first launch.
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => Promise.all(
+    SHELL.map((url) => cache.add(url).catch((error) => {
+      console.warn('[SW] Optional shell cache failed:', url, error);
+      return null;
+    }))
+  )));
   self.skipWaiting();
 });
 
@@ -35,11 +42,15 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).then((response) => {
+    const networkWithDeadline = Promise.race([
+      fetch(request),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('navigation timeout')), 6500))
+    ]);
+    event.respondWith(networkWithDeadline.then((response) => {
       const copy = response.clone();
       caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
       return response;
-    }).catch(() => caches.match('./index.html')));
+    }).catch(() => caches.match('./index.html').then((cached) => cached || fetch(request))));
     return;
   }
 

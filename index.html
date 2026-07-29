@@ -10,7 +10,7 @@
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.3.10-moving-shadow-stability">
+    <meta name="elemental-run-build" content="1.3.11-first-run-stability">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -4380,6 +4380,11 @@
             box-shadow: 0 0 15px rgba(102,213,255,.3), inset 0 0 9px rgba(180,239,255,.12);
             box-sizing: border-box;
         }
+
+        body.mobile-runtime #crosshair-container,
+        body.crosshair-hidden #crosshair-container {
+            display: none !important;
+        }
         .mouse-button {
             display: block;
             height: 14px;
@@ -4828,9 +4833,6 @@
         }
         body.mobile-runtime .menu-snow span {
             filter: none !important;
-        }
-        body.mobile-runtime.mobile-controls-visible #crosshair-container {
-            opacity: .55;
         }
         @media (orientation: landscape) and (max-height: 560px) {
             body.mobile-runtime {
@@ -6803,6 +6805,7 @@ let skyClouds = [];
         muted: false,
         compactHud: false,
         gameplayUiHidden: false,
+        crosshairEnabled: true,
         handsEnabled: true,
         graphicsQuality: 'high',
         displayMode: 'fullscreen',
@@ -7863,6 +7866,28 @@ let skyClouds = [];
     Object.entries(GAMEPLAY_UI_TRANSLATIONS).forEach(([code, pack]) => {
         UI_TRANSLATIONS[code] = { ...(UI_TRANSLATIONS[code] || UI_TRANSLATIONS.en), ...pack };
     });
+    const CROSSHAIR_TRANSLATIONS = {
+        tr: { crosshair: 'NİŞANGÂH', crosshairOn: 'NİŞANGÂH AÇIK', crosshairOff: 'NİŞANGÂH KAPALI' },
+        en: { crosshair: 'CROSSHAIR', crosshairOn: 'CROSSHAIR ON', crosshairOff: 'CROSSHAIR OFF' },
+        de: { crosshair: 'FADENKREUZ', crosshairOn: 'FADENKREUZ AN', crosshairOff: 'FADENKREUZ AUS' },
+        fr: { crosshair: 'RÉTICULE', crosshairOn: 'RÉTICULE ACTIF', crosshairOff: 'RÉTICULE MASQUÉ' },
+        'es-ES': { crosshair: 'MIRA', crosshairOn: 'MIRA ACTIVA', crosshairOff: 'MIRA OCULTA' },
+        'es-419': { crosshair: 'MIRA', crosshairOn: 'MIRA ACTIVA', crosshairOff: 'MIRA OCULTA' },
+        'pt-BR': { crosshair: 'MIRA', crosshairOn: 'MIRA LIGADA', crosshairOff: 'MIRA DESLIGADA' },
+        'pt-PT': { crosshair: 'MIRA', crosshairOn: 'MIRA LIGADA', crosshairOff: 'MIRA DESLIGADA' },
+        it: { crosshair: 'MIRINO', crosshairOn: 'MIRINO ATTIVO', crosshairOff: 'MIRINO NASCOSTO' },
+        ru: { crosshair: 'ПРИЦЕЛ', crosshairOn: 'ПРИЦЕЛ ВКЛ.', crosshairOff: 'ПРИЦЕЛ ВЫКЛ.' },
+        ja: { crosshair: '照準', crosshairOn: '照準オン', crosshairOff: '照準オフ' },
+        ko: { crosshair: '조준점', crosshairOn: '조준점 켜짐', crosshairOff: '조준점 꺼짐' },
+        'zh-Hans': { crosshair: '准星', crosshairOn: '准星开启', crosshairOff: '准星关闭' },
+        'zh-Hant': { crosshair: '準星', crosshairOn: '準星開啟', crosshairOff: '準星關閉' },
+        ar: { crosshair: 'علامة التصويب', crosshairOn: 'علامة التصويب مفعلة', crosshairOff: 'علامة التصويب مخفية' }
+    };
+    SUPPORTED_LANGUAGES.forEach((entry) => {
+        const code = typeof entry === 'string' ? entry : entry.code;
+        const pack = CROSSHAIR_TRANSLATIONS[code] || CROSSHAIR_TRANSLATIONS.en;
+        UI_TRANSLATIONS[code] = { ...(UI_TRANSLATIONS[code] || UI_TRANSLATIONS.en), ...pack };
+    });
     const arrowEffectPool = [];
     const oilSplatterPool = [];
     const obstaclePool = { wall: [], low_wall: [], falling_wall: [], slide_barrier: [], energy_plasma: [] };
@@ -7873,6 +7898,8 @@ let skyClouds = [];
     let shadowRefreshFrame = 0;
     let nearbyMovingShadowHold = 0;
     let nearbyMovingShadowType = '';
+    let shadowStabilizationFrames = 0;
+    let shadowStabilizationReason = '';
     const MOVING_SHADOW_HOLD_SECONDS = 0.45;
     // The runner only sees the road ahead. Keeping the directional shadow
     // camera centred on the player made large casters enter its far edge while
@@ -9683,6 +9710,7 @@ let skyClouds = [];
             sfxVolume: clampNumber(saved.sfxVolume, 0, 1.4, 1.15),
             uiVolume: clampNumber(saved.uiVolume, 0, 1.6, 1.25),
             gameplayUiHidden: !!saved.gameplayUiHidden,
+            crosshairEnabled: saved.crosshairEnabled !== false,
             handsEnabled: saved.handsEnabled !== false,
             mouseSensitivity: clampNumber(saved.mouseSensitivity, 0.45, 1.85, 1.0),
             invertY: !!saved.invertY,
@@ -10332,6 +10360,13 @@ let skyClouds = [];
                     </div>
                     <div class="settings-options">${toggleButton(surface, 'gameplayUiHidden', menuState.gameplayUiHidden ? tr('uiHidden') : tr('uiVisible'), !menuState.gameplayUiHidden)}</div>
                 </div>
+                ${MOBILE_RUNTIME ? '' : `
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">${tr('crosshair')}</div>
+                    </div>
+                    <div class="settings-options">${toggleButton(surface, 'crosshairEnabled', menuState.crosshairEnabled ? tr('crosshairOn') : tr('crosshairOff'), menuState.crosshairEnabled)}</div>
+                </div>`}
                 <div class="settings-row">
                     <div>
                         <div class="settings-row-label">${tr('invertY')}</div>
@@ -11287,6 +11322,7 @@ let skyClouds = [];
         Object.assign(menuState, normalizeMenuSettings(menuState));
         document.body.classList.toggle('hud-compact', !!menuState.compactHud);
         document.body.classList.toggle('gameplay-ui-hidden', !!menuState.gameplayUiHidden);
+        document.body.classList.toggle('crosshair-hidden', MOBILE_RUNTIME || !menuState.crosshairEnabled);
         applyGraphicsQuality();
         applyAudioSettings();
         applyLanguageTexts();
@@ -11475,6 +11511,7 @@ let skyClouds = [];
     function beginRunFromMainMenu(resetRun = true) {
         if (resetRun) resetGame({ startPaused: true, skipImmediateRender: true });
         hideMainMenu();
+        beginShadowStabilization(MOBILE_RUNTIME ? 5 : 7, 'run-start');
         queueHowToPlayOverlay();
         runStartedFromMenu = true;
         menuState.runCount += 1;
@@ -11522,6 +11559,17 @@ let skyClouds = [];
         pendingShadowRefreshX = Math.min(pendingShadowRefreshX, xPos);
     }
 
+    function beginShadowStabilization(frames = 5, reason = 'scene-change') {
+        shadowStabilizationFrames = Math.max(shadowStabilizationFrames, Math.max(1, Math.floor(frames)));
+        shadowStabilizationReason = reason;
+        shadowRefreshFrame = 0;
+        shadowRefreshCooldown = 0;
+        pendingShadowRefreshX = Number.POSITIVE_INFINITY;
+        if (renderer && renderer.shadowMap && renderer.shadowMap.enabled) {
+            renderer.shadowMap.needsUpdate = true;
+        }
+    }
+
     function isNearbyMovingCityShadowCaster(obstacle) {
         if (!obstacle || !obstacle.visible || !obstacle.userData || !player) return false;
         const type = obstacle.userData.type;
@@ -11564,6 +11612,17 @@ let skyClouds = [];
         if (!(renderer && renderer.shadowMap && renderer.shadowMap.enabled) || !player) return;
         renderer.shadowMap.autoUpdate = false;
         updateNearbyMovingShadowState(delta);
+        if (shadowStabilizationFrames > 0) {
+            // A fresh run rebuilds/pools many casters before its first visible
+            // frame. Refresh a short, bounded series after every world update
+            // so no stale first-run silhouette can survive on the road.
+            renderer.shadowMap.needsUpdate = true;
+            shadowStabilizationFrames -= 1;
+            shadowRefreshFrame = 0;
+            shadowRefreshCooldown = 0;
+            if (shadowStabilizationFrames === 0) shadowStabilizationReason = '';
+            return;
+        }
         if (shadowRefreshCooldown > 0) {
             shadowRefreshCooldown = Math.max(0, shadowRefreshCooldown - delta);
         }
@@ -12908,7 +12967,6 @@ nextSnowballX = 0;
             }
             updatePlayer(delta);
             updateObstacles(delta);
-            updateShadowRefreshQueue(delta);
             updateTunnels();
             
             updateCity(delta); 
@@ -12949,6 +13007,10 @@ nextSnowballX = 0;
             
             updateCyberFloor();
         }
+        // Shadow decisions must run after obstacle movement, city/light tracking,
+        // pooling/culling and world rebase. Updating earlier captured a stale
+        // first-run caster set and produced one-frame dark slabs on the asphalt.
+        updateShadowRefreshQueue(realDelta);
         updateViewmodelHands(realDelta);
         applyTimeSlowVisuals();
         if (hudTick % 3 === 0) {
@@ -13103,6 +13165,8 @@ nextSnowballX = 0;
                     nearbyMovingShadow: nearbyMovingShadowHold > 0,
                     nearbyMovingShadowType: nearbyMovingShadowType || null,
                     nearbyMovingShadowHold: roundForText(nearbyMovingShadowHold, 2),
+                    shadowStabilizationFrames,
+                    shadowStabilizationReason: shadowStabilizationReason || null,
                     shadowsEnabled: !!(renderer && renderer.shadowMap && renderer.shadowMap.enabled),
                     shadowMapSize: dirLight?.shadow?.mapSize?.width || null,
                     drawCalls: renderer && renderer.info ? renderer.info.render.calls : null,
@@ -13122,8 +13186,21 @@ nextSnowballX = 0;
                     trainReady: trainGlbReady,
                     trainLoadRatio: roundForText(trainGlbLoadRatio, 2),
                     trainDetailedRequired: shouldRequireDetailedTrainModel(),
+                    carRequested: carGlbRequested,
+                    carSettled: carGlbSettled,
                     carReady: carGlbReady,
-                    motorReady: motorGlbReady
+                    carLoadRatio: roundForText(carGlbLoadRatio, 2),
+                    motorRequested: motorGlbRequested,
+                    motorSettled: motorGlbSettled,
+                    motorReady: motorGlbReady,
+                    motorLoadRatio: roundForText(motorGlbLoadRatio, 2),
+                    auxiliaryDetailedRequired: shouldRequireDetailedAuxVehicleModels()
+                },
+                loading: {
+                    finished: loadingFinished,
+                    stage: loadingLastStage,
+                    recoveryCount: loadingRecoveryCount,
+                    animationLoopStarted
                 },
                 activeGlobalParticles: pData.reduce((count, particle) => count + (particle.life > 0 ? 1 : 0), 0),
                 renderFrame: renderer && renderer.info ? renderer.info.render.frame : 0,
@@ -13162,6 +13239,8 @@ nextSnowballX = 0;
                     invertY: menuState.invertY,
                     compactHud: menuState.compactHud,
                     gameplayUiHidden: menuState.gameplayUiHidden,
+                    crosshairEnabled: !!menuState.crosshairEnabled,
+                    crosshairVisible: !MOBILE_RUNTIME && !!menuState.crosshairEnabled,
                     controlBindings: menuState.controlBindings,
                     language: menuState.language,
                     languageSource: menuState.languageSource,
@@ -13354,6 +13433,19 @@ nextSnowballX = 0;
                     visible: item.visible,
                     x: roundForText(item.position.x - player.position.x, 1),
                     castsShadow: item.children.some((child) => child.castShadow)
+                })),
+            inspectTrafficVisuals: () => obstacles
+                .filter((item) => item?.userData?.type === 'vehicle' || item?.userData?.type === 'motorcycle')
+                .map((item) => ({
+                    type: item.userData.type,
+                    detailedModel: item.userData.detailedVehicleModel || null,
+                    visible: item.visible,
+                    x: roundForText(item.position.x - player.position.x, 1),
+                    castsShadow: (() => {
+                        let casts = false;
+                        item.traverse((child) => { if (child.castShadow) casts = true; });
+                        return casts;
+                    })()
                 })),
             inspectNearbyCyberDecor: (distance = 400) => {
                 const maxDistance = Math.max(80, Number(distance) || 400);
@@ -14458,6 +14550,7 @@ if (renderer && dirLight) {
     function prewarmGameplayAssets() {
         if (gameplayAssetsPrewarmed || !renderer || !scene || !camera || !player) return;
         gameplayAssetsPrewarmed = true;
+        const leanStartupPrewarm = isBrowserBuild();
 
         const warmRoot = new THREE.Group();
         warmRoot.name = 'gameplay-prewarm-root';
@@ -14481,7 +14574,12 @@ if (renderer && dirLight) {
         addWarm(() => createDetailedFallingWall(), 20, -8);
         addWarm(() => createDetailedSlideBarrier(), 30, 0);
         addWarm(() => createDetailedHighBeam(20, 10), 40, 8);
-        addWarm(() => createCarModel(mats.vehicles[0]), 50, 16);
+        if (!shouldRequireDetailedAuxVehicleModels() || carGlbReady) {
+            addWarm(() => createCarModel(mats.vehicles[0]), 50, 16);
+        }
+        if (!shouldRequireDetailedAuxVehicleModels() || motorGlbReady) {
+            addWarm(() => createBikeModel(), 58, 20);
+        }
         addWarm(() => createTrainWagonModel(true), 66, 24);
         addWarm(() => createTrainWagonModel(false, mats.trainStatic), 84, 32);
         addWarm(() => createEnergyPlasmaObstacle(), 104, -32);
@@ -14491,6 +14589,7 @@ if (renderer && dirLight) {
         addWarm(() => createDetailedRuin(), 190, 52);
         addWarm(() => createDetailedLake(), 212, -64);
         addWarm(() => createShieldMesh(), 232, 64);
+        if (!leanStartupPrewarm) {
         addWarm(() => createDetailedNatureTunnel(0, 220), 260, 0);
         addWarm(() => createDetailedLavaTunnel(0, 220), 500, 0);
         addWarm(() => createDetailedWaterTunnel(0, 220), 740, 0);
@@ -14552,6 +14651,7 @@ if (renderer && dirLight) {
             if (tl) { scene.remove(tl); tl.position.set(0, 0, 0); setTrafficLightVisualAlpha(tl, 1); }
             return tl;
         }, 1770, 0);
+        }
 
         if (typeof renderer.compile === 'function') renderer.compile(scene, camera);
 
@@ -14577,7 +14677,7 @@ if (renderer && dirLight) {
         // olsa bile kullanıcı GÖREMEZ; bayraklar birebir geri alınır. Viewmodel katmanı (layer 1)
         // kamera maskesinde olmadığından zaten çizilmez (kendi warm geçişi var).
         const unculled = [], unhidden = [];
-        scene.traverse((o) => {
+        if (!leanStartupPrewarm) scene.traverse((o) => {
             // visible hiyerarşiktir — gizli parent Group çocuklarını da atlatır, o yüzden
             // drawable olmayanlar dahil TÜM gizli objeler bir karelik açılır.
             if (!o.visible) { unhidden.push(o); o.visible = true; }
@@ -14602,23 +14702,48 @@ if (renderer && dirLight) {
         scene.remove(warmRoot);
     }
 
+    let loadingFinished = false;
+    let animationLoopStarted = false;
+    let loadingRecoveryCount = 0;
+    let loadingLastStage = 'boot';
+
+    function startAnimationLoop() {
+        if (animationLoopStarted) return;
+        animationLoopStarted = true;
+        clock.getDelta();
+        requestAnimationFrame(animate);
+    }
+
     function runLoadingPipeline(tasks, done) {
         const total = tasks.length;
         const pipelineShare = 82;
         let currentTask = 0;
+        let pipelineDone = false;
+
+        const finishPipeline = () => {
+            if (pipelineDone) return;
+            pipelineDone = true;
+            if (done) done();
+        };
 
         const runNext = () => {
             if (currentTask >= total) {
-                if (done) done();
+                finishPipeline();
                 return;
             }
 
             const task = tasks[currentTask];
             const taskText = typeof task.text === 'function' ? task.text() : task.text;
+            loadingLastStage = `task-${currentTask + 1}:${taskText}`;
             const startPct = (currentTask / total) * pipelineShare;
             updateLoading(startPct, taskText, (currentTask + 1) + '/' + total);
 
-            requestAnimationFrame(() => {
+            let taskStarted = false;
+            let fallbackTimer = 0;
+            const executeTask = () => {
+                if (taskStarted || pipelineDone || loadingFinished) return;
+                taskStarted = true;
+                if (fallbackTimer) clearTimeout(fallbackTimer);
                 const t0 = performance.now();
                 try {
                     task.func();
@@ -14632,9 +14757,24 @@ if (renderer && dirLight) {
                 updateLoading(endPct, taskText, currentTask + '/' + total + ' - ' + tookMs.toFixed(0) + 'ms');
 
                 setTimeout(runNext, 24);
-            });
+            };
+            // A first navigation can be background-throttled before its first
+            // animation frame. Whichever callback arrives first advances the
+            // same idempotent task, so the loading screen cannot wait forever.
+            requestAnimationFrame(executeTask);
+            fallbackTimer = setTimeout(() => {
+                loadingRecoveryCount += 1;
+                executeTask();
+            }, 180);
         };
 
+        setTimeout(() => {
+            if (pipelineDone || loadingFinished) return;
+            loadingRecoveryCount += 1;
+            console.warn('[LoadingWatchdog] Pipeline exceeded 22 seconds at', loadingLastStage);
+            if (renderer && scene && camera && player) finishLoading('pipeline-watchdog');
+            else updateLoading(99, tr('loadingWorld'), tr('preparing'));
+        }, 22000);
         runNext();
     }
 
@@ -14760,10 +14900,10 @@ if (renderer && dirLight) {
 
         const tasks = [
             { func: () => initResources(), text: () => tr('loading') },
-            // The detailed train is a single instanced mesh at runtime. Start its
-            // request with the loading pipeline so the first gameplay train can
-            // never fall back to the legacy box model.
-            { func: () => startPriorityTrainModelLoad(), text: () => tr('loadingWorld') },
+            // Start every detailed traffic model before gameplay. If a request
+            // is slow, its obstacle type is withheld instead of flashing the
+            // obsolete procedural model during the first run.
+            { func: () => startVehicleModelLoads(), text: () => tr('loadingWorld') },
             // Eller varsayılan açık. 18 MB hand.glb isteğini yükleme hattının başında
             // başlat; dünya hazırlanırken ağ indirme/GLTF ayrıştırma paralel ilerlesin.
             { func: () => createViewmodelHands(), text: () => tr('preparing') },
@@ -15151,8 +15291,14 @@ if (renderer && dirLight) {
     let vehicleGlbLoadsStarted = false;
 
     function shouldUseProceduralAuxVehicleModels() {
-        return isMobilePerformanceGraphics()
-            || (RUNTIME_LOW_POWER && menuState.graphicsQuality !== 'ultra');
+        // The legacy lightweight traffic is an explicit Performance-mode
+        // compromise only. High/Balanced must look identical on first launch,
+        // even when hardware detection marks the device as low-power.
+        return menuState.graphicsQuality === 'performance';
+    }
+
+    function shouldRequireDetailedAuxVehicleModels() {
+        return !shouldUseProceduralAuxVehicleModels();
     }
 
     function shouldRequireDetailedTrainModel() {
@@ -15209,18 +15355,28 @@ if (renderer && dirLight) {
             const handsSettled = !menuState.handsEnabled || viewmodelGlbSettled;
             const handProgress = handsSettled ? 1 : Math.max(0, Math.min(.99, viewmodelHandLoadRatio));
             const detailedTrainRequired = shouldRequireDetailedTrainModel();
+            const detailedAuxRequired = shouldRequireDetailedAuxVehicleModels();
             const trainSettledForMenu = !detailedTrainRequired || trainGlbReady || trainGlbSettled;
+            const carSettledForMenu = !detailedAuxRequired || carGlbReady || carGlbSettled;
+            const motorSettledForMenu = !detailedAuxRequired || motorGlbReady || motorGlbSettled;
             const trainProgress = trainSettledForMenu ? 1 : Math.max(0, Math.min(.99, trainGlbLoadRatio));
-            const combinedProgress = handProgress * 0.58 + trainProgress * 0.42;
+            const carProgress = carSettledForMenu ? 1 : Math.max(0, Math.min(.99, carGlbLoadRatio));
+            const motorProgress = motorSettledForMenu ? 1 : Math.max(0, Math.min(.99, motorGlbLoadRatio));
+            const combinedProgress = handProgress * 0.45 + trainProgress * 0.27 + carProgress * 0.14 + motorProgress * 0.14;
             const elapsed = performance.now() - waitStart;
+            loadingLastStage = 'vehicle-models';
             const detail = !handsSettled
                 ? `HANDS ${Math.floor(handProgress * 100)}%`
-                : (!trainSettledForMenu ? `TRAIN ${Math.floor(trainProgress * 100)}%` : tr('preparing'));
+                : (!trainSettledForMenu
+                    ? `TRAIN ${Math.floor(trainProgress * 100)}%`
+                    : (!carSettledForMenu
+                        ? `CAR ${Math.floor(carProgress * 100)}%`
+                        : (!motorSettledForMenu ? `MOTOR ${Math.floor(motorProgress * 100)}%` : tr('preparing'))));
             updateLoading(82 + combinedProgress * 17, tr('loadingWorld'), detail);
             // The menu must never be held hostage by a slow or saturated network.
             // Pending detailed trains are withheld from spawning, so a timed-out
             // network can continue in the background without showing the old model.
-            if ((!handsSettled || !trainSettledForMenu) && elapsed < 15000) {
+            if ((!handsSettled || !trainSettledForMenu || !carSettledForMenu || !motorSettledForMenu) && elapsed < 9000) {
                 setTimeout(tick, 100);
                 return;
             }
@@ -15230,23 +15386,31 @@ if (renderer && dirLight) {
         tick();
     }
 
-    function finishLoading() {
+    function finishLoading(reason = 'complete') {
+        if (loadingFinished) return;
+        if (!renderer || !scene || !camera || !player) {
+            loadingRecoveryCount += 1;
+            setTimeout(() => finishLoading('deferred-' + reason), 250);
+            return;
+        }
+        loadingFinished = true;
+        loadingLastStage = 'ready:' + reason;
         updateLoading(100, tr('readyToPlay'), tr('tapToStart'));
         try { createViewmodelHands(); } catch (e) { console.warn('viewmodel hands failed', e); }
         if (GFX_CINEMATIC_COLOR) { try { gfxFixColorSpace(scene); } catch (e) { console.warn('gfxFixColorSpace failed', e); } }
         try { applyGraphicsQuality(); } catch (e) { console.warn('applyGraphicsQuality (post-load) failed', e); }
-        requestShadowMapRefresh();
+        beginShadowStabilization(MOBILE_RUNTIME ? 4 : 6, 'loading-finish');
         scheduleVehicleModelLoads();
         if(!isGameOver) {
             isGamePaused = true;
             showMainMenu(true);
         }
         const loadingScreen = ui.loadingScreen;
+        startAnimationLoop();
         if (loadingScreen) {
             loadingScreen.style.opacity = '0';
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
-                animate();
             }, 420);
         }
     }
@@ -20565,9 +20729,11 @@ function createHeadlightBeam() {
     // İLK-GİRİŞ HITCH (2026-07-19): settled = yükleme SONUÇLANDI (başarı VEYA hata) —
     // yükleme ekranı bunları bekler; warmed = warmGlbType gerçekten çalıştı.
     let carGlbSettled = false, carGlbWarmed = false;
+    let carGlbRequested = false, carGlbLoadRatio = 0, carGlbRetryCount = 0, carGlbRequestToken = 0;
     let trainGlbSettled = false, trainGlbWarmed = false;
-    let trainGlbRequested = false, trainGlbLoadRatio = 0, trainGlbRetryCount = 0;
+    let trainGlbRequested = false, trainGlbLoadRatio = 0, trainGlbRetryCount = 0, trainGlbRequestToken = 0;
     let motorGlbSettled = false, motorGlbWarmed = false;
+    let motorGlbRequested = false, motorGlbLoadRatio = 0, motorGlbRetryCount = 0, motorGlbRequestToken = 0;
     let carGlbScale = 1, carGlbYRot = 0, carGlbOffX = 0, carGlbOffY = 0, carGlbOffZ = 0;
     const carTexCache = {};
     const carGlbMaterialCache = new Map();
@@ -20629,10 +20795,30 @@ function createHeadlightBeam() {
     }
 
     function loadCarGlb() {
-        if (carGlbReady || typeof THREE.GLTFLoader !== 'function') { carGlbSettled = true; return; }
+        if (carGlbReady) { carGlbSettled = true; carGlbLoadRatio = 1; return; }
+        if (carGlbRequested) return;
+        if (typeof THREE.GLTFLoader !== 'function') { carGlbSettled = true; return; }
+        carGlbRequested = true;
+        carGlbSettled = false;
+        const requestToken = ++carGlbRequestToken;
+        const retry = (reason) => {
+            if (requestToken !== carGlbRequestToken || carGlbReady) return;
+            carGlbRequested = false;
+            carGlbSettled = true;
+            carGlbLoadRatio = 0;
+            console.warn('car.glb load failed', reason && reason.message ? reason.message : reason);
+            if (shouldRequireDetailedAuxVehicleModels() && carGlbRetryCount < 3) {
+                const retryDelay = 900 * Math.pow(2, carGlbRetryCount++);
+                setTimeout(() => {
+                    if (carGlbReady || carGlbRequested) return;
+                    loadCarGlb();
+                }, retryDelay);
+            }
+        };
         try {
             const loader = new THREE.GLTFLoader();
             loader.load('assets/car.glb', (gltf) => {
+                if (requestToken !== carGlbRequestToken || carGlbReady) return;
                 const root = gltf.scene || gltf.scenes[0];
                 root.updateMatrixWorld(true);
                 const box = new THREE.Box3().setFromObject(root);
@@ -20650,10 +20836,18 @@ function createHeadlightBeam() {
                 carBaseMap = set.map || null; carBaseImage = set.image || null; carMrImage = set.mr || null;
                 carGlbProto = root;
                 carGlbReady = true;
+                carGlbRequested = false;
+                carGlbLoadRatio = 1;
+                carGlbRetryCount = 0;
                 carGlbWarmed = warmGlbType(makeGlbCar);
                 carGlbSettled = true;
-            }, undefined, (err) => { carGlbSettled = true; console.warn('car.glb load failed', err && err.message ? err.message : err); });
-        } catch (e) { carGlbSettled = true; console.warn('loadCarGlb error', e); }
+            }, (event) => {
+                const total = Number(event && event.total) || 10485760;
+                const loaded = Number(event && event.loaded) || 0;
+                carGlbLoadRatio = Math.max(carGlbLoadRatio, Math.min(.99, loaded / Math.max(1, total)));
+            }, retry);
+            setTimeout(() => retry(new Error('car.glb request timeout')), 14000);
+        } catch (e) { retry(e); }
     }
 
     // Collapse the rounded roof crown into a flat top so the player stands on a flat surface
@@ -20682,9 +20876,12 @@ function createHeadlightBeam() {
         if (trainGlbRequested) return;
         if (typeof THREE.GLTFLoader !== 'function') { trainGlbSettled = true; return; }
         trainGlbRequested = true;
+        trainGlbSettled = false;
+        const requestToken = ++trainGlbRequestToken;
         try {
             const loader = new THREE.GLTFLoader();
             loader.load('assets/train.glb', (gltf) => {
+                if (requestToken !== trainGlbRequestToken || trainGlbReady) return;
                 const root = gltf.scene || gltf.scenes[0];
                 flattenRoofGeometry(root, 0.84); // make the top flat
                 root.updateMatrixWorld(true);
@@ -20717,6 +20914,7 @@ function createHeadlightBeam() {
                 holder.updateMatrixWorld(true);
                 holder.traverse((node) => { if (!trainGlbMeshProto && node.isMesh) trainGlbMeshProto = node; });
                 trainGlbReady = true;
+                trainGlbRequested = false;
                 trainGlbWarmed = warmGlbType((c) => makeGlbTrainWagon(c, false, false, false));
                 trainGlbLoadRatio = 1;
                 trainGlbRetryCount = 0;
@@ -20728,6 +20926,7 @@ function createHeadlightBeam() {
                     trainGlbLoadRatio = Math.max(trainGlbLoadRatio, Math.min(0.94, event.loaded / 7354912));
                 }
             }, (err) => {
+                if (requestToken !== trainGlbRequestToken || trainGlbReady) return;
                 trainGlbRequested = false;
                 trainGlbSettled = true;
                 trainGlbLoadRatio = 0;
@@ -20744,6 +20943,17 @@ function createHeadlightBeam() {
                     }, retryDelay);
                 }
             });
+            setTimeout(() => {
+                if (requestToken !== trainGlbRequestToken || trainGlbReady) return;
+                trainGlbRequested = false;
+                trainGlbSettled = true;
+                trainGlbLoadRatio = 0;
+                console.warn('train.glb request timeout');
+                if (shouldRequireDetailedTrainModel() && trainGlbRetryCount < 3) {
+                    const retryDelay = 1000 * Math.pow(2, trainGlbRetryCount++);
+                    setTimeout(loadTrainGlb, retryDelay);
+                }
+            }, 16000);
         } catch (e) { trainGlbSettled = true; console.warn('loadTrainGlb error', e); }
     }
 
@@ -20756,10 +20966,30 @@ function createHeadlightBeam() {
     const MOTOR_GLB_EXTRA_YROT = Math.PI;         // face oncoming (-X), like the cars
 
     function loadMotorGlb() {
-        if (motorGlbReady || typeof THREE.GLTFLoader !== 'function') { motorGlbSettled = true; return; }
+        if (motorGlbReady) { motorGlbSettled = true; motorGlbLoadRatio = 1; return; }
+        if (motorGlbRequested) return;
+        if (typeof THREE.GLTFLoader !== 'function') { motorGlbSettled = true; return; }
+        motorGlbRequested = true;
+        motorGlbSettled = false;
+        const requestToken = ++motorGlbRequestToken;
+        const retry = (reason) => {
+            if (requestToken !== motorGlbRequestToken || motorGlbReady) return;
+            motorGlbRequested = false;
+            motorGlbSettled = true;
+            motorGlbLoadRatio = 0;
+            console.warn('motor.glb load failed', reason && reason.message ? reason.message : reason);
+            if (shouldRequireDetailedAuxVehicleModels() && motorGlbRetryCount < 3) {
+                const retryDelay = 900 * Math.pow(2, motorGlbRetryCount++);
+                setTimeout(() => {
+                    if (motorGlbReady || motorGlbRequested) return;
+                    loadMotorGlb();
+                }, retryDelay);
+            }
+        };
         try {
             const loader = new THREE.GLTFLoader();
             loader.load('assets/motor.glb', (gltf) => {
+                if (requestToken !== motorGlbRequestToken || motorGlbReady) return;
                 const root = gltf.scene || gltf.scenes[0];
                 root.updateMatrixWorld(true);
                 const box = new THREE.Box3().setFromObject(root);
@@ -20776,10 +21006,18 @@ function createHeadlightBeam() {
                 motorBaseMap = set.map || null; motorBaseImage = set.image || null; motorMrImage = set.mr || null;
                 motorGlbProto = root;
                 motorGlbReady = true;
+                motorGlbRequested = false;
+                motorGlbLoadRatio = 1;
+                motorGlbRetryCount = 0;
                 motorGlbWarmed = warmGlbType(makeGlbMotor);
                 motorGlbSettled = true;
-            }, undefined, (err) => { motorGlbSettled = true; console.warn('motor.glb load failed', err && err.message ? err.message : err); });
-        } catch (e) { motorGlbSettled = true; console.warn('loadMotorGlb error', e); }
+            }, (event) => {
+                const total = Number(event && event.total) || 8388608;
+                const loaded = Number(event && event.loaded) || 0;
+                motorGlbLoadRatio = Math.max(motorGlbLoadRatio, Math.min(.99, loaded / Math.max(1, total)));
+            }, retry);
+            setTimeout(() => retry(new Error('motor.glb request timeout')), 14000);
+        } catch (e) { retry(e); }
     }
 
     // Recolour only the painted bodywork — hue-agnostic, so the same code works for the blue
@@ -20946,6 +21184,7 @@ function createHeadlightBeam() {
         model.position.set(carGlbOffX, carGlbOffY, carGlbOffZ);
         freezeStaticVehicleChildren(model);
         const group = new THREE.Group();   // outer group keeps the obstacle origin at the ground
+        group.userData.detailedVehicleModel = 'car-glb';
         const inner = new THREE.Group();    // inner group orients the centred model
         inner.rotation.y = carGlbYRot;
         inner.add(model);
@@ -21114,6 +21353,7 @@ function createHeadlightBeam() {
         model.position.set(motorGlbOffX, motorGlbOffY, motorGlbOffZ);
         freezeStaticVehicleChildren(model);
         const group = new THREE.Group();
+        group.userData.detailedVehicleModel = 'motor-glb';
         const inner = new THREE.Group();
         inner.rotation.y = motorGlbYRot;
         inner.add(model);
@@ -22711,6 +22951,14 @@ function cancelLaneAnimationForLavaDrop() {
         }
         else {
             const isMotor = type === 'motorcycle';
+            if (shouldRequireDetailedAuxVehicleModels()
+                && ((isMotor && !motorGlbReady) || (!isMotor && !carGlbReady))) {
+                startVehicleModelLoads();
+                // Never expose the old box-built car or motorcycle while a
+                // detailed tier is active. A slow first request postpones this
+                // traffic spawn; other obstacles continue normally.
+                return null;
+            }
             
             let lane;
             if (isMotor) {
@@ -22745,7 +22993,8 @@ function cancelLaneAnimationForLavaDrop() {
             let motorBase = MOTORCYCLE_SPEED_MIN + (Math.random() * MOTORCYCLE_SPEED_RANGE);
             let baseSpeed = -((isMotor ? motorBase : carBase) * difficulty);
             
-            obs.userData = { 
+            obs.userData = {
+                ...obs.userData,
                 speedX: baseSpeed, 
                 originalSpeed: baseSpeed, 
                 length: vLength, 

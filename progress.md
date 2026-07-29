@@ -241,3 +241,19 @@ TODO:
   - High mobile switched from its normal cadence to interval `2`, preserving smoother traffic shadows without an every-frame 1024px shadow pass.
   - A 24-second natural City run remained stable at about 153-156 software-rendered FPS, entered and exited the fast cadence correctly, kept the same build/navigation, and reported no page or console errors.
   - Inline JavaScript parsing and `git diff --check` passed. Official `web_game_playwright_client.js` completed without an `errors-*.json` report, and both desktop and mobile gameplay screenshots were visually inspected.
+
+## 2026-07-29 - First-run vehicle, shadow, crosshair, and loading stability
+
+- Started car, motorcycle, and train GLB requests in the priority loading phase. High, Balanced, and Ultra now postpone an unready traffic type instead of ever rendering its obsolete procedural model; the lightweight fallback remains limited to explicit Performance mode.
+- Added per-model request state, progress, 14-16 second request deadlines, and three exponential retries. A failed first network request can recover in the same page session without a reload.
+- Reordered the shadow system to run after obstacle movement, City/light tracking, pooling/culling, environment work, and world rebase. Added a bounded first-run/restart stabilization window so the initial shadow map is rebuilt from the final caster set instead of a stale loading-frame set.
+- Added a localized desktop Controls toggle for the crosshair. Mobile hides the crosshair unconditionally and omits the irrelevant setting.
+- Made the loading pipeline idempotent and self-recovering: requestAnimationFrame work has a timer fallback, the complete path can run only once, the animation loop starts independently from the loading-overlay fade, and a 22-second watchdog safely opens the menu if non-critical preloading is still pending.
+- Reduced browser startup prewarm to the visible/near-run essentials. Desktop packaging keeps the exhaustive prewarm; browser/mobile defer distant-map shader work instead of forcing a multi-million-triangle hidden upload before the first menu.
+- Hardened the service worker: optional shell-cache failures no longer reject the whole install, and navigation uses a 6.5-second network deadline before falling back to cached `index.html`.
+- QA:
+  - Deliberately reset the first `car.glb`, `motor.glb`, and `train.glb` requests. All three recovered automatically and spawned only `car-glb`, `motor-glb`, and the detailed train; car and motorcycle meshes both retained real shadow casters.
+  - Desktop Controls toggled the crosshair off/on and persisted the state. Mobile reported `display:none`, no crosshair control row, and effective crosshair visibility `false`.
+  - Mobile High reached the menu in 10.7 seconds in a cold software-rendered session, with all three vehicle models and hands ready and no page/console errors.
+  - First-run and second-run gameplay were started in one session. The road-shadow screenshots were visually inspected; no transient rectangular slab appeared.
+  - Inline JavaScript parsing and `git diff --check` passed. The official `web_game_playwright_client.js` produced two states without an `errors-*.json` report.
