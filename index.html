@@ -10,7 +10,7 @@
     <meta name="google-adsense-account" content="ca-pub-4666514897532022">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.3.11-first-run-stability">
+    <meta name="elemental-run-build" content="1.3.12-shadow-lifecycle">
     <meta name="theme-color" content="#071323">
     <link rel="canonical" href="https://shephhh.github.io/elemental-run-browser-v1.3/">
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
@@ -67,6 +67,19 @@
     <script src="vendor/loaders/GLTFLoader.js"></script>
 
     <style>
+        /*
+         * Browser-only rewarded markup is shared with the desktop shell. Keep it
+         * fail-closed here so a missing/blocked browser stylesheet can never expose
+         * the raw dialog in Electron. browser-platform.css may reveal it only after
+         * init has positively identified a browser build.
+         */
+        #rewarded-continue {
+            display: none;
+        }
+        body.browser-build #rewarded-continue.is-active {
+            display: grid;
+        }
+
         @font-face {
             font-family: 'Orbitron';
             font-style: normal;
@@ -8404,8 +8417,14 @@ let skyClouds = [];
         return baseValue + carriedValue;
     }
 
+    function isDesktopShellRuntime() {
+        return !!(window.elementalRunDesktop || window.elementalRunShell);
+    }
+
     function isBrowserBuild() {
-        return window.ELEMENTAL_BROWSER_BUILD === true;
+        // Electron's preload bridge is authoritative. A browser bootstrap file
+        // accidentally copied into the desktop package must never enable ads.
+        return !isDesktopShellRuntime() && window.ELEMENTAL_BROWSER_BUILD === true;
     }
 
     function getRewardBoostUntil(type) {
@@ -10012,6 +10031,15 @@ let skyClouds = [];
             && (typeof gamePhase === 'undefined' || gamePhase === 0);
     }
 
+    function shouldContinuouslyUpdateDynamicShadows(preset = getQualityPreset()) {
+        if (!shouldRenderDynamicShadows(preset) || MOBILE_RUNTIME) return false;
+        // The city world, its directional light and pooled traffic all move every
+        // simulation frame. Reusing a desktop shadow texture for several frames
+        // therefore preserves removed casters and creates transient dark slabs.
+        // Menus/paused screens are static and can safely keep a single cached map.
+        return !mainMenuVisible && !isGamePaused && !isGameOver;
+    }
+
     function getRuntimeShadowMapSize(preset = getQualityPreset()) {
         const requested = Math.max(512, Number(preset.shadowMapSize) || 1024);
         const maxTexture = renderer?.capabilities?.maxTextureSize || 4096;
@@ -10081,7 +10109,7 @@ let skyClouds = [];
             if (renderer.shadowMap) {
                 const shadowsEnabled = shouldRenderDynamicShadows(preset);
                 renderer.shadowMap.enabled = shadowsEnabled;
-                renderer.shadowMap.autoUpdate = false;
+                renderer.shadowMap.autoUpdate = shouldContinuouslyUpdateDynamicShadows(preset);
                 renderer.shadowMap.needsUpdate = true;
             }
             applyGfxQuality(preset);
@@ -11610,8 +11638,22 @@ let skyClouds = [];
 
     function updateShadowRefreshQueue(delta) {
         if (!(renderer && renderer.shadowMap && renderer.shadowMap.enabled) || !player) return;
-        renderer.shadowMap.autoUpdate = false;
+        const continuousUpdates = shouldContinuouslyUpdateDynamicShadows();
+        if (renderer.shadowMap.autoUpdate !== continuousUpdates) {
+            renderer.shadowMap.autoUpdate = continuousUpdates;
+            renderer.shadowMap.needsUpdate = true;
+            shadowRefreshFrame = 0;
+            shadowRefreshCooldown = 0;
+            pendingShadowRefreshX = Number.POSITIVE_INFINITY;
+        }
         updateNearbyMovingShadowState(delta);
+        if (continuousUpdates) {
+            // autoUpdate captures the final post-simulation caster set on every
+            // rendered desktop frame; no delayed queue is needed.
+            shadowStabilizationFrames = 0;
+            shadowStabilizationReason = '';
+            return;
+        }
         if (shadowStabilizationFrames > 0) {
             // A fresh run rebuilds/pools many casters before its first visible
             // frame. Refresh a short, bounded series after every world update
@@ -12895,6 +12937,9 @@ nextSnowballX = 0;
         shiftWorldPointsX(lavaEmbers, dx);
         shiftWorldPointsX(lavaHeatHaze, dx);
         shiftWorldPointsX(snowFlurries, dx);
+        // A cached mobile shadow map is still expressed in the pre-rebase world
+        // coordinates. Force the same rendered frame to capture the shifted scene.
+        requestShadowMapRefresh(null, true);
     }
 
     function stepGame(delta) {
@@ -13007,9 +13052,12 @@ nextSnowballX = 0;
             
             updateCyberFloor();
         }
+        // Rebase before deciding the shadow update. The old order refreshed a map
+        // and then shifted every caster immediately before render.
+        applyWorldRebase();
         // Shadow decisions must run after obstacle movement, city/light tracking,
         // pooling/culling and world rebase. Updating earlier captured a stale
-        // first-run caster set and produced one-frame dark slabs on the asphalt.
+        // first-run caster set and produced transient dark slabs on the asphalt.
         updateShadowRefreshQueue(realDelta);
         updateViewmodelHands(realDelta);
         applyTimeSlowVisuals();
@@ -13017,7 +13065,6 @@ nextSnowballX = 0;
             updateTimeSlowUi();
             updateMagnetUi();
         }
-        applyWorldRebase();
         if (renderer.info && typeof renderer.info.reset === 'function') renderer.info.reset();
         if (gfxComposerActive && gfxComposer) gfxComposer.render();
         else renderer.render(scene, camera);
@@ -13168,6 +13215,7 @@ nextSnowballX = 0;
                     shadowStabilizationFrames,
                     shadowStabilizationReason: shadowStabilizationReason || null,
                     shadowsEnabled: !!(renderer && renderer.shadowMap && renderer.shadowMap.enabled),
+                    shadowAutoUpdate: !!(renderer && renderer.shadowMap && renderer.shadowMap.autoUpdate),
                     shadowMapSize: dirLight?.shadow?.mapSize?.width || null,
                     drawCalls: renderer && renderer.info ? renderer.info.render.calls : null,
                     triangles: renderer && renderer.info ? renderer.info.render.triangles : null,
@@ -14185,13 +14233,16 @@ if (gfxBloomPass && gamePhase !== gfxLastBloomPhase) {
 
 if (renderer && dirLight) {
     const shadowsOn = shouldRenderDynamicShadows();
+    const continuousShadowUpdates = shouldContinuouslyUpdateDynamicShadows();
     
     // GÃ¶lge motorunu (shadowMap) tamamen kapatÄ±p kasmaya yol aÃ§mak yerine, 
     // sadece Ä±ÅŸÄ±ÄŸÄ±n gÃ¶lge kamerasÄ±nÄ± devre dÄ±ÅŸÄ± bÄ±rakÄ±yoruz.
-    if (dirLight.castShadow !== shadowsOn || renderer.shadowMap.enabled !== shadowsOn || renderer.shadowMap.autoUpdate) {
+    if (dirLight.castShadow !== shadowsOn
+        || renderer.shadowMap.enabled !== shadowsOn
+        || renderer.shadowMap.autoUpdate !== continuousShadowUpdates) {
         dirLight.castShadow = shadowsOn;
         renderer.shadowMap.enabled = shadowsOn;
-        renderer.shadowMap.autoUpdate = false;
+        renderer.shadowMap.autoUpdate = continuousShadowUpdates;
         
         // Keep a stable acne-resistant bias. An extreme disabled-state bias can
         // leak into the first refreshed frame after a map or quality transition.
@@ -14782,7 +14833,8 @@ if (renderer && dirLight) {
         scene = new THREE.Scene();
         cacheDomReferences();
         const browserRuntime = isBrowserBuild();
-        if (browserRuntime) document.body.classList.add('browser-build');
+        document.body.classList.toggle('browser-build', browserRuntime);
+        document.body.classList.toggle('desktop-build', !browserRuntime);
         // Steam already owns the desktop shell, and rewarded ads are a browser-only economy.
         // Keep the shared markup for one source of truth, but remove those surfaces from the
         // packaged desktop menu before its first visible frame.
@@ -14794,6 +14846,11 @@ if (renderer && dirLight) {
             if (ui.browserRewardDock) {
                 ui.browserRewardDock.hidden = true;
                 ui.browserRewardDock.style.display = 'none';
+            }
+            if (ui.rewardedContinue) {
+                ui.rewardedContinue.hidden = true;
+                ui.rewardedContinue.style.display = 'none';
+                ui.rewardedContinue.setAttribute('aria-hidden', 'true');
             }
         }
         if (MOBILE_RUNTIME) {

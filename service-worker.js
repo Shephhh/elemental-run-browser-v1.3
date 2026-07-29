@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-20-first-run-stability';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-21-shadow-lifecycle';
 const SHELL = [
   './',
   './index.html',

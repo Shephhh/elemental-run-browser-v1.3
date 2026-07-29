@@ -257,3 +257,17 @@ TODO:
   - Mobile High reached the menu in 10.7 seconds in a cold software-rendered session, with all three vehicle models and hands ready and no page/console errors.
   - First-run and second-run gameplay were started in one session. The road-shadow screenshots were visually inspected; no transient rectangular slab appeared.
   - Inline JavaScript parsing and `git diff --check` passed. The official `web_game_playwright_client.js` produced two states without an `errors-*.json` report.
+
+## 2026-07-29 - Continuous desktop shadow lifecycle and desktop UI isolation
+
+- Compared the regression against the bulk Cyber performance commit and found the exact behavior change: desktop shadow maps were switched from `autoUpdate=true` to a 4-6 frame manual cache while the directional light, road world and pooled obstacle casters continued moving every simulation frame. Removed casters could therefore survive briefly in the cached texture as a hard rectangular road shadow.
+- Restored continuous shadow-map updates only during active desktop/browser-desktop City gameplay. Menus, paused/game-over screens and explicit Performance mode keep their cheaper/static behavior; mobile retains the bounded manual cadence.
+- Reordered floating-origin rebasing ahead of shadow decisions and force-refreshes cached mobile shadows after a rebase, preventing a rendered frame from using pre-rebase shadow coordinates.
+- Made browser rewards fail closed in the shared HTML and made the Electron preload bridge authoritative over any accidentally copied browser marker.
+- Added a reusable desktop-index preparation tool that strips AdSense, browser reward scripts/styles and web-only metadata before packaging. This prevents future bulk synchronization from recreating the raw `ONE MORE CHANCE` overlay regression.
+- Synchronized Browser and Mobile v1.3, prepared the browser-free Desktop index, rebuilt Desktop v1.3 `app.asar`, and retained rollback copies of the previous archive and loose index.
+- QA:
+  - Deterministic pooled car -> wall probes both reported `shadowAutoUpdate=true` during active desktop-class gameplay, with no page/console errors and no stale road silhouette after the car left.
+  - A forced desktop death entered `game_over` directly: `rewardedDeathPending=false`, rewarded overlay `display:none`, and the normal Game Over card `display:grid`.
+  - The real packaged Electron app reported build `1.3.12-shadow-lifecycle`, `desktop-build=true`, no browser platform script/stylesheet, both browser reward surfaces hidden, and zero console/page errors.
+  - Browser and desktop inline scripts parsed successfully, `git diff --check` passed, and the official `web_game_playwright_client.js` completed without an error report.
