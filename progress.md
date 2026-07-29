@@ -271,3 +271,19 @@ TODO:
   - A forced desktop death entered `game_over` directly: `rewardedDeathPending=false`, rewarded overlay `display:none`, and the normal Game Over card `display:grid`.
   - The real packaged Electron app reported build `1.3.12-shadow-lifecycle`, `desktop-build=true`, no browser platform script/stylesheet, both browser reward surfaces hidden, and zero console/page errors.
   - Browser and desktop inline scripts parsed successfully, `git diff --check` passed, and the official `web_game_playwright_client.js` completed without an error report.
+
+## 2026-07-29 - Critical loading and continuous gameplay music
+
+- Found one shared startup bottleneck behind the slow loading screen, late hands, and interrupted music: the priority phase launched `hand.glb`, train, car, and motorcycle together (about 26 MB of GLBs), then held the overlay for all four while gameplay music competed for the same connection.
+- Made the 7.55 MB hand model the only critical GLB, added high-priority HTML preloading and three bounded retries, and kept the loading progress tied to the actual hand transfer. A normal first run now reaches PLAY with the hand parsed and GPU-warmed.
+- Moved detailed traffic to an idle-menu queue and loads it sequentially as train -> car -> motorcycle. Existing spawn gates still prevent obsolete detailed-tier fallbacks from appearing.
+- Pre-buffers gameplay music without autoplay, replaced manual end-of-track seeking with native looping, and made `play()` requests single-flight/cancellable. The music can no longer be restarted every frame or resume after a stale async play promise.
+- Reduced browser startup shader work from a full-scene compile plus three heavy renders to one first-phase composer warm pass. Desktop retains its exhaustive local-asset warm path.
+- Closed the local/Electron startup race where the document could already be `complete` before the large inline game script registered its final `load` listener. Initialization now runs immediately for an already-loaded document and otherwise uses a one-shot listener.
+- Added loading-task, hand, vehicle, and media readiness diagnostics to `render_game_to_text`; bumped the browser shell cache to `shell-22-critical-loading`.
+- QA:
+  - A forced first `hand.glb` failure retried twice total and reached the run with `ready=true`, `settled=true`, and visible hands.
+  - A cold throttled session reached the menu with hands ready, gameplay music at `readyState=4/currentTime=0`, and no vehicle request in the critical phase.
+  - After PLAY, music remained unpaused and advanced continuously across samples while hands were visible; no page or console errors were reported.
+  - The official `web_game_playwright_client.js` finished at `ready:complete` with hands ready, all vehicle requests still deferred, music buffered, and no `errors-*.json`. Menu and gameplay screenshots were visually inspected.
+  - Rebuilt the desktop ASAR and tested the real Electron executable. The loading overlay closed, desktop/browser-only UI stayed correctly isolated, hands were visible on the first run, and tracked `gameplay-music.mp3` advanced to 3.51 seconds with `paused=false`, `readyState=4`, `loop=true`, and zero console/page errors.
