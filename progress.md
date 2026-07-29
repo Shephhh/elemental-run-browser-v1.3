@@ -287,3 +287,18 @@ TODO:
   - After PLAY, music remained unpaused and advanced continuously across samples while hands were visible; no page or console errors were reported.
   - The official `web_game_playwright_client.js` finished at `ready:complete` with hands ready, all vehicle requests still deferred, music buffered, and no `errors-*.json`. Menu and gameplay screenshots were visually inspected.
   - Rebuilt the desktop ASAR and tested the real Electron executable. The loading overlay closed, desktop/browser-only UI stayed correctly isolated, hands were visible on the first run, and tracked `gameplay-music.mp3` advanced to 3.51 seconds with `paused=false`, `readyState=4`, `loop=true`, and zero console/page errors.
+
+## 2026-07-29 - Restore first-run cars, motorcycles, and trains
+
+- Found the vehicle disappearance regression in the deferred loader itself: the first traffic spawn marked the queue as started, but the queue refused to download outside the paused main menu. Pressing PLAY quickly therefore locked car and motorcycle loading for the entire first run.
+- Removed the menu/pause dependency. Detailed traffic now streams sequentially as car -> motorcycle -> train after hands and the gameplay-music buffer receive priority, and the same queue continues safely if the run has already started.
+- Added bounded queue state and spawn counters to `render_game_to_text` so a future first-run traffic regression can be diagnosed directly.
+- Removed silent empty traffic slots while a model is still streaming. Regular traffic, lane companions, and Sky sweeper escorts now choose another ready traffic model or a normal one-lane obstacle, and only count a placement when `createObstacle` actually succeeds.
+- Kept the obsolete procedural car/motorcycle fallback restricted to explicit Performance mode and kept every train tier on the detailed GLB.
+- Synchronized Browser and Mobile v1.3, generated the browser-free Desktop index, rebuilt the Electron `app.asar`, and retained rollback copies of the previous desktop archive and loose index.
+- QA:
+  - Delayed `car.glb`, `motor.glb`, and `train.glb` by 1.6 seconds each and pressed PLAY immediately. The queue continued during the first run and completed all three models without returning to the menu.
+  - Deterministic first-run probes created a real `car-glb`, `motor-glb`, and detailed train. All three screenshots were visually inspected.
+  - Hands stayed ready and visible; gameplay music remained unpaused and its playback time advanced while vehicle decoding completed.
+  - The real packaged Electron app reported build `1.3.14-vehicle-streaming`, kept browser/reward surfaces disabled, entered a first run with visible hands, and produced no page/console errors.
+  - No page or console errors were reported. Inline JavaScript parsing, `git diff --check`, and the official `web_game_playwright_client.js` smoke pass completed successfully.
