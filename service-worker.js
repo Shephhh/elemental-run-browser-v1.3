@@ -1,4 +1,4 @@
-const CACHE_NAME = 'elemental-run-browser-v13-shell-23-vehicle-streaming';
+const CACHE_NAME = 'elemental-run-browser-v13-shell-25-menu-dock-and-models';
 const SHELL = [
   './',
   './index.html',
