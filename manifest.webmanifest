@@ -4,7 +4,7 @@
   "description": "A fast first-person elemental endless runner.",
   "start_url": "./",
   "display": "fullscreen",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#030814",
   "theme_color": "#071323",
   "icons": [
