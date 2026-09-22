@@ -580,12 +580,75 @@
     cs: 'Dvojitý skok|Zastavení času|Plachtění|Vzdušný výpad|Vrácení času|Magnet|Fázový posun|Oživení'
   };
   const handSkillKeys = ['doubleJump','timeSlow','glide','airDash','timeRewind','magnet','phaseShift','revive'];
+  // Loading flight runs before game-runtime.js, so it reads this shared table directly.
+  const LOADING_FLIGHT_KEYS = ['tapToFly','starting','loading','ready','gameLabel','scoreLabel','canvasLabel'];
+  const LOADING_FLIGHT_ROWS = {
+    en: ['Tap to fly','STARTING…','LOADING…','READY','Elemental Run loading game','Flight score','Flying elemental spirit game'],
+    tr: ['Uçmak için dokunun','BAŞLIYOR…','YÜKLENİYOR…','HAZIR','Elemental Run yükleme oyunu','Uçuş puanı','Uçan element ruhu oyunu'],
+    it: ['Tocca per volare','IN AVVIO…','CARICAMENTO…','PRONTO','Gioco di caricamento di Elemental Run','Punteggio di volo','Gioco dello spirito elementale volante'],
+    'es-ES': ['Toca para volar','INICIANDO…','CARGANDO…','LISTO','Juego de carga de Elemental Run','Puntuación de vuelo','Juego del espíritu elemental volador'],
+    fr: ['Touchez pour voler','DÉMARRAGE…','CHARGEMENT…','PRÊT','Jeu de chargement Elemental Run','Score de vol','Jeu de l’esprit élémentaire volant'],
+    de: ['Tippen zum Fliegen','STARTET…','LÄDT…','BEREIT','Elemental Run Ladespiel','Flugpunktzahl','Spiel mit fliegendem Elementargeist'],
+    ar: ['المس للطيران','جارٍ البدء…','جارٍ التحميل…','جاهز','لعبة تحميل Elemental Run','نتيجة الطيران','لعبة الروح العنصرية الطائرة'],
+    'pt-BR': ['Toque para voar','INICIANDO…','CARREGANDO…','PRONTO','Jogo de carregamento do Elemental Run','Pontuação do voo','Jogo do espírito elemental voador'],
+    da: ['Tryk for at flyve','STARTER…','INDLÆSER…','KLAR','Elemental Run-indlæsningsspil','Flyvepoint','Spil med flyvende elementånd'],
+    nl: ['Tik om te vliegen','START…','LADEN…','GEREED','Elemental Run-laadspel','Vliegscore','Spel met vliegende elementgeest'],
+    'zh-Hant': ['點擊飛行','即將開始…','載入中…','準備就緒','Elemental Run 載入遊戲','飛行分數','飛行元素精靈遊戲'],
+    ko: ['터치하여 비행','시작 중…','로딩 중…','준비 완료','Elemental Run 로딩 게임','비행 점수','날아가는 원소 정령 게임'],
+    pl: ['Dotknij, aby lecieć','URUCHAMIANIE…','ŁADOWANIE…','GOTOWE','Gra podczas ładowania Elemental Run','Wynik lotu','Gra z latającym duchem żywiołów'],
+    no: ['Trykk for å fly','STARTER…','LASTER…','KLAR','Elemental Run-lastespill','Flypoeng','Spill med flygende elementånd'],
+    ro: ['Atinge pentru a zbura','PORNIRE…','SE ÎNCARCĂ…','GATA','Jocul de încărcare Elemental Run','Scorul zborului','Joc cu spiritul elementar zburător'],
+    th: ['แตะเพื่อบิน','กำลังเริ่ม…','กำลังโหลด…','พร้อม','เกมระหว่างโหลด Elemental Run','คะแนนการบิน','เกมภูตธาตุบิน'],
+    uk: ['Торкнися, щоб летіти','ЗАПУСК…','ЗАВАНТАЖЕННЯ…','ГОТОВО','Гра під час завантаження Elemental Run','Очки польоту','Гра з летючим духом стихій'],
+    el: ['Άγγιξε για πτήση','ΕΚΚΙΝΗΣΗ…','ΦΟΡΤΩΣΗ…','ΕΤΟΙΜΟ','Παιχνίδι φόρτωσης Elemental Run','Σκορ πτήσης','Παιχνίδι με ιπτάμενο στοιχειακό πνεύμα'],
+    sv: ['Tryck för att flyga','STARTAR…','LADDAR…','KLAR','Elemental Run-laddningsspel','Flygpoäng','Spel med flygande elementande'],
+    'zh-Hans': ['点击飞行','即将开始…','加载中…','准备就绪','Elemental Run 加载游戏','飞行分数','飞行元素精灵游戏'],
+    bg: ['Докосни, за да летиш','СТАРТИРАНЕ…','ЗАРЕЖДАНЕ…','ГОТОВО','Игра при зареждане на Elemental Run','Точки от полета','Игра с летящ елементален дух'],
+    id: ['Ketuk untuk terbang','MEMULAI…','MEMUAT…','SIAP','Gim pemuatan Elemental Run','Skor terbang','Gim roh elemen terbang'],
+    fi: ['Napauta lentääksesi','KÄYNNISTYY…','LADATAAN…','VALMIS','Elemental Run -latauspeli','Lentopisteet','Lentävän elementtihengen peli'],
+    ja: ['タップして飛ぶ','開始中…','読み込み中…','準備完了','Elemental Run のロードゲーム','飛行スコア','空飛ぶ精霊のゲーム'],
+    'es-419': ['Toca para volar','INICIANDO…','CARGANDO…','LISTO','Juego de carga de Elemental Run','Puntaje de vuelo','Juego del espíritu elemental volador'],
+    hu: ['Érints a repüléshez','INDÍTÁS…','BETÖLTÉS…','KÉSZ','Elemental Run betöltési játék','Repülési pontszám','Repülő elemi szellem játéka'],
+    'pt-PT': ['Toca para voar','A INICIAR…','A CARREGAR…','PRONTO','Jogo de carregamento do Elemental Run','Pontuação do voo','Jogo do espírito elemental voador'],
+    ru: ['Коснись, чтобы лететь','ЗАПУСК…','ЗАГРУЗКА…','ГОТОВО','Игра загрузки Elemental Run','Очки полёта','Игра с летающим духом стихий'],
+    vi: ['Chạm để bay','ĐANG BẮT ĐẦU…','ĐANG TẢI…','SẴN SÀNG','Trò chơi lúc tải Elemental Run','Điểm bay','Trò chơi linh hồn nguyên tố bay'],
+    cs: ['Klepni pro let','SPOUŠTĚNÍ…','NAČÍTÁNÍ…','PŘIPRAVENO','Hra při načítání Elemental Run','Skóre letu','Hra s létajícím živelným duchem']
+  };
+  const LOADING_FLIGHT_RETRY = {
+    en: 'Tap to play again', tr: 'Tekrar oynamak için dokunun',
+    it: 'Tocca per giocare di nuovo', 'es-ES': 'Toca para jugar de nuevo',
+    fr: 'Touchez pour rejouer', de: 'Tippen, um erneut zu spielen',
+    ar: 'المس للعب مرة أخرى', 'pt-BR': 'Toque para jogar novamente',
+    da: 'Tryk for at spille igen', nl: 'Tik om opnieuw te spelen',
+    'zh-Hant': '點擊再玩一次', ko: '터치하여 다시 플레이',
+    pl: 'Dotknij, aby zagrać ponownie', no: 'Trykk for å spille igjen',
+    ro: 'Atinge pentru a juca din nou', th: 'แตะเพื่อเล่นอีกครั้ง',
+    uk: 'Торкнися, щоб зіграти знову', el: 'Άγγιξε για να παίξεις ξανά',
+    sv: 'Tryck för att spela igen', 'zh-Hans': '点击再玩一次',
+    bg: 'Докосни, за да играеш отново', id: 'Ketuk untuk bermain lagi',
+    fi: 'Napauta pelataksesi uudelleen', ja: 'タップしてもう一度遊ぶ',
+    'es-419': 'Toca para jugar de nuevo', hu: 'Érints az új játékhoz',
+    'pt-PT': 'Toca para jogar novamente', ru: 'Коснись, чтобы сыграть снова',
+    vi: 'Chạm để chơi lại', cs: 'Klepni pro novou hru'
+  };
+  const LOADING_FLIGHT_TEXT = Object.freeze(Object.fromEntries(
+    SUPPORTED_LANGUAGES.map(({code}) => [code, Object.freeze(Object.fromEntries(
+      [...LOADING_FLIGHT_KEYS.map((key, index) => [key, LOADING_FLIGHT_ROWS[code][index]]),
+        ['retryToFly', LOADING_FLIGHT_RETRY[code]]]
+    ))])
+  ));
   const shopKeys = ['hands','rebirth','rebirthTag','rebirthConfirm','handTutorialOpen','handTutorialHands','handTutorialBuy'];
   SUPPORTED_LANGUAGES.forEach(({code}) => {
     shopKeys.forEach((key, i) => { UI_TRANSLATIONS[code][key] = SHOP_V14[code][i]; });
     UI_TRANSLATIONS[code].rebirthDone = `${SHOP_V14[code][1]} ×`;
     UI_TRANSLATIONS[code].rebirthMax = `${SHOP_V14[code][1]} · MAX`;
     HAND_SKILL_LABELS[code].split('|').forEach((label, i) => { UI_TRANSLATIONS[code]['handSkill_' + handSkillKeys[i]] = label; });
+  });
+  Object.assign(UI_TRANSLATIONS.en, {
+    mouseControl: 'Mouse control', mouseControlOn: 'Mouse control on', mouseControlOff: 'Mouse control off'
+  });
+  Object.assign(UI_TRANSLATIONS.tr, {
+    mouseControl: 'Mouse kontrolü', mouseControlOn: 'Mouse kontrolü açık', mouseControlOff: 'Mouse kontrolü kapalı'
   });
 
   global.ElementalLocalization = Object.freeze({
@@ -601,6 +664,7 @@
     NEW_RECORD_NAMES,
     UI_TRANSLATIONS,
     LOADING_GRAPHICS_TIPS,
+    LOADING_FLIGHT_TEXT,
     BROWSER_TEXT,
     BROWSER_TEXT_KEYS,
   });

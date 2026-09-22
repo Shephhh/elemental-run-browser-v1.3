@@ -59,11 +59,12 @@
     jump: '<path d="M5 18h14M7 14l5-7 5 7M12 7v11"/>',
     slide: '<path d="M4 17h16M6 7l6 7 6-7M12 14V4"/>',
     walls: '<path d="M3 5h18v14H3zM3 10h18M3 15h18M8 5v5M16 5v5M6 10v5M14 10v5M9 15v4M17 15v4"/>',
-    rush: '<path d="m13 2-8 12h7l-1 8 8-12h-7z"/>',
+    rush: '<path d="M13 3L5 14h7l-1 7 8-11h-7z"/>',
     bonus: '<circle cx="12" cy="12" r="9"/><path d="M9 8h5a2 2 0 0 1 0 4h-4a2 2 0 0 0 0 4h5M12 6v12"/>',
-    coin: '<path d="m12 2 7.5 4.3v11.4L12 22l-7.5-4.3V6.3z"/><path d="M9.5 8h4.2a2 2 0 0 1 0 4H11a2 2 0 0 0 0 4h4M12 6v12"/>',
+    coin: '<circle cx="12" cy="12" r="9"/><path d="M9.5 8h4a2 2 0 0 1 0 4H11a2 2 0 0 0 0 4h4.5M12 6v2M12 16v2"/>',
     lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
-    star: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+    medal: '<circle cx="12" cy="14" r="6"/><path d="M8 3h3l1 4M16 3h-3l-1 4"/><path d="M12 11v1.5M12 17v.5"/><path d="M9.5 14h5"/>',
+    timer: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4M12 2v3"/>',
     flag: '<path d="M5 21V4M5 5h12l-2 4 2 4H5"/>',
     arrow: '<path d="M5 12h14M14 7l5 5-5 5"/>',
     upgrade: '<path d="m6 12 6-6 6 6"/><path d="m6 20 6-6 6 6"/>',
@@ -72,10 +73,17 @@
 
   function icon(name, className = 'level-icon') {
     const path = ICON_PATHS[name] || ICON_PATHS.mixed;
-    return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${path}</svg>`;
+    return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${path}</svg>`;
   }
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+  const MEDAL_RANK = Object.freeze({ none: 0, bronze: 1, silver: 2, gold: 3 });
+  function medalForTime(seconds, times) {
+    if (seconds <= times.gold) return 'gold';
+    if (seconds <= times.silver) return 'silver';
+    if (seconds <= times.bronze) return 'bronze';
+    return 'none';
+  }
   const smoothstep = (value) => {
     const t = clamp(value, 0, 1);
     return t * t * (3 - 2 * t);
@@ -134,14 +142,29 @@
     const layoutSeed = hashLevel(index);
     const targetScore = calculateTargetScore(index);
     const difficulty = (index - 1) / (TOTAL_LEVELS - 1);
-    const onboardingTrafficScale = index === 1 ? 0.58 : (index === 2 ? 0.66 : (index === 3 ? 0.72 : null));
-    const onboardingSpawnScale = index === 1 ? 0.94 : (index === 2 ? 0.89 : (index === 3 ? 0.84 : null));
-    const onboardingDensity = index === 1 ? 1.38 : (index === 2 ? 1.56 : (index === 3 ? 1.72 : null));
-    const onboardingSafety = index === 1 ? 3.4 : (index === 2 ? 2.8 : (index === 3 ? 2.25 : null));
+    // Levels 1-5 are the child-friendly onboarding runway. A spawn interval
+    // scale above 1 means more time between rows (the runtime multiplies its
+    // interval by this value), while density stays deliberately below the
+    // normal campaign curve. The ramp is gradual so Level 6 does not feel like
+    // a sudden difficulty wall.
+    const onboardingTrafficScale = [0, 0.54, 0.59, 0.64, 0.69, 0.74][index] ?? null;
+    const onboardingSpawnScale = [0, 1.42, 1.34, 1.26, 1.18, 1.10][index] ?? null;
+    const onboardingDensity = [0, 0.78, 0.9, 1.02, 1.15, 1.28][index] ?? null;
+    const onboardingSafety = [0, 4.8, 4.25, 3.7, 3.15, 2.65][index] ?? null;
+    const onboardingLevel = index <= 5;
     // Every playable level, including Level 1 and the bonus stages, shares the
     // same distant curve language. The curve renderer keeps the near collision
     // corridor straight, so enabling it here does not alter gameplay physics.
     const curveEnabled = true;
+    // A normal run's score rate rises with its level start-speed bonus. The
+    // three fixed, per-level times put Silver near that run, Gold at a practiced
+    // bunnyhop pace, and Bronze below the normal pace.
+    const courseSeconds = Math.max(24, targetScore / (23 + difficulty * 25) + 6.2);
+    const ghostTimes = Object.freeze({
+      gold: Math.round(courseSeconds * 0.83 * 10) / 10,
+      silver: Math.round(courseSeconds * 10) / 10,
+      bronze: Math.round(courseSeconds * 1.27 * 10) / 10
+    });
     return Object.freeze({
       number: index,
       theme: transitionPlan ? `${startTheme.id}-to-${destinationTheme.id}` : startTheme.id,
@@ -157,13 +180,17 @@
       layoutSeed,
       targetScore,
       reward: 60 + index * 6 + (concept === 'bonus' ? 90 : 0),
-      coinGoal: concept === 'bonus' ? 28 + Math.floor(index / 8) : 8 + Math.floor(index / 12),
-      parSeconds: Math.max(34, targetScore / (18 + difficulty * 38)),
+      ghostTimes,
       startSpeedBonus: 0.08 + difficulty * 0.28,
       trafficSpeedScale: onboardingTrafficScale ?? (0.72 + difficulty * 0.58),
       spawnIntervalScale: onboardingSpawnScale ?? (0.78 - difficulty * 0.34),
       obstacleDensity: onboardingDensity ?? (1.8 + difficulty * 2.15),
-      patternSpacingScale: 0.74 - difficulty * 0.18,
+      patternSpacingScale: onboardingLevel
+        ? [0, 1.34, 1.28, 1.22, 1.16, 1.10][index]
+        : (0.74 - difficulty * 0.18),
+      onboardingLevel,
+      motorcyclesAllowed: !onboardingLevel,
+      minimumOpenLanes: onboardingLevel ? 2 : 1,
       curveEnabled,
       curveStrength: 1,
       // The original Curved Road Test always opened with a left bend and then
@@ -184,6 +211,7 @@
       this.save = this.loadSave();
       this.run = null;
       this.lastHudProgress = -1;
+      this.lastGhostHudSecond = -1;
       this.dom = {};
       this.lastCompletion = null;
       this.finishUpgradeOpen = false;
@@ -192,11 +220,10 @@
 
     loadSave() {
       const fallback = {
-        schema: 1,
+        schema: 2,
         highestUnlocked: 1,
         selectedLevel: 1,
         completed: {},
-        totalStars: 0,
         upgradeTutorialSeen: false
       };
       try {
@@ -206,12 +233,22 @@
         const parsed = JSON.parse(raw);
         if (!parsed || typeof parsed !== 'object') return fallback;
         const completed = parsed.completed && typeof parsed.completed === 'object' ? parsed.completed : {};
+        const migrated = {};
+        for (const [number, entry] of Object.entries(completed)) {
+          const level = LEVELS[Number(number) - 1];
+          if (!level || !entry || typeof entry !== 'object') continue;
+          const bestTime = Number(entry.bestTime) || 0;
+          migrated[number] = {
+            bestTime,
+            bestCoins: Math.max(0, Number(entry.bestCoins) || 0),
+            medal: bestTime > 0 ? medalForTime(bestTime, level.ghostTimes) : 'none'
+          };
+        }
         return {
-          schema: 1,
+          schema: 2,
           highestUnlocked: clamp(Math.floor(Number(parsed.highestUnlocked) || 1), 1, TOTAL_LEVELS),
           selectedLevel: clamp(Math.floor(Number(parsed.selectedLevel) || 1), 1, TOTAL_LEVELS),
-          completed,
-          totalStars: Math.max(0, Math.floor(Number(parsed.totalStars) || 0)),
+          completed: migrated,
           upgradeTutorialSeen: parsed.upgradeTutorialSeen === true
         };
       } catch (_) {
@@ -244,21 +281,21 @@
       const tr = language.startsWith('tr');
       return tr ? {
         levels: 'SEVİYELER', level: 'SEVİYE', play: 'SEVİYEYİ OYNA', locked: 'KİLİTLİ',
-        complete: 'SEVİYE TAMAMLANDI', next: 'SONRAKİ SEVİYE', upgrades: 'YÜKSELTMELER',
+        complete: 'SEVİYE TAMAMLANDI', next: 'SONRAKİ SEVİYE', upgrades: 'YÜKSELTMELER', medal: 'MADALYA',
         menu: 'ANA MENÜ', reward: 'ÖDÜL', best: 'SÜRE', bonus: 'ALTIN BONUSU',
         endless: 'ENDLESS RUN', choose: 'OYNAMAK İÇİN BİR SEVİYEYE TIKLA', finish: 'BİTİŞ ÇİZGİSİ',
         mixed: 'KARMA KOŞU', slalom: 'SLALOM', traffic: 'TRAFİK', jump: 'ZIPLAMA',
         slide: 'EĞİLME', walls: 'DUVAR LABİRENTİ', rush: 'HIZ KOŞUSU',
-        totalEarned: 'TOPLAM KAZANÇ', gold: 'ALTIN', upgradeNow: 'YÜKSELTMELERE TIKLA', upgradeScore: 'PUANI YÜKSELT', closeUpgrade: 'KAPAT',
+        totalEarned: 'TOPLAM KAZANÇ', gold: 'ALTIN', silver: 'GÜMÜŞ', bronze: 'BRONZ', noMedal: 'MADALYA YOK', medals: 'MADALYALAR', upgradeNow: 'YÜKSELTMELERE TIKLA', upgradeScore: 'PUANI YÜKSELT', closeUpgrade: 'KAPAT',
         tutorial: 'EĞİTİM', tutorialComplete: 'EĞİTİM TAMAMLANDI', nextMap: 'SONRAKİ HARİTA', readyForLevel: 'SEVİYE 1 HAZIR'
       } : {
         levels: 'LEVELS', level: 'LEVEL', play: 'PLAY LEVEL', locked: 'LOCKED',
-        complete: 'LEVEL COMPLETE', next: 'NEXT LEVEL', upgrades: 'UPGRADES',
+        complete: 'LEVEL COMPLETE', next: 'NEXT LEVEL', upgrades: 'UPGRADES', medal: 'MEDAL',
         menu: 'MAIN MENU', reward: 'REWARD', best: 'BEST', bonus: 'GOLD BONUS',
         endless: 'ENDLESS RUN', choose: 'CLICK A LEVEL TO PLAY', finish: 'FINISH LINE',
         mixed: 'MIXED RUN', slalom: 'SLALOM', traffic: 'TRAFFIC', jump: 'JUMP COURSE',
         slide: 'SLIDE COURSE', walls: 'WALL MAZE', rush: 'SPEED RUN',
-        totalEarned: 'TOTAL EARNED', gold: 'GOLD', upgradeNow: 'OPEN UPGRADES', upgradeScore: 'UPGRADE SCORE', closeUpgrade: 'CLOSE',
+        totalEarned: 'TOTAL EARNED', gold: 'GOLD', silver: 'SILVER', bronze: 'BRONZE', noMedal: 'NO MEDAL', medals: 'MEDALS', upgradeNow: 'OPEN UPGRADES', upgradeScore: 'UPGRADE SCORE', closeUpgrade: 'CLOSE',
         tutorial: 'TUTORIAL', tutorialComplete: 'TUTORIAL COMPLETE', nextMap: 'NEXT MAP', readyForLevel: 'LEVEL 1 READY'
       };
     }
@@ -281,11 +318,11 @@
         .level-grid{display:grid;grid-template-columns:repeat(8,minmax(80px,1fr));gap:9px;overflow:auto;max-height:min(58vh,520px);padding:3px 4px 10px;scrollbar-width:thin}
         .level-card{position:relative;min-height:88px;padding:10px 8px;border:1px solid rgba(93,186,232,.3);border-radius:12px;background:linear-gradient(155deg,rgba(22,45,75,.92),rgba(7,14,31,.96));color:#dff8ff;text-align:left;transition:transform .14s ease,border-color .14s ease,filter .14s ease}
         .level-card:hover,.level-card:focus-visible{transform:translateY(-2px);border-color:#77eaff}.level-card.is-selected{border-color:#ffe26e;box-shadow:0 0 0 1px rgba(255,226,110,.45),0 0 24px rgba(255,207,80,.16)}
-        .level-card.is-locked{filter:saturate(.25) brightness(.56);cursor:not-allowed}.level-card-number{font:900 18px Orbitron,sans-serif}.level-card-theme{margin-top:6px;color:var(--level-color,#75eaff);font:800 9px Orbitron,sans-serif;letter-spacing:.08em}.level-card-stars{position:absolute;right:7px;bottom:7px;color:#ffe574;font-size:11px;letter-spacing:1px}.level-card-lock{position:absolute;right:8px;top:8px;font-size:13px;opacity:.72}
+        .level-card.is-locked{filter:saturate(.25) brightness(.56);cursor:not-allowed}.level-card-number{font:900 18px Orbitron,sans-serif}.level-card-theme{margin-top:6px;color:var(--level-color,#75eaff);font:800 9px Orbitron,sans-serif;letter-spacing:.08em}.level-card-lock{position:absolute;right:8px;top:8px;font-size:13px;opacity:.72}
         #level-run-hud{position:fixed;left:50%;top:70px;z-index:90;transform:translateX(-50%);display:none;pointer-events:none;width:min(380px,46vw);padding:8px 12px;border:1px solid rgba(103,222,255,.4);border-radius:12px;background:rgba(4,14,34,.76);box-shadow:0 10px 26px rgba(0,0,0,.24);backdrop-filter:blur(5px)}
         #level-run-hud.is-visible{display:block}.level-hud-line{display:flex;align-items:center;justify-content:space-between;gap:10px;color:#effbff;font:900 11px Orbitron,sans-serif;letter-spacing:.07em}.level-hud-line span:last-child{color:#ffe26d}.level-hud-track{height:5px;margin-top:6px;border-radius:99px;background:#07111f;overflow:hidden}.level-hud-fill{width:0;height:100%;background:linear-gradient(90deg,#5ee7ff,#69f1b0,#ffe06b);box-shadow:0 0 12px rgba(96,232,255,.7);transition:width .12s linear}
         #level-complete-overlay{position:fixed;inset:0;z-index:2500;display:none;place-items:center;padding:18px;background:radial-gradient(circle at 50% 38%,rgba(29,91,126,.36),rgba(1,5,18,.88));backdrop-filter:blur(7px)}#level-complete-overlay.is-visible{display:grid}
-        .level-complete-card{width:min(520px,calc(100vw - 30px));padding:24px;border:1px solid rgba(108,232,255,.62);border-radius:22px;background:linear-gradient(145deg,rgba(10,30,60,.98),rgba(5,11,28,.98));box-shadow:0 24px 90px rgba(0,0,0,.65),0 0 38px rgba(75,220,255,.18);text-align:center;color:#effcff}.level-complete-kicker{color:#70eaff;font:900 12px Orbitron,sans-serif;letter-spacing:.22em}.level-complete-title{margin:8px 0 0;font:900 clamp(25px,4vw,38px) Orbitron,sans-serif;letter-spacing:.08em}.level-complete-stars{margin:17px 0 8px;color:#ffe36a;font-size:36px;letter-spacing:8px;text-shadow:0 0 20px rgba(255,210,62,.72)}.level-complete-meta{display:flex;justify-content:center;gap:20px;color:#9ec4df;font:800 13px Rajdhani,sans-serif}.level-complete-meta strong{display:block;color:#fff2a0;font:900 21px Orbitron,sans-serif}.level-complete-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}.level-complete-actions button{padding:13px 10px;border:1px solid rgba(108,218,255,.42);border-radius:11px;background:#102640;color:#eaf9ff;font:900 12px Orbitron,sans-serif}.level-complete-actions .is-primary{grid-column:1/-1;background:linear-gradient(135deg,#5fe1ff,#6df0b8);color:#061329;border-color:#8df3ff}
+        .level-complete-card{width:min(520px,calc(100vw - 30px));padding:24px;border:1px solid rgba(108,232,255,.62);border-radius:22px;background:linear-gradient(145deg,rgba(10,30,60,.98),rgba(5,11,28,.98));box-shadow:0 24px 90px rgba(0,0,0,.65),0 0 38px rgba(75,220,255,.18);text-align:center;color:#effcff}.level-complete-kicker{color:#70eaff;font:900 12px Orbitron,sans-serif;letter-spacing:.22em}.level-complete-title{margin:8px 0 0;font:900 clamp(25px,4vw,38px) Orbitron,sans-serif;letter-spacing:.08em}.level-complete-meta{display:flex;justify-content:center;gap:20px;color:#9ec4df;font:800 13px Rajdhani,sans-serif}.level-complete-meta strong{display:block;color:#fff2a0;font:900 21px Orbitron,sans-serif}.level-complete-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}.level-complete-actions button{padding:13px 10px;border:1px solid rgba(108,218,255,.42);border-radius:11px;background:#102640;color:#eaf9ff;font:900 12px Orbitron,sans-serif}.level-complete-actions .is-primary{grid-column:1/-1;background:linear-gradient(135deg,#5fe1ff,#6df0b8);color:#061329;border-color:#8df3ff}
         body.main-menu-active #level-run-hud,body.game-over-active #level-run-hud,body.tutorial-active #level-run-hud{display:none!important}
         body.level-selector-open{overflow:hidden!important}body.level-selector-open #menu-dialog-layer{position:fixed!important;inset:0!important}
         /* Level surfaces use a restrained expedition-board material language.
@@ -305,22 +342,26 @@
         .level-card:hover,.level-card:focus-visible{z-index:2;transform:translateY(-4px) scale(1.025);border-color:var(--level-color,#77736d);background:linear-gradient(155deg,#30343c,#1e2025);box-shadow:0 12px 24px rgba(0,0,0,.36)}.level-card:hover::after,.level-card:focus-visible::after{transform:scale(1.35);opacity:.1}
         .level-card.is-selected{border-color:#d2ad65;background:linear-gradient(155deg,#332e24,#201e1b);box-shadow:0 8px 20px rgba(0,0,0,.28),inset 0 0 0 1px rgba(210,173,101,.18)}
         .level-card.is-locked{filter:saturate(.25) brightness(.63);cursor:not-allowed}.level-card.is-locked:hover{transform:none;box-shadow:0 5px 14px rgba(0,0,0,.2)}
-        .level-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px}.level-card-number{font:900 21px Orbitron,sans-serif;color:#f5f0e6}.level-card-theme{margin:0;color:var(--level-color,#d2ad65);font:800 8px Orbitron,sans-serif;letter-spacing:.09em}.level-card-main{display:flex;align-items:center;gap:8px;margin-top:8px}.level-card-concept-icon{display:grid;place-items:center;width:28px;height:28px;flex:0 0 28px;border:1px solid #41444a;border-radius:8px;background:#15171b;color:var(--level-color,#d2ad65)}.level-card-concept-icon .level-icon{width:16px;height:16px}.level-card-concept{color:#c8c5be;font:800 9px Rajdhani,sans-serif;letter-spacing:.11em;text-align:left}.level-card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:9px}.level-card-stars{position:static;color:#d7b462;font-size:11px;letter-spacing:1px}.level-card-go{color:#96938c;transition:transform .18s ease,color .18s ease}.level-card-go .level-icon{width:16px;height:16px}.level-card:hover .level-card-go,.level-card:focus-visible .level-card-go{color:var(--level-color,#d2ad65);transform:translateX(3px)}.level-card-lock{position:static;color:#9b978f}.level-card-lock .level-icon{width:15px;height:15px}
+        .level-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px}.level-card-number{font:900 21px Orbitron,sans-serif;color:#f5f0e6}.level-card-theme{margin:0;color:var(--level-color,#d2ad65);font:800 8px Orbitron,sans-serif;letter-spacing:.09em}.level-card-main{display:flex;align-items:center;gap:8px;margin-top:8px}.level-card-concept-icon{display:grid;place-items:center;width:28px;height:28px;flex:0 0 28px;border:1px solid #41444a;border-radius:8px;background:#15171b;color:var(--level-color,#d2ad65)}.level-card-concept-icon .level-icon{width:16px;height:16px}.level-card-concept{color:#c8c5be;font:800 9px Rajdhani,sans-serif;letter-spacing:.11em;text-align:left}.level-card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:9px}.level-card-medal{position:static;font:900 9px Orbitron,sans-serif;letter-spacing:.05em}.level-card-go{color:#96938c;transition:transform .18s ease,color .18s ease}.level-card-go .level-icon{width:16px;height:16px}.level-card:hover .level-card-go,.level-card:focus-visible .level-card-go{color:var(--level-color,#d2ad65);transform:translateX(3px)}.level-card-lock{position:static;color:#9b978f}.level-card-lock .level-icon{width:15px;height:15px}
+        .level-card-medal.is-gold,.level-complete-medal.is-gold,.level-complete-rank.is-gold{color:#ffda78}.level-card-medal.is-silver,.level-complete-medal.is-silver,.level-complete-rank.is-silver{color:#dce9f3}.level-card-medal.is-bronze,.level-complete-medal.is-bronze,.level-complete-rank.is-bronze{color:#d6a17e}.level-card-medal.is-none,.level-complete-rank.is-none{color:#8f918d}
+        .level-ghost-times{display:flex;justify-content:space-between;gap:5px;margin-top:6px;font:800 9px Orbitron,sans-serif;letter-spacing:.02em}.level-ghost-times span{white-space:nowrap}.level-ghost-times .is-gold{color:#ffda78}.level-ghost-times .is-silver{color:#dce9f3}.level-ghost-times .is-bronze{color:#d6a17e}
+        .level-complete-rank{display:none!important}.level-complete-total-earned{display:none!important}.level-complete-ghost-times{display:flex;justify-content:center;gap:10px;margin:10px 0 8px;font:800 11px Orbitron,sans-serif}.ghost-time-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08)}.ghost-time-pill.is-gold{color:#ffd365;border-color:rgba(255,211,101,.35);box-shadow:0 0 10px rgba(255,211,101,.15)}.ghost-time-pill.is-silver{color:#dce6f2;border-color:rgba(220,230,242,.3);box-shadow:0 0 8px rgba(220,230,242,.1)}.ghost-time-pill.is-bronze{color:#df9972;border-color:rgba(223,153,114,.3);box-shadow:0 0 8px rgba(223,153,114,.1)}.ghost-medal-icon{width:14px;height:14px;flex:0 0 14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
         body.level-run-active #progress-wrapper,body.level-run-active #progress-text{display:none!important}
         #level-run-hud{top:18px;width:min(470px,52vw);padding:10px 13px;border:1px solid #555962;border-radius:8px;background:rgba(24,26,31,.9);box-shadow:0 8px 24px rgba(0,0,0,.34);backdrop-filter:blur(7px);animation:level-hud-in .34s ease both}
         .level-hud-line{color:#f1ede5;font-size:11px}.level-hud-line span:last-child{color:#d8bb7b}.level-hud-track{height:6px;margin-top:7px;background:#0e0f12;border:1px solid #34373d}.level-hud-fill{background:linear-gradient(90deg,#9c7b43,#e0c47d);box-shadow:none;transition:width .16s linear}
         #level-run-hud.is-finish-armed{border-color:#d2ad65}.is-finish-armed .level-hud-fill{animation:level-finish-pulse .7s ease-in-out infinite alternate}
-        #level-complete-overlay{background:rgba(7,8,10,.82);backdrop-filter:blur(9px)}
+        #level-complete-overlay{display:none;position:fixed;inset:0;z-index:900;place-items:center;background:linear-gradient(180deg,rgba(4,5,6,.78),rgba(7,8,10,.82));backdrop-filter:blur(9px)}
         .level-complete-card{position:relative;width:min(560px,calc(100vw - 30px));padding:30px 28px 26px;border:1px solid #b49151;border-radius:16px;background:linear-gradient(160deg,#22242a,#14161a);box-shadow:0 28px 80px rgba(0,0,0,.68);color:#f2eee5;overflow:hidden}
         .level-complete-card::after{content:"";position:absolute;inset:0;border:7px solid rgba(255,255,255,.025);pointer-events:none}
         .level-finish-wallet{position:fixed;top:max(18px,env(safe-area-inset-top));right:max(18px,env(safe-area-inset-right));z-index:2;display:flex;align-items:center;gap:10px;min-width:150px;padding:10px 14px;border:1px solid #b49151;border-radius:12px;background:rgba(18,19,23,.94);box-shadow:0 10px 30px rgba(0,0,0,.46);color:#f4efe5;text-align:left}.level-finish-wallet-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#d4aa4d;color:#251b0d;box-shadow:0 0 0 3px rgba(255,222,124,.18)}.level-finish-wallet-icon .level-icon{width:21px;height:21px}.level-finish-wallet-copy{display:grid;gap:2px}.level-finish-wallet-label{color:#bdb6aa;font:800 9px Orbitron,sans-serif;letter-spacing:.15em}.level-finish-wallet-value{color:#ffe08a;font:900 21px Orbitron,sans-serif;line-height:1}.level-finish-wallet.is-celebrating .level-finish-wallet-icon{animation:level-wallet-coin-pop .72s cubic-bezier(.2,.85,.2,1.25) both}.level-finish-wallet.is-celebrating .level-finish-wallet-value{animation:level-wallet-count-glow .9s ease both}
         #level-complete-overlay.is-entering .level-complete-card{animation:level-card-arrive .52s cubic-bezier(.18,.8,.22,1.15) both}
         .level-complete-medal{display:grid;place-items:center;width:66px;height:66px;margin:0 auto 12px;border:2px solid #d2ad65;border-radius:50%;background:#2a251c;color:#e5c77f;font:900 31px Orbitron,sans-serif;animation:level-medal-arrive .7s .18s cubic-bezier(.18,.8,.22,1.2) both}
-        .level-complete-kicker{color:#b9b4aa;font-size:10px;letter-spacing:.2em}.level-complete-title{color:#f4efe5;font-size:clamp(25px,4vw,36px);text-shadow:none}.level-complete-stars{color:#d9b661;text-shadow:none}.level-complete-meta{color:#aeadab}.level-complete-meta strong{color:#e5c982}
+        .level-complete-medal.is-gold{border-color:#eac879;background:#342b1c;box-shadow:0 0 22px rgba(255,208,105,.22)}.level-complete-medal.is-silver{border-color:#c5d2db;background:#232b30;box-shadow:0 0 18px rgba(210,235,250,.14)}.level-complete-medal.is-bronze{border-color:#bb8762;background:#30241e;box-shadow:0 0 18px rgba(214,144,98,.14)}.level-complete-medal.is-none{border-color:#777a7e;background:#26272a;color:#9b9da0}
+        .level-complete-kicker{color:#b9b4aa;font-size:10px;letter-spacing:.2em}.level-complete-title{color:#f4efe5;font-size:clamp(25px,4vw,36px);margin:0 0 4px;text-shadow:none}.level-complete-meta{display:flex;align-items:center;justify-content:center;gap:16px;margin:10px auto 16px;font:700 15px Orbitron,sans-serif}.level-complete-meta span{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}.level-complete-reward{color:#ffe08a;border-color:rgba(224,190,103,.35)!important;background:rgba(71,54,22,.28)!important}.level-complete-reward strong{color:#ffe08a;font-size:1.25em}.level-complete-best{color:#a9dcff;border-color:rgba(100,180,255,.3)!important;background:rgba(20,45,70,.28)!important}.level-complete-best strong{color:#d5eeff;font-size:1.25em}.level-meta-icon{width:22px;height:22px;flex:0 0 22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.level-complete-reward .level-meta-icon{color:#ffd05b}.level-complete-best .level-meta-icon{color:#79c7ff}
         .level-complete-actions button{display:flex;align-items:center;justify-content:center;gap:9px;min-height:48px;border:1px solid #4b4f57;background:#25282e;color:#eeeae1;box-shadow:none;transition:transform .16s ease,background .16s ease,border-color .16s ease,filter .16s ease}.level-complete-actions button span{display:inline-flex;align-items:center;line-height:1}.level-complete-actions button .level-icon{width:18px;height:18px;flex:0 0 18px}.level-complete-actions button:hover,.level-complete-actions button:focus-visible{transform:translateY(-2px);filter:brightness(1.12)}.level-complete-actions .is-primary{border-color:#cda95f;background:#cda95f;color:#171511;box-shadow:0 9px 24px rgba(205,169,95,.2)}.level-complete-actions .is-primary:hover,.level-complete-actions .is-primary:focus-visible{background:#dfc278!important;border-color:#dfc278!important}.level-complete-actions #level-upgrades-btn{border-color:#5e9dff;background:linear-gradient(135deg,#174c9e,#246fce 54%,#394fc2);color:#f3f8ff;box-shadow:0 8px 20px rgba(30,91,196,.24)}.level-complete-actions #level-upgrades-btn:hover,.level-complete-actions #level-upgrades-btn:focus-visible{border-color:#8bcaff!important;background:linear-gradient(135deg,#205db8,#2f83e4 54%,#4a61dc)!important}.level-complete-actions #level-menu-btn:hover,.level-complete-actions #level-menu-btn:focus-visible{border-color:#8c867b!important;background:#30333a!important}
         .level-celebration-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}.level-celebration-confetti i{position:absolute;left:var(--x);top:-10%;width:9px;height:17px;border-radius:2px;background:#d8b35f;opacity:.95;animation:level-confetti-fall var(--duration) var(--delay) cubic-bezier(.16,.7,.38,1) forwards}.level-celebration-confetti i:nth-child(3n){background:#ded8ca}.level-celebration-confetti i:nth-child(4n){background:#9aab96}.level-celebration-confetti i:nth-child(5n){background:#a88c74}
         .level-hud-title-wrap{display:flex;align-items:center;gap:7px}.level-hud-title-wrap .level-icon{width:15px;height:15px;color:#d8bb7b}
-        #level-complete-overlay.is-tutorial-complete .level-finish-wallet,#level-complete-overlay.is-tutorial-complete .level-complete-total-earned,#level-complete-overlay.is-tutorial-complete #level-upgrades-btn,#level-complete-overlay.is-tutorial-complete .level-complete-medal,#level-complete-overlay.is-tutorial-complete .level-complete-kicker,#level-complete-overlay.is-tutorial-complete .level-complete-stars,#level-complete-overlay.is-tutorial-complete .level-complete-meta{display:none!important}
+        #level-complete-overlay.is-tutorial-complete .level-finish-wallet,#level-complete-overlay.is-tutorial-complete .level-complete-total-earned,#level-complete-overlay.is-tutorial-complete #level-upgrades-btn,#level-complete-overlay.is-tutorial-complete .level-complete-medal,#level-complete-overlay.is-tutorial-complete .level-complete-kicker,#level-complete-overlay.is-tutorial-complete .level-complete-rank,#level-complete-overlay.is-tutorial-complete .level-complete-ghost-times,#level-complete-overlay.is-tutorial-complete .level-complete-meta{display:none!important}
         #level-complete-overlay.is-tutorial-complete{cursor:default}
         #level-complete-overlay.is-tutorial-complete .level-complete-card{width:min(520px,calc(100vw - 30px));padding:clamp(28px,6vmin,54px);text-align:center}
         #level-complete-overlay.is-tutorial-complete .level-complete-title{margin:0 auto;line-height:1.2;text-align:center}
@@ -339,7 +380,7 @@
           #level-complete-overlay{place-items:center;padding:6px;overflow:hidden}
           .level-complete-card{width:min(690px,calc(100vw - 14px));padding:10px 14px;border-radius:15px}
           .level-complete-kicker{font-size:9px}.level-complete-title{margin-top:3px;font-size:20px;line-height:1.12}
-          .level-complete-stars{margin:5px 0 2px;font-size:25px;letter-spacing:5px}.level-complete-meta{gap:18px;font-size:10px}.level-complete-meta strong{font-size:15px}
+          .level-complete-rank{margin:5px 0 2px;font-size:18px}.level-complete-ghost-times{font-size:9px;gap:8px}.level-complete-meta{gap:18px;font-size:10px}.level-complete-meta strong{font-size:15px}
           .level-complete-actions{grid-template-columns:1.3fr 1fr 1fr;gap:7px;margin-top:8px}.level-complete-actions .is-primary{grid-column:auto}.level-complete-actions button{padding:8px 7px;font-size:9px}
         }
         @media(prefers-reduced-motion:reduce){#level-run-hud,#level-complete-overlay.is-entering .level-complete-card,.level-complete-medal,.level-celebration-confetti i,.level-card{animation:none!important}.level-card{transition:none}}
@@ -368,11 +409,11 @@
         dialog.setAttribute('aria-hidden', 'true');
         // Level cards start immediately on click, so the redundant selected
         // level / Play Level strip is intentionally absent.
-        dialog.innerHTML = `<div class="menu-dialog-head"><div class="menu-dialog-title">${icon('levels')}<span>LEVELS</span></div><div class="level-dialog-stats" aria-label="Level stars">${icon('star')}<span id="level-star-total">0 / ${TOTAL_LEVELS * 3}</span></div><button class="menu-dialog-close level-dialog-close" type="button" aria-label="Close">x</button></div><div id="level-grid" class="level-grid"></div>`;
+        dialog.innerHTML = `<div class="menu-dialog-head"><div class="menu-dialog-title">${icon('levels')}<span>LEVELS</span></div><div class="level-dialog-stats" aria-label="Medals">${icon('medal')}<span id="level-medal-total">0 / ${TOTAL_LEVELS}</span></div><button class="menu-dialog-close level-dialog-close" type="button" aria-label="Close">x</button></div><div id="level-grid" class="level-grid"></div>`;
         layer.appendChild(dialog);
         this.dom.dialog = dialog;
         this.dom.grid = dialog.querySelector('#level-grid');
-        this.dom.starTotal = dialog.querySelector('#level-star-total');
+        this.dom.medalTotal = dialog.querySelector('#level-medal-total');
         this.dom.close = dialog.querySelector('.level-dialog-close');
       }
 
@@ -380,18 +421,18 @@
       hud.id = 'level-run-hud';
       hud.setAttribute('aria-live', 'polite');
       hud.innerHTML = '<div class="level-hud-line"><span id="level-hud-title"></span><span id="level-hud-value"></span></div><div class="level-hud-track"><div id="level-hud-fill" class="level-hud-fill"></div></div>';
-      hud.innerHTML = `<div class="level-hud-line"><span class="level-hud-title-wrap">${icon('flag')}<span id="level-hud-title"></span></span><span id="level-hud-value"></span></div><div class="level-hud-track"><div id="level-hud-fill" class="level-hud-fill"></div></div>`;
+      hud.innerHTML = `<div class="level-hud-line"><span class="level-hud-title-wrap">${icon('flag')}<span id="level-hud-title"></span></span><span id="level-hud-value"></span></div><div class="level-hud-track"><div id="level-hud-fill" class="level-hud-fill"></div></div><div class="level-ghost-times"></div>`;
       document.body.appendChild(hud);
       this.dom.hud = hud;
       this.dom.hudTitle = hud.querySelector('#level-hud-title');
       this.dom.hudValue = hud.querySelector('#level-hud-value');
       this.dom.hudFill = hud.querySelector('#level-hud-fill');
+      this.dom.ghostTimes = hud.querySelector('.level-ghost-times');
 
       const complete = document.createElement('div');
       complete.id = 'level-complete-overlay';
       complete.setAttribute('aria-hidden', 'true');
-      complete.innerHTML = '<div class="level-celebration-confetti" aria-hidden="true"></div><section class="level-complete-card" role="dialog" aria-modal="true"><div class="level-complete-medal" aria-hidden="true"><span>✓</span></div><div class="level-complete-kicker"></div><h2 class="level-complete-title"></h2><div class="level-complete-stars"></div><div class="level-complete-meta"><span class="level-complete-reward"></span><span class="level-complete-best"></span></div><div class="level-complete-actions"><button id="level-next-btn" class="is-primary" type="button"></button><button id="level-upgrades-btn" type="button"></button><button id="level-menu-btn" type="button"></button></div></section>';
-      complete.innerHTML = `<div class="level-celebration-confetti" aria-hidden="true"></div><div class="level-complete-coins" aria-hidden="true"></div><div class="level-finish-wallet" aria-live="polite"><span class="level-finish-wallet-icon" aria-hidden="true">${icon('coin')}</span><span class="level-finish-wallet-copy"><span class="level-finish-wallet-label"></span><strong class="level-finish-wallet-value"></strong></span></div><section class="level-complete-card" role="dialog" aria-modal="true"><div class="level-complete-medal" aria-hidden="true">${icon('flag')}</div><div class="level-complete-kicker"></div><h2 class="level-complete-title"></h2><div class="level-complete-stars"></div><div class="level-complete-total-earned"><span class="level-earned-coin" aria-hidden="true">◆</span><span class="level-earned-label"></span><strong class="level-earned-value"></strong></div><div class="level-complete-meta"><span class="level-complete-reward"></span><span class="level-complete-best"></span></div><div class="level-complete-actions"><button id="level-next-btn" class="is-primary" type="button"></button><button id="level-upgrades-btn" type="button"></button><button id="level-menu-btn" type="button"></button></div></section>`;
+      complete.innerHTML = `<div class="level-celebration-confetti" aria-hidden="true"></div><div class="level-complete-coins" aria-hidden="true"></div><div class="level-finish-wallet" aria-live="polite"><span class="level-finish-wallet-icon" aria-hidden="true">${icon('coin')}</span><span class="level-finish-wallet-copy"><span class="level-finish-wallet-label"></span><strong class="level-finish-wallet-value"></strong></span></div><section class="level-complete-card" role="dialog" aria-modal="true"><div class="level-complete-medal" aria-hidden="true">${icon('medal')}</div><div class="level-complete-kicker"></div><div class="level-complete-ghost-times"></div><h2 class="level-complete-title"></h2><div class="level-complete-meta"><span class="level-complete-reward"></span><span class="level-complete-best"></span></div><div class="level-complete-actions"><button id="level-next-btn" class="is-primary" type="button"></button><button id="level-upgrades-btn" type="button"></button><button id="level-menu-btn" type="button"></button></div></section>`;
       document.body.appendChild(complete);
       this.dom.complete = complete;
       this.dom.next = complete.querySelector('#level-next-btn');
@@ -486,28 +527,15 @@
       const text = this.copy();
       const titleNode = this.dom.dialog.querySelector('.menu-dialog-title span');
       if (titleNode) titleNode.textContent = text.levels;
-      if (this.dom.starTotal) this.dom.starTotal.textContent = `${this.save.totalStars} / ${TOTAL_LEVELS * 3}`;
+      if (this.dom.medalTotal) this.dom.medalTotal.textContent = `${Object.values(this.save.completed).filter((entry) => MEDAL_RANK[entry.medal] > 0).length} / ${TOTAL_LEVELS}`;
       this.dom.grid.innerHTML = LEVELS.map((level) => {
         const locked = level.number > this.save.highestUnlocked;
         const record = this.save.completed[level.number] || null;
-        const stars = record ? clamp(record.stars || 1, 1, 3) : 0;
+        const medal = record?.medal || 'none';
         const delay = Math.min((level.number - 1) % 24, 12) * 18;
-        const starText = stars ? '&#9733;'.repeat(stars) : '&#183; &#183; &#183;';
+        const medalText = medal === 'none' ? '—' : text[medal];
         const status = locked ? `<span class="level-card-lock">${icon('lock')}</span>` : `<span class="level-card-go">${icon('arrow')}</span>`;
-        return `<button class="level-card${locked ? ' is-locked' : ''}${level.number === this.selectedLevel ? ' is-selected' : ''}${record ? ' is-completed' : ''}" type="button" data-level="${level.number}" style="--level-color:${level.themeColor};--level-delay:${delay}ms" ${locked ? 'aria-disabled="true"' : ''} aria-label="${text.level} ${level.number}, ${this.conceptLabel(level)}"><span class="level-card-top"><span class="level-card-number">${String(level.number).padStart(2, '0')}</span><span class="level-card-theme">${level.themeLabel}</span></span><span class="level-card-main"><span class="level-card-concept-icon">${icon(level.concept)}</span><span class="level-card-concept">${this.conceptLabel(level)}</span></span><span class="level-card-foot"><span class="level-card-stars">${starText}</span>${status}</span></button>`;
-      }).join('');
-      /* legacy selector renderer retained below for rollback reference */
-      return;
-      const selected = LEVELS[this.selectedLevel - 1];
-      this.dom.dialog.querySelector('.menu-dialog-title').textContent = text.levels;
-      this.dom.selectedTitle.textContent = `${text.level} ${selected.number} · ${selected.themeLabel}`;
-      this.dom.selectedCopy.textContent = `${this.conceptLabel(selected)} · ${selected.targetScore.toLocaleString()} · ${text.reward} ${selected.reward} · ${text.choose}`;
-      this.dom.play.textContent = text.play;
-      this.dom.grid.innerHTML = LEVELS.map((level) => {
-        const locked = level.number > this.save.highestUnlocked;
-        const record = this.save.completed[level.number] || null;
-        const stars = record ? clamp(record.stars || 1, 1, 3) : 0;
-        return `<button class="level-card${locked ? ' is-locked' : ''}${level.number === this.selectedLevel ? ' is-selected' : ''}" type="button" data-level="${level.number}" style="--level-color:${level.themeColor}" ${locked ? 'aria-disabled="true"' : ''}><span class="level-card-top"><span class="level-card-number">${String(level.number).padStart(2, '0')}</span><span class="level-card-theme">${level.themeLabel}</span></span><span class="level-card-concept">${this.conceptLabel(level)}</span>${locked ? '<span class="level-card-lock">◆</span>' : ''}<span class="level-card-stars">${stars ? '★'.repeat(stars) : '· · ·'}</span></button>`;
+        return `<button class="level-card${locked ? ' is-locked' : ''}${level.number === this.selectedLevel ? ' is-selected' : ''}${record ? ' is-completed' : ''}" type="button" data-level="${level.number}" style="--level-color:${level.themeColor};--level-delay:${delay}ms" ${locked ? 'aria-disabled="true"' : ''} aria-label="${text.level} ${level.number}, ${this.conceptLabel(level)}, ${medalText}"><span class="level-card-top"><span class="level-card-number">${String(level.number).padStart(2, '0')}</span><span class="level-card-theme">${level.themeLabel}</span></span><span class="level-card-main"><span class="level-card-concept-icon">${icon(level.concept)}</span><span class="level-card-concept">${this.conceptLabel(level)}</span></span><span class="level-card-foot"><span class="level-card-medal is-${medal}">${medalText}</span>${status}</span></button>`;
       }).join('');
     }
 
@@ -537,6 +565,7 @@
     deactivateForEndless() {
       this.run = null;
       this.lastHudProgress = -1;
+      this.lastGhostHudSecond = -1;
       this.hideCompletion();
       this.dom.hud?.classList.remove('is-visible', 'is-finish-armed');
       document.body.classList.remove('level-run-active');
@@ -558,8 +587,10 @@
         coinsAtStart: Number(options?.coins) || 0
       };
       this.lastHudProgress = -1;
+      this.lastGhostHudSecond = -1;
       this.hideCompletion();
       this.updateHud(0);
+      this.updateGhostHud();
       this.dom.hud?.classList.toggle('is-visible', this.run.active);
       document.body.classList.toggle('level-run-active', this.run.active);
       if (this.run.active) this.api?.onLevelStart?.({ level, source: options?.source || 'campaign' });
@@ -573,9 +604,11 @@
       this.run.scoreBase = Number(score) || 0;
       this.run.coinsAtStart = Number(coins) || 0;
       this.run.elapsed = 0;
+      this.lastGhostHudSecond = -1;
       this.dom.hud?.classList.add('is-visible');
       document.body.classList.add('level-run-active');
       this.updateHud(0);
+      this.updateGhostHud();
       this.api?.onLevelStart?.({ level: this.run.level, source: 'tutorial-complete' });
       return this.run.level;
     }
@@ -587,6 +620,7 @@
     update(payload) {
       if (!this.run?.active || this.run.completed) return null;
       this.run.elapsed += Math.max(0, Number(payload?.delta) || 0);
+      this.updateGhostHud();
       const progress = Math.max(0, (Number(payload?.score) || 0) - this.run.scoreBase);
       this.updateHud(progress);
       if (
@@ -627,19 +661,18 @@
       this.run.completed = true;
       this.run.active = false;
       const level = this.run.level;
-      const stars = 1 + (result.coins >= level.coinGoal ? 1 : 0) + (result.elapsed <= level.parSeconds ? 1 : 0);
+      const medal = medalForTime(result.elapsed, level.ghostTimes);
       const old = this.save.completed[level.number] || {};
       this.save.completed[level.number] = {
-        stars: Math.max(Number(old.stars) || 0, stars),
+        medal: MEDAL_RANK[medal] > MEDAL_RANK[old.medal || 'none'] ? medal : (old.medal || 'none'),
         bestTime: old.bestTime ? Math.min(old.bestTime, result.elapsed) : result.elapsed,
         bestCoins: Math.max(Number(old.bestCoins) || 0, result.coins)
       };
       this.save.highestUnlocked = Math.max(this.save.highestUnlocked, Math.min(TOTAL_LEVELS, level.number + 1));
-      this.save.totalStars = Object.values(this.save.completed).reduce((sum, entry) => sum + clamp(Number(entry.stars) || 0, 0, 3), 0);
       this.save.selectedLevel = Math.min(TOTAL_LEVELS, level.number + 1);
       this.selectedLevel = this.save.selectedLevel;
       this.persist();
-      const completion = { ...result, level, stars, reward: level.reward };
+      const completion = { ...result, level, medal, reward: level.reward };
       this.showCompletion(completion);
       this.refreshMenu();
       this.api?.onLevelComplete?.(completion);
@@ -659,6 +692,19 @@
       if (this.dom.hudFill) this.dom.hudFill.style.width = `${pct.toFixed(2)}%`;
     }
 
+    updateGhostHud() {
+      if (!this.run?.active || !this.dom.ghostTimes) return;
+      const times = this.run.level.ghostTimes;
+      const elapsed = this.run.elapsed;
+      const second = Math.floor(elapsed);
+      if (second === this.lastGhostHudSecond) return;
+      this.lastGhostHudSecond = second;
+      const copy = this.copy();
+      this.dom.ghostTimes.innerHTML = ['gold', 'silver', 'bronze'].map((rank) =>
+        `<span class="is-${rank}">${copy[rank]} ${elapsed >= times[rank] ? '✓' : `${Math.max(0, times[rank] - elapsed).toFixed(0)}s`}</span>`
+      ).join('');
+    }
+
     showCompletion(result) {
       if (!this.dom.complete) return;
       const text = this.copy();
@@ -669,17 +715,30 @@
       this.dom.complete.classList.remove('is-tutorial-complete');
       this.dom.complete.querySelector('.level-complete-kicker').textContent = `${result.level.themeLabel} · ${this.conceptLabel(result.level)}`;
       this.dom.complete.querySelector('.level-complete-title').textContent = `${text.complete} · ${result.level.number}`;
-      this.dom.complete.querySelector('.level-complete-stars').textContent = '★'.repeat(result.stars) + '☆'.repeat(3 - result.stars);
-      this.dom.complete.querySelector('.level-complete-reward').innerHTML = `${text.reward}<strong>+${result.reward}</strong>`;
-      this.dom.complete.querySelector('.level-complete-best').innerHTML = `${text.best}<strong>${result.elapsed.toFixed(1)}s</strong>`;
+      const rank = this.dom.complete.querySelector('.level-complete-rank');
+      if (rank) rank.remove();
+      const badge = this.dom.complete.querySelector('.level-complete-medal');
+      if (badge) badge.className = `level-complete-medal is-${result.medal}`;
+      const ghostTimesEl = this.dom.complete.querySelector('.level-complete-ghost-times');
+      if (ghostTimesEl) {
+        ghostTimesEl.innerHTML = ['gold', 'silver', 'bronze'].map((grade) =>
+          `<span class="ghost-time-pill is-${grade}">${icon('medal', 'ghost-medal-icon')} <strong>${result.level.ghostTimes[grade].toFixed(1)}s</strong></span>`
+        ).join('');
+      }
       const totalEarned = Math.max(0, Math.floor(Number(result.reward) || 0) + Math.floor(Number(result.coins) || 0));
-      this.dom.complete.querySelector('.level-earned-label').textContent = text.totalEarned;
-      this.dom.complete.querySelector('.level-earned-value').textContent = `+${totalEarned}`;
+      const rewardEl = this.dom.complete.querySelector('.level-complete-reward');
+      if (rewardEl) rewardEl.innerHTML = `${icon('coin', 'level-meta-icon')}<strong>+${totalEarned}</strong>`;
+      const bestEl = this.dom.complete.querySelector('.level-complete-best');
+      if (bestEl) bestEl.innerHTML = `${icon('timer', 'level-meta-icon')}<strong>${result.elapsed.toFixed(1)}s</strong>`;
+      const earnedPill = this.dom.complete.querySelector('.level-complete-total-earned');
+      if (earnedPill) earnedPill.remove();
       const currentWallet = Math.max(0, Math.floor(Number(this.api?.getWalletGold?.()) || 0));
       const finalWallet = currentWallet + totalEarned;
       const wallet = this.dom.complete.querySelector('.level-finish-wallet');
-      this.dom.complete.querySelector('.level-finish-wallet-label').textContent = text.gold;
-      this.dom.complete.querySelector('.level-finish-wallet-value').textContent = finalWallet.toLocaleString();
+      const walletLabel = this.dom.complete.querySelector('.level-finish-wallet-label');
+      if (walletLabel) walletLabel.textContent = text.gold;
+      const walletValue = this.dom.complete.querySelector('.level-finish-wallet-value');
+      if (walletValue) walletValue.textContent = finalWallet.toLocaleString();
       wallet?.classList.remove('is-celebrating');
       if (wallet) {
         void wallet.offsetWidth;
@@ -866,6 +925,7 @@
     }
 
     getSelectedLevel() { return this.selectedLevel; }
+    getElapsed() { return this.run?.elapsed || 0; }
     getLevelDefinition(number) { return LEVELS[clamp(Math.floor(Number(number) || 1), 1, TOTAL_LEVELS) - 1]; }
     getActiveLevel() { return this.run?.level || LEVELS[this.selectedLevel - 1]; }
     isActive() { return !!this.run?.active && !this.run?.completed; }
@@ -886,7 +946,7 @@
         totalLevels: TOTAL_LEVELS,
         selected: this.selectedLevel,
         highestUnlocked: this.save.highestUnlocked,
-        totalStars: this.save.totalStars,
+        medals: Object.fromEntries(['gold', 'silver', 'bronze'].map((rank) => [rank, Object.values(this.save.completed).filter((entry) => entry.medal === rank).length])),
         active: this.isActive(),
         autoRewindEligible: this.allowsAutoRewind(),
         tutorialPending: !!this.run?.tutorialPending,
@@ -897,10 +957,22 @@
         theme: level.theme,
         concept: level.concept,
         targetScore: level.targetScore,
+        ghostTimes: level.ghostTimes,
+        elapsed: this.run?.elapsed || 0,
         progressScore: this.run ? Math.max(0, Math.floor((Number(score) || 0) - this.run.scoreBase)) : 0,
         progress: this.getProgress(score),
         curveEnabled: level.curveEnabled,
-        curveStrength: level.curveStrength
+        curveStrength: level.curveStrength,
+        onboarding: {
+          active: !!level.onboardingLevel,
+          motorcyclesAllowed: level.motorcyclesAllowed !== false,
+          minimumOpenLanes: Number(level.minimumOpenLanes) || 1,
+          trafficSpeedScale: level.trafficSpeedScale,
+          spawnIntervalScale: level.spawnIntervalScale,
+          obstacleDensity: level.obstacleDensity,
+          patternSpacingScale: level.patternSpacingScale,
+          safeOpeningSeconds: level.safeOpeningSeconds
+        }
       };
     }
 
@@ -913,6 +985,8 @@
         mapSequence: LEVEL_MAP_SEQUENCE,
         transitionPlans: LEVEL_TRANSITION_PLANS,
         targetScore: (number) => createLevel(number).targetScore,
+        ghostTimes: (number) => createLevel(number).ghostTimes,
+        medalForTime: (number, seconds) => medalForTime(Number(seconds), createLevel(number).ghostTimes),
         select: (number) => this.selectLevel(number),
         unlock: (number) => {
           this.save.highestUnlocked = clamp(Math.floor(Number(number) || 1), 1, TOTAL_LEVELS);

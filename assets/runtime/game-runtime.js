@@ -56,6 +56,7 @@
         compileFallbackCalls: 0,
         compileWaitMs: 0,
         textureUploadsPrimed: 0,
+        roadTextureWorkerUsed: false,
         renderTargetsPrimed: 0,
         composerResizeRequests: 0,
         composerResizeChanges: 0,
@@ -530,7 +531,9 @@ let skyClouds = [];
     let isSliding = false;
     let slideTimer = 0;
     const slideDuration = 0.8;
-    const normalHeight = 3.0;
+    // Slightly taller runner silhouette/collider. Keep the width/depth and all
+    // movement values unchanged so this does not alter lane handling.
+    const normalHeight = 3.15;
     const slideHeight = 1.8; 
 
     let bhopCombo = 0;
@@ -998,7 +1001,7 @@ let skyClouds = [];
     const REVIVE_SURGE_TIME = 1.74;
     const TIME_SLOW_UPGRADE_COST = 2000;
     const MAGNET_UPGRADE_COST = 2000; // glide ile aynı fiyat (kullanıcı isteği)
-    const HAND_PREVIEW_VERSION = '1.5.0';
+    const HAND_PREVIEW_VERSION = '1.6.24';
     const HAND_SKINS = Object.freeze([
         { id: 'ember', name: 'EMBER GRIP', cost: 200, skill: 'doubleJump', base: '#361b17', accent: '#ff6a1f', edge: '#ffd06a', particle: 'embers', preview: `assets/hands/previews/hand_ember.webp?v=${HAND_PREVIEW_VERSION}` },
         { id: 'frost', name: 'FROST WEAVE', cost: 500, skill: 'timeSlow', base: '#d6efff', accent: '#43c7ff', edge: '#ffffff', particle: 'snow', preview: `assets/hands/previews/hand_frost.webp?v=${HAND_PREVIEW_VERSION}` },
@@ -1061,6 +1064,7 @@ let skyClouds = [];
     // playable tutorial frames. They are released shortly after FTUE finishes.
     let tutorialHeavyLoadReleaseAt = 0;
     const levelSystem = window.ElementalLevelSystem || null;
+    const levelGhostSystem = window.ElementalLevelGhostSystem ? new window.ElementalLevelGhostSystem() : null;
     const curvedPathSystem = window.ElementalCurvedPathSystem || null;
     // Reused every rendered frame. The previous spread/filter/map expression
     // generated multiple large arrays and closures while the curved world was
@@ -1153,6 +1157,7 @@ let skyClouds = [];
         sfxVolume: 1.15,
         uiVolume: 1.25,
         mouseSensitivity: 1.0,
+        mouseControlEnabled: false,
         invertY: false,
         language: 'en',
         languageSource: 'auto',
@@ -1201,9 +1206,14 @@ let skyClouds = [];
         }),
         high: Object.freeze({
             ...GRAPHICS_QUALITY_PRESETS.high,
-            pixelRatio: 1, maxPixelRatio: 1.05, renderDistance: 860,
-            shadowMapSize: 1024, shadowRadius: 2, bloom: false, ao: false,
-            bloomStrength: 0, pbrDetail: true, envMap: true
+            // High is the visible default on phones. Keep its materials, but
+            // avoid rendering more pixels/road than a small screen can use.
+            pixelRatio: MOBILE_LOW_END ? 0.78 : 0.9,
+            maxPixelRatio: MOBILE_LOW_END ? 0.82 : 0.95,
+            renderDistance: MOBILE_LOW_END ? 660 : 780,
+            shadowMapSize: MOBILE_LOW_END ? 512 : 768,
+            shadowRadius: 2, bloom: false, ao: false,
+            bloomStrength: 0, pbrDetail: true, envMap: !MOBILE_LOW_END
         }),
         ultra: Object.freeze({
             ...GRAPHICS_QUALITY_PRESETS.ultra,
@@ -1939,6 +1949,7 @@ const arrowEffectPool = [];
         ui.menuSteamLink = document.getElementById('menu-steam-link');
         ui.menuSteamLabel = document.getElementById('menu-steam-label');
         ui.browserRewardDock = document.getElementById('browser-reward-dock');
+        ui.menuMouseControlBtn = document.getElementById('menu-mouse-control-btn');
         ui.graphicsQualityNote = document.getElementById('graphics-quality-note');
         ui.graphicsQualityNoteText = document.getElementById('graphics-quality-note-text');
         ui.browserRewardEyebrow = document.getElementById('browser-reward-eyebrow');
@@ -2577,7 +2588,7 @@ const arrowEffectPool = [];
     }
 
     function armPointerLockRecovery(reason = 'external-overlay', showNow = false) {
-        if (!isBrowserBuild() || MOBILE_RUNTIME || mainMenuVisible || isGameOver) return false;
+        if (!isBrowserBuild() || MOBILE_RUNTIME || !menuState.mouseControlEnabled || mainMenuVisible || isGameOver) return false;
         pointerLockRecoveryPending = true;
         pointerLockRecoveryReason = reason;
         pointerLockRequestInFlight = false;
@@ -4240,6 +4251,9 @@ const arrowEffectPool = [];
                 ? saved.adaptiveGraphicsQuality
                 : 'performance',
             mouseSensitivity: clampNumber(saved.mouseSensitivity, 0.45, 1.85, 1.0),
+            // Older profiles did not store this key and intentionally migrate
+            // to the child-friendly default: camera mouse-look is off.
+            mouseControlEnabled: saved.mouseControlEnabled === true,
             invertY: !!saved.invertY,
             language: normalizeLanguage(saved.language || 'en'),
             languageSource: saved.languageSource === 'manual' ? 'manual' : 'auto',
@@ -4362,7 +4376,7 @@ const arrowEffectPool = [];
             queuePending: (xPos) => { pendingShadowRefreshX = Math.min(pendingShadowRefreshX, xPos); }
         })
     }, {
-        adaptiveEnabled: false,
+        adaptiveEnabled: MOBILE_RUNTIME,
         graceSeconds: ADAPTIVE_GRAPHICS_GRACE_SECONDS,
         promoteFps: ADAPTIVE_GRAPHICS_PROMOTE_FPS,
         demoteFps: ADAPTIVE_GRAPHICS_DEMOTE_FPS
@@ -4480,19 +4494,18 @@ const arrowEffectPool = [];
 
     function resetAdaptiveGraphicsForRun() {
         if (!isBrowserBuild()) return;
-        // Keep the unstable FPS-driven ladder disabled. On first launch only,
-        // choose a deterministic hardware-safe preset so software/weak GPUs do
-        // not attempt the full Nature PBR/shadow workload. A real Settings click
-        // is authoritative and persists as a manual override for later runs.
+        // Keep the named quality ladder fixed. Mobile adapts only its internal
+        // render scale and scene budget, so High remains the visible default.
+        // Desktop retains its hardware safety fallback on first launch.
         graphicsState.qualityLocked = false;
-        graphicsState.adaptiveEnabled = false;
+        graphicsState.adaptiveEnabled = MOBILE_RUNTIME;
         const selectedIndex = ADAPTIVE_QUALITY_ORDER.indexOf(menuState.graphicsQuality);
         const fallbackIndex = ADAPTIVE_QUALITY_ORDER.indexOf('high');
         const requestedIndex = selectedIndex >= 0 ? selectedIndex : fallbackIndex;
         const recommendedIndex = ADAPTIVE_QUALITY_ORDER.indexOf(
             graphicsState.hardwareProfile && graphicsState.hardwareProfile.recommendedQuality
         );
-        const hardwareSafetyRequired = !menuState.graphicsManualOverride
+        const hardwareSafetyRequired = !MOBILE_RUNTIME && !menuState.graphicsManualOverride
             && (MOBILE_LOW_END || RUNTIME_LOW_POWER || (recommendedIndex >= 0 && recommendedIndex <= requestedIndex));
         graphicsState.qualityIndex = hardwareSafetyRequired ? recommendedIndex : requestedIndex;
         if (graphicsState.qualityIndex < 0) graphicsState.qualityIndex = ADAPTIVE_QUALITY_ORDER.indexOf('performance');
@@ -4546,12 +4559,16 @@ const arrowEffectPool = [];
         const selectedIndex = ADAPTIVE_QUALITY_ORDER.indexOf(menuState.graphicsQuality);
         const activeIndex = selectedIndex >= 0 ? selectedIndex : ADAPTIVE_QUALITY_ORDER.indexOf('high');
         graphicsState.qualityLocked = false;
-        graphicsState.adaptiveEnabled = false;
+        graphicsState.adaptiveEnabled = MOBILE_RUNTIME;
         graphicsState.qualityIndex = activeIndex;
         graphicsState.qualityCeilingIndex = activeIndex;
         menuState.adaptiveGraphicsQuality = ADAPTIVE_QUALITY_ORDER[activeIndex];
-        graphicsState.performanceLevel = 0;
-        graphicsState.dynamicResolutionScale = 1;
+        // A Level 2 transition must not erase the mobile perf budget learned
+        // during tutorial; doing so recreates a burst of slow frames.
+        if (!MOBILE_RUNTIME) {
+            graphicsState.performanceLevel = 0;
+            graphicsState.dynamicResolutionScale = 1;
+        }
         graphicsState.qualityStableSeconds = 0;
         graphicsState.qualityLowSeconds = 0;
         graphicsState.qualityCriticalSeconds = 0;
@@ -4630,7 +4647,7 @@ const arrowEffectPool = [];
         // exposes the same WebGL2 MSAA path through WebGLRenderTarget.samples.
         // Keep low-power devices on FXAA to avoid doubling transient bandwidth.
         const maxSamples = Number(renderer.capabilities?.maxSamples) || 0;
-        composerTarget.samples = renderer.capabilities?.isWebGL2 && !RUNTIME_LOW_POWER
+        composerTarget.samples = !window.ElementalPixelArt?.enabled && renderer.capabilities?.isWebGL2 && !RUNTIME_LOW_POWER
             ? Math.min(4, maxSamples)
             : 0;
         composerTarget.texture.name = 'ELEMENTAL RUN Composer r185.1';
@@ -4745,7 +4762,7 @@ const arrowEffectPool = [];
         // ShaderPass materials intentionally stay in the linear working space.
         // OutputPass performs tone mapping and the final Linear-sRGB -> sRGB
         // conversion exactly once at the end of the post-processing chain.
-        if (typeof THREE.OutputPass === 'function') {
+        if (!window.ElementalPixelArt?.enabled && typeof THREE.OutputPass === 'function') {
             gfxOutputPass = new THREE.OutputPass();
             gfxComposer.addPass(gfxOutputPass);
         }
@@ -5188,6 +5205,12 @@ const arrowEffectPool = [];
         return `
             ${renderSettingsHeader(surface, tr('controls'), tr('controlsDesc'))}
             <div class="settings-page">
+                <div class="settings-row">
+                    <div>
+                        <div class="settings-row-label">${tr('mouseControl')}</div>
+                    </div>
+                    <div class="settings-options">${toggleButton(surface, 'mouseControlEnabled', menuState.mouseControlEnabled ? tr('mouseControlOn') : tr('mouseControlOff'), menuState.mouseControlEnabled)}</div>
+                </div>
                 ${sliderRow(surface, 'mouseSensitivity', tr('mouseSensitivity'), tr('controlsDesc'), menuState.mouseSensitivity, 0.45, 1.85, 0.05, 1)}
                 <div class="settings-row">
                     <div>
@@ -5319,6 +5342,7 @@ const arrowEffectPool = [];
         if (ui.menuHighscoreBtn) ui.menuHighscoreBtn.setAttribute('aria-label', tr('upgrades'));
         if (ui.menuResumeBtn) ui.menuResumeBtn.setAttribute('aria-label', tr('continue'));
         if (ui.menuSettingsBtn) ui.menuSettingsBtn.setAttribute('aria-label', tr('settings'));
+        updateMouseControlUi();
         if (ui.menuLeaderboardBtn) ui.menuLeaderboardBtn.setAttribute('aria-label', tr('leaderboard'));
         if (ui.menuQuitBtn) ui.menuQuitBtn.setAttribute('aria-label', tr('quit'));
         if (ui.menuShopBtn) ui.menuShopBtn.setAttribute('aria-label', tr('gold'));
@@ -5485,7 +5509,7 @@ const arrowEffectPool = [];
                 menuState.graphicsManualOverride = true;
                 if (isBrowserBuild()) {
                     graphicsState.qualityLocked = false;
-                    graphicsState.adaptiveEnabled = false;
+                    graphicsState.adaptiveEnabled = MOBILE_RUNTIME;
                     const selectedIndex = ADAPTIVE_QUALITY_ORDER.indexOf(menuState.graphicsQuality);
                     graphicsState.qualityIndex = selectedIndex >= 0 ? selectedIndex : ADAPTIVE_QUALITY_ORDER.indexOf('high');
                     graphicsState.qualityCeilingIndex = graphicsState.qualityIndex;
@@ -6497,11 +6521,31 @@ const arrowEffectPool = [];
     }
 
 
+    function updateMouseControlUi() {
+        const button = ui.menuMouseControlBtn;
+        if (!button) return;
+        const enabled = menuState.mouseControlEnabled === true;
+        button.classList.toggle('is-on', enabled);
+        button.setAttribute('aria-pressed', String(enabled));
+        button.setAttribute('aria-label', enabled ? tr('mouseControlOn') : tr('mouseControlOff'));
+        const state = button.querySelector('.mouse-control-state');
+        if (state) state.textContent = enabled ? 'ON' : 'OFF';
+        const label = button.closest('.mouse-control-menu-slot')?.querySelector('.mouse-control-menu-label');
+        if (label) label.textContent = tr('mouseControl').toLocaleUpperCase();
+    }
+
     function applyMainMenuSettings() {
         Object.assign(menuState, normalizeMenuSettings(menuState));
         document.body.classList.toggle('hud-compact', !!menuState.compactHud);
         document.body.classList.toggle('gameplay-ui-hidden', !!menuState.gameplayUiHidden);
         document.body.classList.toggle('crosshair-hidden', MOBILE_RUNTIME || !menuState.crosshairEnabled);
+        document.body.classList.toggle('mouse-control-enabled', !!menuState.mouseControlEnabled);
+        if (!menuState.mouseControlEnabled) {
+            yaw = CAMERA_CENTER_YAW;
+            pitch = 0;
+            cameraAutoCenterActive = true;
+        }
+        updateMouseControlUi();
         applyGraphicsQuality();
         applyAudioSettings();
         applyLanguageTexts();
@@ -6654,6 +6698,20 @@ const arrowEffectPool = [];
     async function compileSceneForR185(root, activeCamera, label = 'scene') {
         if (!renderer || !root || !activeCamera) return false;
         const startedAt = performance.now();
+        if (window.ElementalLoadingMinigame?.getState?.().active) {
+            // During the loading card we own the GPU exclusively. Synchronous
+            // compile has a bounded completion on drivers whose async shader
+            // extension never reports completion; the flight is gated meanwhile.
+            try {
+                renderer.compile(root, activeCamera);
+                r185OptimizationStats.compileWaitMs += performance.now() - startedAt;
+                return true;
+            } catch (error) {
+                console.warn(`[r185 loading compile failed: ${label}]`, error);
+                r185OptimizationStats.compileAsyncErrors += 1;
+                return false;
+            }
+        }
         r185OptimizationStats.compileAsyncSupported = typeof renderer.compileAsync === 'function';
         if (typeof renderer.compileAsync === 'function') {
             try {
@@ -6667,9 +6725,13 @@ const arrowEffectPool = [];
                     .then(() => ({ status: 'ready' }))
                     .catch((error) => ({ status: 'error', error }));
                 let timeoutHandle = 0;
-                const timeoutMs = label === 'gameplay-prewarm'
-                    ? 1400
-                    : (label === 'nature-critical-prewarm' ? 5000 : 1800);
+                const timeoutMs = label === 'full-gameplay-prewarm'
+                    ? 8000
+                    : (label === 'gameplay-prewarm'
+                        ? 1400
+                        : (label.startsWith('campaign-phase-')
+                            ? 6000
+                            : (label === 'nature-critical-prewarm' ? 5000 : 1800)));
                 const timeoutPromise = new Promise((resolve) => {
                     timeoutHandle = setTimeout(() => resolve({ status: 'timeout' }), timeoutMs);
                 });
@@ -6760,6 +6822,32 @@ const arrowEffectPool = [];
         return seen.size;
     }
 
+    async function primeObjectTexturesForR185Sliced(root, perSlice = 2) {
+        if (!renderer || typeof renderer.initTexture !== 'function' || !root?.traverse) return 0;
+        const seen = new Set();
+        const keys = [
+            'map', 'emissiveMap', 'normalMap', 'roughnessMap', 'metalnessMap',
+            'aoMap', 'alphaMap', 'lightMap', 'bumpMap', 'displacementMap'
+        ];
+        root.traverse((object) => {
+            const materials = Array.isArray(object?.material)
+                ? object.material : (object?.material ? [object.material] : []);
+            for (const material of materials) {
+                for (const key of keys) {
+                    const texture = material?.[key];
+                    if (texture?.isTexture) seen.add(texture);
+                }
+            }
+        });
+        let uploaded = 0;
+        for (const texture of seen) {
+            renderer.initTexture(texture);
+            r185OptimizationStats.textureUploadsPrimed += 1;
+            if (++uploaded % perSlice === 0) await yieldLoadingSlice();
+        }
+        return uploaded;
+    }
+
     function prepareNaturePrewarmScene() {
         ensureNatureModelTypes();
         if (!natureMenuPrewarmScene) {
@@ -6818,7 +6906,6 @@ const arrowEffectPool = [];
                     child.receiveShadow = warmShadows;
                 }
             });
-            warmScene.add(node);
             nodes.push(node);
         };
 
@@ -6842,43 +6929,87 @@ const arrowEffectPool = [];
             floorWarm.scale.setScalar(0.08);
             addWarmNode(floorWarm, -2.5);
         }
+        // Compile each representative material family separately. Compiling
+        // the whole Nature scene in one call monopolised older WebGL drivers
+        // for several seconds and visibly froze the loading flight.
+        const previousTarget = renderer.getRenderTarget?.() || null;
+        const previousShadowEnabled = renderer.shadowMap.enabled;
+        const previousShadowAutoUpdate = renderer.shadowMap.autoUpdate;
+        const warmTarget = new THREE.WebGLRenderTarget(16, 16, {
+            depthBuffer: true,
+            stencilBuffer: false
+        });
         try {
-            primeObjectTexturesForR185(warmScene);
-            // This task runs while the loading card is authoritative. A complete
-            // synchronous compile is preferable here to a driver promise that
-            // can time out and finish during the tutorial -> Nature transition.
-            const startedAt = performance.now();
-            r185OptimizationStats.compileFallbackCalls += 1;
-            renderer.compile(warmScene, camera);
-            // compile() may leave driver/link work until the first actual draw. A tiny hidden
-            // render while the loading card is still authoritative forces colour, fog, PBR and
-            // directional-shadow programs to finish before Tutorial -> Nature transition.
-            const previousTarget = renderer.getRenderTarget?.() || null;
-            const previousShadowEnabled = renderer.shadowMap.enabled;
-            const previousShadowAutoUpdate = renderer.shadowMap.autoUpdate;
-            const warmTarget = new THREE.WebGLRenderTarget(16, 16, {
-                depthBuffer: true,
-                stencilBuffer: false
-            });
-            try {
-                renderer.shadowMap.enabled = true;
-                renderer.shadowMap.autoUpdate = true;
-                renderer.shadowMap.needsUpdate = true;
-                renderer.setRenderTarget(warmTarget);
-                renderer.clear(true, true, true);
-                renderer.render(warmScene, camera);
-            } finally {
-                renderer.setRenderTarget(previousTarget);
-                renderer.shadowMap.enabled = previousShadowEnabled;
-                renderer.shadowMap.autoUpdate = previousShadowAutoUpdate;
-                warmTarget.dispose();
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.autoUpdate = true;
+            for (const node of nodes) {
+                warmScene.add(node);
+                try {
+                    primeObjectTexturesForR185(node);
+                    renderer.setRenderTarget(warmTarget);
+                    const compiled = await compileSceneForR185(warmScene, camera, 'nature-critical-node');
+                    if (!compiled) {
+                        // Some drivers never resolve parallel compile. Keep a
+                        // bounded one-material fallback, not a whole-scene stall.
+                        const startedAt = performance.now();
+                        r185OptimizationStats.compileFallbackCalls += 1;
+                        renderer.compile(warmScene, camera);
+                        r185OptimizationStats.compileWaitMs += performance.now() - startedAt;
+                    }
+                    renderer.shadowMap.needsUpdate = true;
+                    renderer.clear(true, true, true);
+                    renderer.render(warmScene, camera);
+                } finally {
+                    warmScene.remove(node);
+                }
+                await yieldLoadingSlice();
             }
-            r185OptimizationStats.compileWaitMs += performance.now() - startedAt;
             natureCriticalShadersCompiled = true;
         } finally {
             nodes.forEach((node) => warmScene.remove(node));
+            renderer.setRenderTarget(previousTarget);
+            renderer.shadowMap.enabled = previousShadowEnabled;
+            renderer.shadowMap.autoUpdate = previousShadowAutoUpdate;
+            warmTarget.dispose();
         }
         return natureCriticalShadersCompiled;
+    }
+
+    async function runFlightSafePreparation(work) {
+        const prepare = async () => {
+            try { return await work(); }
+            finally {
+                const gl = renderer?.getContext?.();
+                if (gl?.fenceSync && !gl.isContextLost()) {
+                    const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+                    if (fence) {
+                        gl.flush();
+                        try {
+                            while (!gl.isContextLost()) {
+                                if (gl.clientWaitSync(fence, 0, 0) !== gl.TIMEOUT_EXPIRED) break;
+                                await new Promise(resolve => setTimeout(resolve, 16));
+                            }
+                        } finally { gl.deleteSync(fence); }
+                    }
+                }
+            }
+        };
+        const flight = window.ElementalLoadingMinigame;
+        return flight?.runPreparation ? flight.runPreparation(prepare) : prepare();
+    }
+
+    function createFlightSafeGLTFLoader() {
+        const loader = new THREE.GLTFLoader();
+        const parse = loader.parse;
+        // Fetch remains concurrent; parsing and onLoad share the flight gate.
+        loader.parse = function (data, path, onLoad, onError) {
+            runFlightSafePreparation(() => new Promise((resolve, reject) => {
+                parse.call(loader, data, path, gltf => {
+                    try { onLoad(gltf); resolve(); } catch (error) { reject(error); }
+                }, reject);
+            })).catch(error => { if (onError) onError(error); });
+        };
+        return loader;
     }
 
     function yieldLoadingSlice() {
@@ -6892,16 +7023,15 @@ const arrowEffectPool = [];
     }
 
     async function prewarmMapCachesDuringLoading() {
-        // Only the first-session route belongs on the critical loading path:
-        // Tutorial/City -> Level 1/Nature -> Level 2/Snow. Lava, Water and Sky
-        // merged scenery is several minutes away and is built by the existing
-        // idle queue after the loading card closes.
+        // Only the immediate route belongs on the critical loading path:
+        // Tutorial/City -> Level 1/Nature. Level 2/Snow and later biomes are
+        // compiled by prepareCampaignLevelStart before their own run begins.
         if (getQualityPreset()?.envMap) {
             const previousEnv = scene.environment;
             const previousRT = gfxEnvRT;
             const previousMood = gfxEnvMoodKey;
             try {
-                for (const phase of [0, 1, 5]) {
+                for (const phase of [0, 1]) {
                     gfxEnsureEnvironmentForPhase(phase);
                     await yieldLoadingSlice();
                 }
@@ -6965,7 +7095,10 @@ const arrowEffectPool = [];
             if (madeCount > 0 && madeCount % 6 < 3) await yieldLoadingSlice();
         }
         natureIntroCacheReady = natureIntroPreparedObjects.length > 0;
-        await warmPreparedNatureIntroRenderDuringLoading();
+        // The final loading task applies the selected quality preset before drawing
+        // these objects. Drawing them here as well compiles the same Nature shaders
+        // twice and starves the loading minigame on weak GPUs.
+        if (!loadingPipelineActive) await warmPreparedNatureIntroRenderDuringLoading();
     }
 
     async function warmPreparedNatureIntroRenderDuringLoading() {
@@ -7016,14 +7149,13 @@ const arrowEffectPool = [];
             floorWarm.scale.setScalar(0.08);
             addVariant(floorWarm);
         }
-        warmScene.add(variants);
-        if (transitionShaderWarmRoot) {
-            transitionShaderWarmRoot.position.set(45, 0, 0);
-            transitionShaderWarmRoot.traverse(node => { node.frustumCulled = false; });
-            warmScene.add(transitionShaderWarmRoot);
-        }
+        const warmNodes = [...variants.children];
+        variants.remove(...warmNodes);
+        // Gameplay obstacle families were compiled by gameplay-prewarm already.
+        // Rasterizing that entire mixed-map catalogue a second time here was
+        // the longest GPU stall in the loading flight; only Nature's actual
+        // opening environment needs this real hidden draw.
         try {
-            primeObjectTexturesForR185(warmScene);
             // Compile the exact shadow permutation selected for this device.
             // Forcing shadows on here warmed the High shader, then Performance
             // devices compiled a second shadowless PBR program on Level 1's
@@ -7032,24 +7164,37 @@ const arrowEffectPool = [];
             // when Cyber uses High. Warm its actual shader variant.
             renderer.shadowMap.enabled = false;
             renderer.shadowMap.autoUpdate = false;
-            renderer.setRenderTarget(warmTarget);
-            renderer.compile(warmScene, warmCamera);
-            renderer.clear(true, true, true);
-            // compile() does not guarantee driver link/upload completion. One actual tiny draw
-            // pays that cost beneath the loading overlay instead of on Level 1's first frame.
-            renderer.render(warmScene, warmCamera);
-            // Render-target shaders use linear output; Performance renders
-            // straight to the sRGB canvas. Compile/draw that second permutation
-            // beneath the loading card, in a small viewport, too.
-            renderer.setRenderTarget(null);
-            renderer.setViewport(0, 0, 192, 108);
-            renderer.setScissor(0, 0, 192, 108);
-            renderer.setScissorTest(true);
-            renderer.compile(warmScene, warmCamera);
-            renderer.render(warmScene, warmCamera);
+            // A full-scene compile/render monopolised the GPU for several seconds
+            // and stalled the concurrently running loading flight. Shader programs
+            // are cached per material family, so rasterize one family per slice.
+            for (const node of warmNodes) {
+                warmScene.add(node);
+                try {
+                    primeObjectTexturesForR185(node);
+                    renderer.setRenderTarget(warmTarget);
+                    renderer.setViewport(0, 0, warmWidth, warmHeight);
+                    renderer.setScissorTest(false);
+                    if (!await compileSceneForR185(warmScene, warmCamera, 'nature-live-target')) {
+                        renderer.compile(warmScene, warmCamera);
+                    }
+                    renderer.clear(true, true, true);
+                    renderer.render(warmScene, warmCamera);
+                    // Performance renders straight to the sRGB canvas, while
+                    // High uses a linear target. Warm both output permutations.
+                    renderer.setRenderTarget(null);
+                    renderer.setViewport(0, 0, 192, 108);
+                    renderer.setScissor(0, 0, 192, 108);
+                    renderer.setScissorTest(true);
+                    if (!await compileSceneForR185(warmScene, warmCamera, 'nature-live-canvas')) {
+                        renderer.compile(warmScene, warmCamera);
+                    }
+                    renderer.render(warmScene, warmCamera);
+                } finally {
+                    warmScene.remove(node);
+                }
+                await yieldLoadingSlice();
+            }
         } finally {
-            warmScene.remove(variants); // shared cache geometry/materials stay resident
-            if (transitionShaderWarmRoot) warmScene.remove(transitionShaderWarmRoot);
             renderer.setRenderTarget(previousTarget);
             renderer.shadowMap.enabled = previousShadowEnabled;
             renderer.shadowMap.autoUpdate = previousShadowAuto;
@@ -7140,6 +7285,13 @@ const arrowEffectPool = [];
         if (detail) detail.textContent = `${tr('level')} ${campaignPrepareLevel} · ${getPhaseName(campaignPreparePhase).toLocaleUpperCase()} · ${tr('preparing')}`;
         overlay.classList.add('is-visible');
         overlay.setAttribute('aria-hidden', 'false');
+        window.ElementalLoadingMinigame?.begin?.({
+            host: overlay,
+            mode: 'campaign',
+            title: tr('loadingWorld').toLocaleUpperCase(),
+            detail: `${tr('level')} ${campaignPrepareLevel} · ${getPhaseName(campaignPreparePhase).toLocaleUpperCase()}`
+        });
+        window.ElementalLoadingMinigame?.setProgress?.(4, tr('loadingWorld'), tr('preparing'));
     }
 
     function hideCampaignPrepareOverlay() {
@@ -7147,6 +7299,7 @@ const arrowEffectPool = [];
         campaignPrepareLastDurationMs = campaignPrepareStartedAt ? Math.round(performance.now() - campaignPrepareStartedAt) : 0;
         campaignPrepareOverlay.classList.remove('is-visible');
         campaignPrepareOverlay.setAttribute('aria-hidden', 'true');
+        window.ElementalLoadingMinigame?.end?.({ force: true });
         campaignPrepareLevel = 0;
         campaignPrepareStartedAt = 0;
     }
@@ -7212,10 +7365,17 @@ const arrowEffectPool = [];
             primeObjectTexturesForR185(warmScene);
             renderer.shadowMap.enabled = false;
             renderer.shadowMap.autoUpdate = false;
-            renderer.setRenderTarget(target);
-            renderer.compile(warmScene, warmCamera);
-            renderer.clear(true, true, true);
-            renderer.render(warmScene, warmCamera);
+            // r185's parallel compile keeps the small loading game responsive.
+            // The old synchronous renderer.compile() monopolised the main
+            // thread once for every biome. Only issue the tiny upload render
+            // after the async compile really completed; a timed-out driver is
+            // allowed to finish its already-started compilation in background.
+            const compiled = await compileSceneForR185(warmScene, warmCamera, `campaign-phase-${phase}`);
+            if (compiled) {
+                renderer.setRenderTarget(target);
+                renderer.clear(true, true, true);
+                renderer.render(warmScene, warmCamera);
+            }
         } finally {
             renderer.setRenderTarget(previousTarget);
             renderer.shadowMap.enabled = previousShadow;
@@ -7278,11 +7438,38 @@ const arrowEffectPool = [];
         }
         const startedAt = performance.now();
         try {
-            for (const phase of missing) await ensureCampaignPhaseWarm(phase);
+            // Map preparation shares the flight exclusion gate with boot.
+            for (let index = 0; index < missing.length; index++) {
+                const phase = missing[index];
+                if (options.showOverlay !== false) {
+                    const startPercent = 8 + (index / missing.length) * 84;
+                    window.ElementalLoadingMinigame?.setProgress?.(
+                        startPercent,
+                        tr('loadingWorld'),
+                        `${getPhaseName(phase).toLocaleUpperCase()} · ${tr('preparing')}`
+                    );
+                }
+                await runFlightSafePreparation(() => ensureCampaignPhaseWarm(phase));
+                if (options.showOverlay !== false) {
+                    const endPercent = 8 + ((index + 1) / missing.length) * 84;
+                    window.ElementalLoadingMinigame?.setProgress?.(
+                        endPercent,
+                        tr('loadingShaders'),
+                        `${getPhaseName(phase).toLocaleUpperCase()} · ${tr('readyToPlay')}`
+                    );
+                }
+            }
             loadingTaskTimings.push({
                 stage: `campaign-level-${level.number}-prewarm`,
                 durationMs: Math.round((performance.now() - startedAt) * 10) / 10
             });
+            if (options.showOverlay !== false) {
+                await (window.ElementalLoadingMinigame?.markLoadingComplete?.({
+                    label: tr('readyToPlay').toLocaleUpperCase(),
+                    title: tr('readyToPlay').toLocaleUpperCase(),
+                    detail: tr('tapToStart')
+                }) || Promise.resolve());
+            }
         } finally {
             if (options.showOverlay !== false) hideCampaignPrepareOverlay();
         }
@@ -7296,6 +7483,7 @@ const arrowEffectPool = [];
     }
 
     function showMainMenu(resetRun = false) {
+        levelGhostSystem?.stop();
         if (tutorialDirector && (tutorialDirector.active || tutorialDirector.state === 'start-gate')) tutorialDirector.cancel();
         hideHowToPlayOverlay(true);
         if (MOBILE_RUNTIME) setMobileControlsVisible(false);
@@ -7376,9 +7564,7 @@ const arrowEffectPool = [];
             title: 'ELEMENTAL RUN',
             // This is a universal, non-verbal entry affordance and intentionally
             // stays in English across locales to match the requested start screen.
-            clickToStart: mobile
-              ? (language === 'tr' ? 'BAŞLAMAK İÇİN DOKUN' : 'TAP TO START')
-              : 'PRESS ANY BUTTON TO START',
+            clickToStart: 'PLAY',
             skip: language === 'tr' ? 'EĞİTİMİ ATLA' : 'SKIP TUTORIAL',
             start: language === 'tr' ? 'EĞİTİMİ BAŞLAT' : 'START TUTORIAL',
             intro: language === 'tr'
@@ -7662,7 +7848,7 @@ const arrowEffectPool = [];
                     // This is the only trusted gate gesture. Request capture
                     // synchronously before tutorial setup returns to the event
                     // loop; portal iframes revoke user activation afterwards.
-                    requestPointerLockFromUi({ force: true });
+                    requestPointerLockFromUi({ force: true, allowDisabled: true });
                 }
             },
             beginRun: () => {
@@ -7966,6 +8152,17 @@ const arrowEffectPool = [];
 
     function getActiveLevelTuning() {
         return activeLevelConfig || (levelSystem && typeof levelSystem.getTuning === 'function' ? levelSystem.getTuning() : null);
+    }
+
+    function isEarlyLevelOnboardingActive() {
+        const level = getActiveLevelTuning();
+        return !!(levelSystem?.isActive?.() && level && Number(level.number) <= 5);
+    }
+
+    function areMotorcyclesAllowedForCurrentRun() {
+        const level = getActiveLevelTuning();
+        if (!levelSystem?.isActive?.() || !level) return true;
+        return level.motorcyclesAllowed !== false && Number(level.number) > 5;
     }
 
     function setCyberWorldVisible(visible) {
@@ -8482,6 +8679,7 @@ const arrowEffectPool = [];
 
     function finalizeSuccessfulLevel(completion) {
         if (!completion || levelCompletionInProgress) return;
+        levelGhostSystem?.stop();
         levelCompletionInProgress = true;
         finishPlayerFitLevelAttempt('complete');
         if (Math.floor(Number(completion.level?.number) || 0) >= 25) unlockAchievement('level25');
@@ -8560,7 +8758,7 @@ const arrowEffectPool = [];
                 if (isPokiBuild() && startOptions?.source === 'next-level' && !nextLevelBreak) {
                     measurePlayerFit('ad-gate', 'next-level', 'deferred-early-session');
                 }
-                if (!MOBILE_RUNTIME && !nextLevelBreak && requestPointerLockFromUi) {
+                if (!MOBILE_RUNTIME && menuState.mouseControlEnabled && !nextLevelBreak && requestPointerLockFromUi) {
                     // Preserve the trusted button gesture before any asynchronous
                     // map work begins. Pointer lock can remain active beneath the
                     // preparation card, avoiding a redundant second click.
@@ -8581,7 +8779,9 @@ const arrowEffectPool = [];
                     console.warn('[CampaignLevelStartFallback]', error);
                 }
                 const pointerCaptured = !!(renderer && document.pointerLockElement === renderer.domElement);
-                const needsPointerRecovery = !MOBILE_RUNTIME && (nextLevelBreak || (waitedForMapPreparation && !pointerCaptured));
+                const needsPointerRecovery = !MOBILE_RUNTIME
+                    && menuState.mouseControlEnabled
+                    && (nextLevelBreak || (waitedForMapPreparation && !pointerCaptured));
                 beginRunFromMainMenu(true, {
                     level: levelNumber,
                     source: startOptions?.source || 'campaign',
@@ -8629,6 +8829,7 @@ const arrowEffectPool = [];
     }
 
     function beginRunFromMainMenu(resetRun = true, options = {}) {
+        levelGhostSystem?.stop();
         if (handPurchaseTutorial.active || handPurchaseTutorial.pending) abortHandPurchaseTutorial(false);
         const tutorialRun = !!options.tutorial;
         const preparingGate = tutorialRun && !!options.preparingGate;
@@ -8662,8 +8863,12 @@ const arrowEffectPool = [];
             if (!preparingGate) showHowToPlayOverlay(3700, true);
         } else queueHowToPlayOverlay();
         runStartedFromMenu = !preparingGate;
-        if (!tutorialRun && !endlessRun) applyActiveLevelTheme();
-        else if (tutorialRun && activeLevelConfig && curvedPathSystem && typeof curvedPathSystem.configure === 'function') {
+        if (!tutorialRun && !endlessRun) {
+            applyActiveLevelTheme();
+            if (activeLevelConfig && player && scene) {
+                levelGhostSystem?.start(THREE, scene, activeLevelConfig, player.position.x, worldScrollX, getActiveRoadFloorY());
+            }
+        } else if (tutorialRun && activeLevelConfig && curvedPathSystem && typeof curvedPathSystem.configure === 'function') {
             curvedPathSystem.configure(activeLevelConfig);
         }
         else if (endlessRun && curvedPathSystem && typeof curvedPathSystem.configure === 'function') {
@@ -10336,6 +10541,7 @@ nextSnowballX = 0;
         appendCurvedRenderList(lavaTerrainChunks);
         appendCurvedRenderList(waterOilPipes);
         appendCurvedRenderList(waterBounceCaps);
+        if (levelGhostSystem?.active) appendCurvedRenderList(levelGhostSystem.roots());
         appendCurvedRenderObject(levelFinishGate);
         r185OptimizationStats.curvedListPeak = Math.max(
             r185OptimizationStats.curvedListPeak,
@@ -10455,6 +10661,10 @@ nextSnowballX = 0;
         // Rebase before deciding the shadow update. The old order refreshed a map
         // and then shifted every caster immediately before render.
         applyWorldRebase();
+        if (isGameOver) levelGhostSystem?.stop();
+        else if (!isGamePaused && levelSystem?.isActive() && player) {
+            levelGhostSystem?.update(levelSystem.getElapsed(), player.position.x, worldScrollX, getActiveRoadFloorY());
+        }
         // Shadow decisions must run after obstacle movement, city/light tracking,
         // pooling/culling and world rebase. Updating earlier captured a stale
         // first-run caster set and produced transient dark slabs on the asphalt.
@@ -10486,13 +10696,24 @@ nextSnowballX = 0;
             curvedPathSystem.applyObjects(collectCurvedRenderObjects(), player.position.x);
         }
         if (renderer.info && typeof renderer.info.reset === 'function') renderer.info.reset();
+        const pixelFrame = window.ElementalPixelArt?.ensure(renderer, THREE);
         try {
-            if (gfxComposerActive && gfxComposer) gfxComposer.render(realDelta);
-            else renderer.render(scene, camera);
+            if (gfxComposerActive && gfxComposer) {
+                const previousRenderToScreen = gfxComposer.renderToScreen;
+                if (pixelFrame) gfxComposer.renderToScreen = false;
+                try {
+                    gfxComposer.render(realDelta);
+                    if (pixelFrame) window.ElementalPixelArt.blit(renderer, gfxComposer.readBuffer.texture);
+                } finally { gfxComposer.renderToScreen = previousRenderToScreen; }
+            } else {
+                renderer.setRenderTarget(pixelFrame?.target || null);
+                renderer.render(scene, camera);
+            }
         } finally {
             if (curvedPathSystem) curvedPathSystem.restoreObjects();
         }
-        renderViewmodelOverlay();
+        renderViewmodelOverlay(pixelFrame?.target || null);
+        if (pixelFrame) window.ElementalPixelArt.present(renderer);
         updateGlobalParticles(delta);
         updateImpactFx(delta);
         updateAudioMix();
@@ -10502,12 +10723,12 @@ nextSnowballX = 0;
     // Böylece eller dünya geometrisine (zemin/engel) gömülmez AMA kendi içinde doğru
     // derinlik sıralamasını korur (depthTest=false'un aksine — o eli ters/içi-dışına çeviriyordu).
     // Ana render (composer) yalnızca layer 0 = dünyayı çizer; eller (layer 1) burada çizilir.
-    function renderViewmodelOverlay() {
+    function renderViewmodelOverlay(outputTarget = null) {
         if (!viewmodelRig || !viewmodelRig.visible || !renderer || !camera) return;
         const prevAutoClear = renderer.autoClear;
         const prevMask = camera.layers.mask;
         const prevBg = scene.background;
-        renderer.setRenderTarget(null);        // composer içsel buffer bırakmış olabilir → canvas'a zorla
+        renderer.setRenderTarget(outputTarget); // Pixel art composites both layers before palette conversion.
         renderer.autoClear = false;            // composited dünya görüntüsünü koru (rengi silme)
         // KRİTİK: scene.background renderer.render'da autoClear'dan bağımsız olarak boyanır ve
         // composited dünyayı ezerdi → overlay sırasında geçici olarak kapat.
@@ -10571,6 +10792,7 @@ nextSnowballX = 0;
         else if (levelCompletionInProgress) textMode = 'level_complete';
         else if (isGamePaused) textMode = 'paused';
         const payload = {
+            visual: window.ElementalPixelArt?.inspect() || { style: 'classic' },
             coordinateSystem: "world units; x is forward, y is up, z is lateral",
             mode: textMode,
             tutorial: Object.assign({ version: TUTORIAL_VERSION }, tutorialDirector ? tutorialDirector.snapshot() : {
@@ -10594,6 +10816,7 @@ nextSnowballX = 0;
                 snowTransitionActive
             },
             level: levelSystem && typeof levelSystem.snapshot === 'function' ? levelSystem.snapshot(score) : null,
+            ghosts: levelGhostSystem?.snapshot(levelSystem?.getElapsed?.() || 0) || { active: false },
             runMode: currentRunMode,
             finishLine: levelFinishGate ? {
                 armed: !!levelSystem?.isFinishArmed?.(),
@@ -10796,6 +11019,7 @@ nextSnowballX = 0;
                 },
                 loading: {
                     finished: loadingFinished,
+                    finalized: loadingFinalized,
                     stage: loadingLastStage,
                     taskId: loadingLastTaskId,
                     recoveryCount: loadingRecoveryCount,
@@ -10817,7 +11041,8 @@ nextSnowballX = 0;
                         elapsedMs: campaignPrepareStartedAt ? Math.round(performance.now() - campaignPrepareStartedAt) : campaignPrepareLastDurationMs,
                         warmPhases: [...campaignWarmPhases].sort((a, b) => a - b),
                         pendingPhases: [...campaignWarmPromises.keys()].filter((phase) => !campaignWarmPhases.has(phase))
-                    }
+                    },
+                    flightMinigame: window.ElementalLoadingMinigame?.getState?.() || null
                 },
                 playerFit: {
                     activeSeconds: roundForText(playerFitActiveSeconds, 2),
@@ -10874,6 +11099,7 @@ nextSnowballX = 0;
                     sfxVolume: roundForText(menuState.sfxVolume, 2),
                     uiVolume: roundForText(menuState.uiVolume, 2),
                     displayMode: menuState.displayMode,
+                    mouseControlEnabled: !!menuState.mouseControlEnabled,
                     mouseSensitivity: roundForText(menuState.mouseSensitivity, 2),
                     invertY: menuState.invertY,
                     compactHud: menuState.compactHud,
@@ -11116,8 +11342,11 @@ nextSnowballX = 0;
                 saveMainMenuState();
                 return window.__elementalBrowserTest.inspectHandPurchaseTutorial();
             },
-            inspectLevelGateBlueprint: (row = 6) => {
-                const fallbackLevel = activeLevelConfig || {
+            inspectLevelGateBlueprint: (row = 6, levelNumber = null) => {
+                const requestedLevel = Number.isFinite(Number(levelNumber))
+                    ? levelSystem?.getLevelDefinition?.(Math.max(1, Math.min(120, Math.floor(Number(levelNumber)))))
+                    : null;
+                const fallbackLevel = requestedLevel || activeLevelConfig || {
                     number: Math.max(1, levelSystem?.getSelectedLevel?.() || 1),
                     layoutSeed: Math.imul(Math.max(1, levelSystem?.getSelectedLevel?.() || 1), 0x9e3779b1),
                     safeOpeningSeconds: 1.5,
@@ -11128,7 +11357,9 @@ nextSnowballX = 0;
                 return {
                     row: blueprint.row,
                     kind: blueprint.kind,
+                    openLane: blueprint.openLane,
                     entries: blueprint.entries.map((entry) => entry.type),
+                    entryLanes: blueprint.entries.map((entry) => entry.lane),
                     gap: blueprint.gap
                 };
             },
@@ -13676,6 +13907,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         if (ui.loadingPercent) ui.loadingPercent.innerText = wholePercent + '%';
         if (ui.loadingText) ui.loadingText.innerText = text;
         if (ui.loadingSubtext) ui.loadingSubtext.innerText = subText || tr('preparing');
+        window.ElementalLoadingMinigame?.setProgress?.(clamped, text, subText || tr('preparing'));
     }
 
     function markServiceWorkerUpdateReady() {
@@ -13714,6 +13946,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
 
         const maxAniso = renderer.capabilities && renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 1;
         const uniqueTextures = new Set(texList);
+        let uploaded = 0;
         for (const tex of uniqueTextures) {
             if (!tex) continue;
             tex.needsUpdate = true;
@@ -13721,16 +13954,20 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             if (typeof renderer.initTexture === 'function') {
                 renderer.initTexture(tex);
                 r185OptimizationStats.textureUploadsPrimed += 1;
+                // One upload can occupy the shared GPU. Let the flight draw
+                // between uploads instead of committing every map in one turn.
+                if (isBrowserBuild() && ++uploaded % 2 === 0) await yieldLoadingSlice();
             }
         }
 
         if (!isBrowserBuild()) await compileSceneForR185(scene, camera, 'base-assets');
     }
 
-    async function prewarmGameplayAssets() {
+    async function prewarmGameplayAssets(options = {}) {
         if (gameplayAssetsPrewarmed || !renderer || !scene || !camera || !player) return;
         gameplayAssetsPrewarmed = true;
-        const leanStartupPrewarm = isBrowserBuild();
+        const fullCatalog = options.fullCatalog === true;
+        const leanStartupPrewarm = isBrowserBuild() && !fullCatalog;
         const pokiTutorialPrewarm = isPokiBuild() && shouldRunFirstTutorial();
 
         const warmRoot = new THREE.Group();
@@ -13738,7 +13975,11 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         warmRoot.position.set(player.position.x + 520, pokiTutorialPrewarm ? 0 : -180, 0);
         scene.add(warmRoot);
 
+        const warmFactories = [];
         const addWarm = (factory, x = 0, z = 0, curveMode = null) => {
+            warmFactories.push({ factory, x, z, curveMode });
+        };
+        const materializeWarm = ({ factory, x, z, curveMode }) => {
             try {
                 const obj = factory();
                 if (!obj) return;
@@ -13811,6 +14052,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         addWarm(() => createDetailedLavaTunnel(0, 220), 500, 0);
         addWarm(() => createDetailedWaterTunnel(0, 220), 740, 0);
         addWarm(() => createDetailedSnowTunnel(0, 220), 980, 0);
+        await yieldLoadingSlice();
 
         // 2026-07-05: yeni cache kütüphaneleri + VC/tünel materyalleri de derlensin —
         // aksi halde ilk doğa/sky/tünel karşılaşmasında shader-derleme takılması oluyor.
@@ -13825,11 +14067,13 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         addWarm(() => instantiateSkyParts(skyTypeCache.blimp), 1350, -60);
         addWarm(() => instantiateSkyParts(skyTypeCache.plane), 1370, 0);
         addWarm(() => new THREE.Mesh(skyTypeCache.mountain[0].main, mats.skyMountainVC), 1390, 70);
+        await yieldLoadingSlice();
         addWarm(() => instantiateLavaParts(lavaTypeCache.volcano), 1440, -60);
         addWarm(() => instantiateLavaParts(lavaTypeCache.obsidian), 1470, 60);
         addWarm(() => instantiateLavaParts(lavaTypeCache.geyser), 1495, -50);
         addWarm(() => instantiateLavaParts(lavaTypeCache.ashtree), 1515, 50);
         addWarm(() => instantiateLavaParts(lavaTypeCache.basalt), 1535, -40);
+        await yieldLoadingSlice();
         // Su dekor modelleri (2026-07-09): pirate/fener/yelkenli vb. materyalleri de derlensin
         addWarm(() => createPirateShipModel(), 1560, 55);
         addWarm(() => createWaterLighthouseModel(), 1590, -55);
@@ -13837,11 +14081,13 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         addWarm(() => createWaterSailboatModel(), 1640, -45);
         addWarm(() => createWaterBuoyModel(), 1660, 40);
         addWarm(() => createWaterCargoShipModel(), 1700, -70);
+        await yieldLoadingSlice();
         // Kar v3 modelleri (2026-07-10)
         addWarm(() => createSnowSnowmanModel(), 1740, 50);
         addWarm(() => createSnowIcebergModel(), 1770, -60);
         addWarm(() => createSnowIceCathedralModel(), 1810, 55);
         addWarm(() => createSnowFrozenTreeModel(), 1840, -45);
+        await yieldLoadingSlice();
         addWarm(() => { const g = new THREE.Group(); [mats.tunnelSteel, mats.tunnelPanel, mats.tunnelNeonMag, mats.neonCyan, mats.appleRed, mats.tentCloth, mats.campFire].forEach((m, i) => { const b = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), m); b.position.x = i * 3; g.add(b); }); return g; }, 1410, 0);
 
         // 2026-07-19 ilk-giriş hitch: koşunun ilk dakikasında karşılaşılan ama warm listesinde
@@ -13873,9 +14119,14 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         // Browser startup must not synchronously compile every material in the
         // multi-map scene. The curated warm render below compiles only what can
         // actually be visible on the first run.
-        primeObjectTexturesForR185(warmRoot);
+        for (let index = 0; index < warmFactories.length; index++) {
+            materializeWarm(warmFactories[index]);
+            if (isBrowserBuild() && index % 2 === 1) await yieldLoadingSlice();
+        }
+        if (isBrowserBuild()) await primeObjectTexturesForR185Sliced(warmRoot, 2);
+        else primeObjectTexturesForR185(warmRoot);
         if (!leanStartupPrewarm || pokiTutorialPrewarm) {
-            await compileSceneForR185(scene, camera, 'gameplay-prewarm');
+            await compileSceneForR185(scene, camera, fullCatalog ? 'full-gameplay-prewarm' : 'gameplay-prewarm');
         }
 
         // A synchronous hidden full-scene render is extremely expensive on
@@ -13884,7 +14135,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         // compileAsync + initTexture above, then upload remaining geometry over
         // the first normal frames. Keep the exhaustive hidden render only for
         // the desktop wrapper where startup GPU behaviour is deterministic.
-        if (!leanStartupPrewarm) {
+        if (!leanStartupPrewarm && options.hiddenRender !== false) {
             const prevShadowEnabled = renderer.shadowMap.enabled;
             const prevShadowAuto = renderer.shadowMap.autoUpdate;
             const prevCast = dirLight ? dirLight.castShadow : false;
@@ -13937,6 +14188,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
     let loadingLastTaskId = 'boot';
     let loadingPipelineActive = false;
     let loadingCompletedAt = 0;
+    let loadingFinalized = false;
     const loadingTaskTimings = [];
 
     function startAnimationLoop() {
@@ -13984,7 +14236,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                     // Loading tasks may yield between expensive shader/model
                     // uploads. Awaiting them keeps the loading screen authoritative
                     // instead of opening the game over a half-warmed biome.
-                    await Promise.resolve(task.func());
+                    await runFlightSafePreparation(task.func);
                 } catch (err) {
                     console.error('[LoadingTaskError]', taskText, err);
                 }
@@ -13998,19 +14250,30 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                 const endPct = (currentTask / total) * pipelineShare;
                 updateLoading(endPct, taskText, currentTask + '/' + total + ' - ' + tookMs.toFixed(0) + 'ms');
 
-                // executeTask is already scheduled on the next animation frame,
-                // so an extra 24 ms timer inserted a second idle frame between
-                // every loading stage without improving responsiveness.
-                setTimeout(runNext, 0);
+                // Keep a short event gap, then start the next cache batch.
+                // The flight gate pauses these batches while the single run is alive.
+                if (globalThis.scheduler?.postTask) {
+                    scheduler.postTask(runNext, { priority: 'background', delay: 12 });
+                } else {
+                    setTimeout(runNext, 18);
+                }
             };
-            // A first navigation can be background-throttled before its first
-            // animation frame. Whichever callback arrives first advances the
-            // same idempotent task, so the loading screen cannot wait forever.
-            requestAnimationFrame(executeTask);
+            // Start expensive batches only after the browser has painted the
+            // current loading frame. On Chromium/Poki, postTask(background)
+            // allows input and the OffscreenCanvas worker to win contention.
+            requestAnimationFrame(() => {
+                if (globalThis.scheduler?.postTask) {
+                    scheduler.postTask(executeTask, { priority: 'background' });
+                } else if (typeof requestIdleCallback === 'function') {
+                    requestIdleCallback(executeTask, { timeout: 420 });
+                } else {
+                    setTimeout(executeTask, 0);
+                }
+            });
             fallbackTimer = setTimeout(() => {
                 loadingRecoveryCount += 1;
                 executeTask();
-            }, 180);
+            }, 650);
         };
 
         setTimeout(() => {
@@ -14021,7 +14284,11 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             // Slow devices may legitimately exceed this deadline; forcing
             // finishLoading here used to cancel every remaining task.
             if (loadingPipelineActive) {
-                updateLoading(90, tr('loadingWorld'), tr('preparing'));
+                // Keep the bar truthful. The larger full-biome preload can
+                // legitimately exceed 22 seconds on weak GPUs; jumping to 90%
+                // here would then pin the monotonic bar ahead of real progress.
+                const currentProgress = Number(ui.loadingBar?.getAttribute('aria-valuenow')) || 0;
+                updateLoading(currentProgress, tr('loadingWorld'), tr('preparing'));
                 return;
             }
             loadingRecoveryCount += 1;
@@ -14034,6 +14301,14 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
     function init() {
         scene = new THREE.Scene();
         cacheDomReferences();
+        // Mount the loading flight before the map pipeline. The flight gate
+        // pauses GPU/model work while the single minigame run is alive.
+        window.ElementalLoadingMinigame?.begin?.({
+            host: ui.loadingScreen,
+            mode: 'boot',
+            title: tr('loadingWorld').toLocaleUpperCase(),
+            detail: tr('tapToStart')
+        });
         // Poki's iframe may parse the SDK, fonts and this large runtime on
         // separate event turns. Move off the static markup value immediately
         // when the engine itself starts, without waiting for the platform SDK.
@@ -14134,7 +14409,9 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             stencil: false
         });
 
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
+        renderer.setPixelRatio(window.ElementalPixelArt?.enabled
+            ? window.ElementalPixelArt.pixelRatio(initialViewport.width, initialViewport.height)
+            : Math.min(window.devicePixelRatio, 1.0));
         renderer.setSize(initialViewport.width, initialViewport.height);
         // Accumulate the world, post-process and viewmodel passes as one frame.
         // Manual reset before rendering makes diagnostics truthful and avoids
@@ -14219,8 +14496,9 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             { id: 'particle-pools', func: () => initGlobalParticles(), text: () => tr('preparing') },
             { id: 'nature-resources', func: () => initNatureResources(), text: () => tr('preparing') },
             { id: 'sky-resources', func: () => initSkyResources(), text: () => tr('preparing') },
-            // Browser portals need the common geometry/material shell at boot.
-            // Heavy merged late-map scenery caches are warmed incrementally.
+            // Browser portals receive the common material shell first. The
+            // complete merged scenery catalogs are then built in sliced tasks
+            // below while the loading flight remains available.
             { id: 'late-map-resources', func: () => initLavaResources(!isBrowserBuild()), text: () => tr('preparing') },
             { id: 'road-world', func: () => createWorld(), text: () => tr('preparing') },
             { id: 'player', func: () => createPlayer(), text: () => tr('preparing') },
@@ -14229,11 +14507,21 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             { id: 'city', func: () => initCity(), text: () => tr('preparing') },
             { id: 'sky-scene', func: () => createSky(), text: () => tr('preparing') },
             { id: 'map-cache-slices', func: () => prewarmMapCachesDuringLoading(), text: () => tr('loadingWorld') },
+            // Heavy tasks run between flights, including the GPU drain.
             { id: 'nature-gpu-prewarm', func: () => prewarmNatureAssetsDuringLoading(), text: () => tr('loadingShaders') },
             { id: 'tutorial-prewarm', func: () => prewarmTutorialOpeningAssets(), text: () => tr('loadingWorld') },
             { id: 'texture-prewarm', func: () => prewarmAssets(), text: () => tr('loadingShaders') },
             { id: 'vehicle-gpu-prewarm', func: () => prewarmStartupVehicleAssets(), text: () => tr('loadingShaders') },
-            { id: 'gameplay-prewarm', func: () => prewarmGameplayAssets(), text: () => tr('loadingWorld') },
+            // Nature is the only biome needed immediately after the tutorial.
+            // Later phases are warmed on their level loading cards, not while
+            // the loading flight is competing for the same GPU at startup.
+            { id: 'campaign-nature-prewarm', func: () => ensureCampaignPhaseWarm(1), text: () => `${tr('loadingWorld')} · ${getPhaseName(1)}` },
+            // First-time players only need City tutorial + Nature Level 1.
+            // The full multi-map catalog made the loading flight contend with
+            // dozens of distant map shaders that cannot appear yet.
+            { id: 'gameplay-prewarm', func: () => prewarmGameplayAssets({
+                fullCatalog: !shouldRunFirstTutorial(), hiddenRender: false
+            }), text: () => tr('loadingWorld') },
             // Quality changes normal-map/shadow shader defines. Apply it before
             // the final Nature draw instead of invalidating the warm-up at PLAY.
             { id: 'map-render-prewarm', func: async () => {
@@ -14451,7 +14739,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
     // Recolouring and primitive silhouette attachments were removed in 1.3.90;
     // build 1.5.0 supplies all eight authored GLBs with intact topology.
     const HAND_MODEL_DIRECTORY = 'assets/hands';
-    const HAND_MODEL_MANIFEST_PATH = `${HAND_MODEL_DIRECTORY}/manifest.json?v=1.5.0`;
+    const HAND_MODEL_MANIFEST_PATH = `${HAND_MODEL_DIRECTORY}/manifest.json?v=1.6.24`;
     const LEGACY_HAND_MODEL_PATH = 'assets/hand.glb';
     let viewmodelGlbManifestPromise = null;
 
@@ -14794,7 +15082,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
     function loadViewmodelGlbFromPath(skinId, path) {
         return new Promise((resolve, reject) => {
             try {
-                const loader = new THREE.GLTFLoader();
+                const loader = createFlightSafeGLTFLoader();
                 if (THREE.MeshoptDecoder && typeof loader.setMeshoptDecoder === 'function') {
                     loader.setMeshoptDecoder(THREE.MeshoptDecoder);
                 }
@@ -15377,6 +15665,25 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         const platform = crazyGamesPlatform();
         if (platform) platform.loadingStop();
         updateLoading(100, tr('readyToPlay'), tr('tapToStart'));
+        // Loading is genuinely complete at this point. If the player never
+        // started the flight, the promise resolves immediately. If they are
+        // still alive, the map waits without interrupting their minigame and
+        // opens on the exact frame after their run ends.
+        const gate = window.ElementalLoadingMinigame?.markLoadingComplete?.({
+            label: tr('readyToPlay').toLocaleUpperCase(),
+            title: tr('readyToPlay').toLocaleUpperCase(),
+            detail: tr('tapToStart')
+        }) || Promise.resolve('unavailable');
+        Promise.resolve(gate).then(() => finalizeLoadingTransition(reason)).catch((error) => {
+            console.warn('[LoadingFlightGate]', error);
+            finalizeLoadingTransition(reason);
+        });
+    }
+
+    function finalizeLoadingTransition(reason = 'complete') {
+        if (loadingFinalized) return;
+        loadingFinalized = true;
+        window.ElementalLoadingMinigame?.end?.({ force: true });
         try { createViewmodelHands(); } catch (e) { console.warn('viewmodel hands failed', e); }
         // Color-space tagging is mandatory in r152+ even when cinematic tone
         // mapping is disabled. Only the ACES grade remains optional.
@@ -16070,6 +16377,11 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                 if (platform) platform.gameplayStart();
                 playUiConfirmSound();
             } else {
+                if (!menuState.mouseControlEnabled && !mainMenuVisible && !isGameOver) {
+                    pointerLockRecoveryPending = false;
+                    pointerLockRecoveryReason = '';
+                    return;
+                }
                 if (!mainMenuVisible && !isGameOver) clearBhopFeedbackForOverlay();
                 if (document.body.classList.contains('tutorial-complete-active')) {
                     isGamePaused = true;
@@ -16179,6 +16491,13 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                 resumeMobileRun();
                 return;
             }
+            if (!menuState.mouseControlEnabled && options.allowDisabled !== true) {
+                pointerLockRequestInFlight = false;
+                pointerLockRecoveryPending = false;
+                pointerLockRecoveryReason = '';
+                focusGameplaySurface();
+                return;
+            }
             // Focus is important in Poki Inspector: its chrome can otherwise
             // consume the first Space press even though the game is visible.
             focusGameplaySurface();
@@ -16260,10 +16579,10 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                 // Ask for pointer lock while this click is still trusted. If an
                 // ad actually opens, its start callback releases the pointer and
                 // the recovery overlay requests one fresh click afterwards.
-                if (!MOBILE_RUNTIME && requestPointerLockFromUi) requestPointerLockFromUi({ force: true });
+                if (!MOBILE_RUNTIME && menuState.mouseControlEnabled && requestPointerLockFromUi) requestPointerLockFromUi({ force: true });
                 await requestCommercialAd('resume_after_pause');
                 if (isGameOver) return;
-                if (!MOBILE_RUNTIME && document.pointerLockElement !== renderer.domElement) {
+                if (!MOBILE_RUNTIME && menuState.mouseControlEnabled && document.pointerLockElement !== renderer.domElement) {
                     armPointerLockRecovery('commercial-break-finished', true);
                     return;
                 }
@@ -16382,6 +16701,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             ui.menuSteamLink,
             ui.rewardScoreBtn,
             ui.rewardGoldBtn,
+            ui.menuMouseControlBtn,
             ui.menuAudioToggle,
             ui.menuHudToggle,
             ...(ui.menuDialogCloseBtns || [])
@@ -16397,6 +16717,13 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             unlockGameplayAudioFromUserGesture();
             stopMenuMusicNow();
             playUiConfirmSound();
+        });
+        if (ui.menuMouseControlBtn) ui.menuMouseControlBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            menuState.mouseControlEnabled = !menuState.mouseControlEnabled;
+            persistAndApplySettings(true);
+            renderSettingsPanels();
         });
         if (ui.menuResumeBtn) ui.menuResumeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -16970,7 +17297,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         }
         const repeatX = 8;
         const repeatY = 8;
-        const authored = loadAuthoredFloorTexture('assets/textures/lava-world-floor-v3.webp?v=1.5.0', repeatX, repeatY);
+        const authored = loadAuthoredFloorTexture('assets/textures/lava-world-floor-v3.webp?v=1.6.24', repeatX, repeatY);
         return {
             albedo: authored,
             emissive: authored,
@@ -17542,7 +17869,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         const repeatX = 8;
         const repeatY = 10;
         return {
-            albedo: loadAuthoredFloorTexture('assets/textures/water-world-floor-v3.webp?v=1.5.0', repeatX, repeatY),
+            albedo: loadAuthoredFloorTexture('assets/textures/water-world-floor-v3.webp?v=1.6.24', repeatX, repeatY),
             normal: createRepeatSurfaceTexture(normalData, size, THREE.NoColorSpace, repeatX, repeatY),
             roughness: createRepeatSurfaceTexture(roughnessData, size, THREE.NoColorSpace, repeatX, repeatY),
             foam: createRepeatSurfaceTexture(foamData, size, THREE.SRGBColorSpace, repeatX, repeatY),
@@ -21842,7 +22169,7 @@ function createHeadlightBeam() {
             }
         };
         try {
-            const loader = new THREE.GLTFLoader();
+            const loader = createFlightSafeGLTFLoader();
             loader.load(spec.path, (gltf) => {
                 if (requestToken !== state.requestToken || spec.isReady()) return;
                 try {
@@ -23138,6 +23465,7 @@ function createHeadlightBeam() {
             // gönderebilir → kamera anında limite çarpıp "ışınlanıyor" gibi görünür. İlk
             // olayı yut ve sonraki olaylarda per-olay büyüklüğü makul bir tavana sıkıştır.
             if (pointerJustLocked) { pointerJustLocked = false; return; }
+            if (!menuState.mouseControlEnabled) return;
             const MAX_MOUSE_STEP = 110;
             const mvX = Math.max(-MAX_MOUSE_STEP, Math.min(MAX_MOUSE_STEP, event.movementX || 0));
             const mvY = Math.max(-MAX_MOUSE_STEP, Math.min(MAX_MOUSE_STEP, event.movementY || 0));
@@ -24026,6 +24354,12 @@ function cancelLaneAnimationForLavaDrop() {
     }
 
     function createObstacle(type, spawnX, startLaneIdx, spawnOptions = {}) {
+        // A single hard gate protects every campaign spawn path (authored rows,
+        // companion traffic and legacy/random fallbacks). This prevents a new
+        // caller from accidentally reintroducing motorcycles during Levels 1-5.
+        if (type === 'motorcycle' && !spawnOptions.tutorial && !areMotorcyclesAllowedForCurrentRun()) {
+            type = 'car';
+        }
         if (type === 'lava_lane' && gamePhase >= 5) return;
 
         let obs; 
@@ -25619,6 +25953,24 @@ function cancelLaneAnimationForLavaDrop() {
         return lanes;
     }
 
+    function getOnboardingEscapeLaneOrder(level, sectionIndex, laneCount, requestedOpenLaneCount, random) {
+        // Guarantee separated escape corridors as well as adjacent pairs.
+        // The six-pair cycle is deterministic for retries and visits every
+        // possible pair before repeating instead of falling into left/right
+        // halves for several consecutive sections.
+        if (level?.onboardingLevel && laneCount === 4 && requestedOpenLaneCount === 2) {
+            const pairs = [
+                [0, 2], [1, 3], [0, 3],
+                [1, 2], [0, 1], [2, 3]
+            ];
+            const levelOffset = getLevelPatternSeed(level, 0, 0x0e5ca9e) % pairs.length;
+            const pair = pairs[(levelOffset + sectionIndex * 5) % pairs.length];
+            const remaining = shuffleLevelPatternLanes(laneCount, random).filter((lane) => !pair.includes(lane));
+            return [...pair, ...remaining];
+        }
+        return shuffleLevelPatternLanes(laneCount, random);
+    }
+
     function getLevelPatternBlueprint(level, row, laneCount = lanePositions.length) {
         const safeLaneCount = Math.max(1, Math.floor(Number(laneCount) || 1));
         const seed = getLevelPatternSeed(level, row, 0x51f15e);
@@ -25698,13 +26050,37 @@ function cancelLaneAnimationForLavaDrop() {
         // Rows that can overlap longitudinally share a guaranteed escape lane.
         // The safe lane changes by seeded section rather than by frame or retry.
         const sectionSpan = difficulty < 0.28 ? 6 : 4;
-        const sectionSeed = getLevelPatternSeed(level, Math.floor(row / sectionSpan), 0x5afe1a9e);
-        const openLane = sectionSeed % safeLaneCount;
-        const laneOrder = shuffleLevelPatternLanes(safeLaneCount, random).filter((lane) => lane !== openLane);
+        const sectionIndex = Math.floor(row / sectionSpan);
+        const sectionSeed = getLevelPatternSeed(level, sectionIndex, 0x5afe1a9e);
+        const requestedOpenLaneCount = Math.max(1, Math.min(
+            safeLaneCount,
+            Number(level?.minimumOpenLanes) || 1
+        ));
+        // Low seed bits repeated the same 0/1 corridor for several authored
+        // sections. Shuffle with an isolated deterministic RNG so the safe
+        // lanes use the whole road without changing between retries.
+        const escapeRandom = mulberry32((sectionSeed ^ Math.imul(sectionIndex + 1, 0x9e3779b1)) >>> 0);
+        const shuffledEscapeLanes = getOnboardingEscapeLaneOrder(
+            level,
+            sectionIndex,
+            safeLaneCount,
+            requestedOpenLaneCount,
+            escapeRandom
+        );
+        const openLanes = new Set(shuffledEscapeLanes.slice(0, requestedOpenLaneCount));
+        const openLane = shuffledEscapeLanes[0] ?? 0;
+        const laneOrder = shuffleLevelPatternLanes(safeLaneCount, random).filter((lane) => !openLanes.has(lane));
         const entries = [];
-        const add = (type, lane, xOffset = 0, extra = null) => entries.push({ type, lane, xOffset, ...(extra || {}) });
+        const add = (type, lane, xOffset = 0, extra = null) => {
+            const safeType = type === 'motorcycle' && level?.motorcyclesAllowed === false ? 'vehicle' : type;
+            entries.push({ type: safeType, lane, xOffset, ...(extra || {}) });
+        };
         const blockAllLanes = (type) => {
-            for (let lane = 0; lane < safeLaneCount; lane++) add(type, lane, 0);
+            // Jump/slide rows may teach the action in later levels. During the
+            // first five, however, they always preserve the same seeded escape
+            // corridor as every other formation.
+            const lanes = level?.onboardingLevel ? laneOrder : Array.from({ length: safeLaneCount }, (_, lane) => lane);
+            lanes.forEach((lane) => add(type, lane, 0));
         };
 
         if (kind === 'jump') {
@@ -25806,7 +26182,7 @@ function cancelLaneAnimationForLavaDrop() {
             water_hazard: 82,
             snow_hazard: entries.some((entry) => entry.type === 'snow_ice_road') ? 470 : 94
         }[kind] || 60;
-        const spacingScale = Math.max(0.58, Math.min(0.9, Number(level?.patternSpacingScale) || 1));
+        const spacingScale = Math.max(0.58, Math.min(1.45, Number(level?.patternSpacingScale) || 1));
         const minimumGap = kind === 'train' ? 96
             : (entries.some((entry) => entry.type === 'snow_ice_road') ? 450 : 46);
         const gap = Math.max(minimumGap, Math.round(spacingBase * spacingScale + random() * 7));
@@ -27222,7 +27598,9 @@ function cancelLaneAnimationForLavaDrop() {
         bobTimer += delta * bobFreq; let bY = 0, bZ = 0; if(!isJumping) { bY = Math.sin(bobTimer) * bobAmp; bZ = Math.cos(bobTimer * 0.5) * (bobAmp * 0.5); }
         if(landImpact > 0) landImpact -= delta * 3; else landImpact = 0;
         const impY = -Math.sin(landImpact * Math.PI) * 0.5;
-        shakeIntense = Math.min(0.06, score * 0.00008) + earthquakeIntensity + impactShake;
+        const speedRatio = Math.max(0, (moveSpeed - minMoveSpeed) / Math.max(0.001, maxMoveSpeed - minMoveSpeed));
+        const windTremor = speedRatio * 0.012;
+        shakeIntense = Math.min(0.07, score * 0.00008) + earthquakeIntensity + impactShake + windTremor;
         const sX = (Math.random() - 0.5) * shakeIntense; const sY = (Math.random() - 0.5) * shakeIntense; const sZ = (Math.random() - 0.5) * shakeIntense;
         const feetY = player.position.y - (actualPhysicsHeight / 2); const eyeHeightFromFeet = currentCameraHeight - 0.3;
         const iceSlipTilt = (snowIceRoadSlipTimer > 0 ? snowIceRoadSlipDir * Math.min(0.08, snowIceRoadSlipSpeed * 0.006) : 0);
@@ -37192,7 +37570,7 @@ function setObjectOpacity(obj, alpha) {
     // Hosted browser players need a fresh shell after the tutorial repair. The
     // web-platform builds remove this registration during packaging.
     if (isBrowserBuild() && !isPokiBuild() && !isCrazyGamesBuild() && 'serviceWorker' in navigator && location.protocol !== 'file:') {
-        navigator.serviceWorker.register('./service-worker.js?v=1.5.0', { updateViaCache: 'none' }).then((registration) => {
+        navigator.serviceWorker.register('./service-worker.js?v=1.6.24', { updateViaCache: 'none' }).then((registration) => {
             registration.update().catch(() => {});
             if (registration.waiting) markServiceWorkerUpdateReady();
             registration.addEventListener('updatefound', () => {
@@ -37255,14 +37633,14 @@ function setObjectOpacity(obj, alpha) {
         player = null;
     }
 
-    function startInitialBoot() {
+    async function startInitialBoot() {
         if (bootState.started || bootState.completed) return;
         bootState.started = true;
         bootState.startedAt = performance.now();
         if (window.__elementalEarlyBoot) window.__elementalEarlyBoot.claimed = true;
         paintBootstrapProgress(5, 'LOADING...', 'Starting engine...');
         try {
-            init();
+            await runFlightSafePreparation(() => init());
         } catch (error) {
             bootState.lastError = String(error && (error.message || error));
             console.error('[BootError] Engine startup failed', error);

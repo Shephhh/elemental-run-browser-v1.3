@@ -1,0 +1,305 @@
+.elemental-loading-flight {
+  --flight-cyan: #69caff;
+  --flight-gold: #ffd85d;
+  --flight-orange: #ff6745;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: clamp(8px, 1.5vh, 16px);
+  width: min(920px, calc(100vw - 32px));
+  height: min(720px, calc(100dvh - 28px));
+  min-height: 290px;
+  padding: clamp(12px, 2.4vmin, 24px);
+  box-sizing: border-box;
+  border: 2px solid rgba(123, 151, 174, .78);
+  outline: 1px solid rgba(8, 12, 20, .9);
+  outline-offset: -6px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(12, 17, 31, .985), rgba(5, 8, 17, .97));
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,.56), 0 24px 64px rgba(0,0,0,.46);
+  color: #eaf7fb;
+  font-family: Orbitron, Rajdhani, system-ui, sans-serif;
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+}
+.elemental-loading-flight[hidden] { display: none !important; }
+.elemental-loading-flight__intro { display:none; }
+.elemental-loading-flight.is-intro {
+  display:grid;
+  grid-template-rows:auto minmax(118px,auto) auto;
+  place-items:stretch center;
+  gap:clamp(10px,1.8vh,18px);
+  width:min(500px,calc(100vw - 44px));
+  height:auto;
+  min-height:0;
+  padding:clamp(22px,4vmin,32px);
+  border:2px solid rgba(123,151,174,.86);
+  border-radius:4px;
+  background:linear-gradient(180deg,rgba(12,17,31,.985),rgba(5,8,17,.97));
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.1),0 24px 64px rgba(0,0,0,.44);
+  animation:elemental-flight-card-arrive .34s ease-out both;
+}
+.elemental-loading-flight.is-intro > .elemental-loading-flight__stage { display:none !important; }
+.elemental-loading-flight.is-intro .elemental-loading-flight__loading-label { display:none !important; }
+.elemental-loading-flight.is-intro > .elemental-loading-flight__header {
+  display:grid;
+  grid-template-columns:1fr;
+  justify-items:center;
+  gap:clamp(12px,2vh,18px);
+}
+.elemental-loading-flight.is-intro .elemental-loading-flight__brand {
+  grid-column:1; grid-row:1; justify-items:center; text-align:center;
+}
+.elemental-loading-flight.is-intro .elemental-loading-flight__spinner {
+  grid-column:1; grid-row:2; width:clamp(48px,8vmin,70px);
+}
+.elemental-loading-flight.is-intro > .elemental-loading-flight__footer {
+  display:grid !important; width:100%; gap:9px;
+}
+.elemental-loading-flight.is-intro .elemental-loading-flight__status { justify-content:center; }
+.elemental-loading-flight.is-intro .elemental-loading-flight__track { border-radius:2px; }
+.elemental-loading-flight.is-intro > .elemental-loading-flight__intro {
+  align-self:center; justify-self:center;
+  display:grid; justify-items:center; gap:clamp(9px,1.6vh,14px); padding:2px 24px 0;
+  appearance:none; border:0 !important; outline:0; background:none !important; box-shadow:none !important;
+  color:#fff; cursor:pointer; touch-action:manipulation;
+}
+.elemental-loading-flight.is-intro > .elemental-loading-flight__intro:hover,
+.elemental-loading-flight.is-intro > .elemental-loading-flight__intro:focus-visible {
+  background:none !important; box-shadow:none !important; transform:none;
+}
+.elemental-loading-flight__intro-spirit {
+  position:relative; display:block; width:clamp(52px,8vmin,78px); height:clamp(58px,9vmin,86px);
+  border-radius:52% 48% 58% 42%; transform:rotate(-8deg);
+  background:radial-gradient(circle at 59% 40%,#12223b 0 4%,#7ff4ff 5% 8%,transparent 9%),radial-gradient(circle at 42% 38%,#fff 0 6%,#fff078 10%,#ff7b38 43%,#a32568 74%,transparent 76%);
+  filter:drop-shadow(0 0 18px rgba(255,146,54,.68));
+  animation:elemental-flight-intro-float 1.8s ease-in-out infinite;
+}
+.elemental-loading-flight__intro-spirit::before,
+.elemental-loading-flight__intro-spirit::after {
+  content:""; position:absolute; z-index:-1; width:42%; height:42%; border-radius:60% 40% 60% 40%;
+  background:linear-gradient(145deg,#fff17a,#ff6b38 55%,#9b1d5a); filter:blur(.2px);
+}
+.elemental-loading-flight__intro-spirit::before { left:-8%; top:40%; transform:rotate(-32deg); }
+.elemental-loading-flight__intro-spirit::after { right:-5%; bottom:4%; transform:rotate(38deg); }
+.elemental-loading-flight__intro-copy {
+  color:#fff; font:900 clamp(13px,2vmin,18px)/1.25 Orbitron,Rajdhani,system-ui,sans-serif;
+  letter-spacing:.12em; text-transform:uppercase; text-shadow:0 3px 12px rgba(0,0,0,.82),0 0 14px rgba(94,216,255,.24);
+  animation:elemental-flight-prompt-breathe 1.7s ease-in-out infinite;
+}
+.elemental-loading-flight.is-expanded { animation:elemental-flight-panel-open .38s cubic-bezier(.2,.78,.25,1) both; }
+.has-loading-minigame > .loading-card,
+.has-loading-minigame > .campaign-level-loading-card { display: none !important; }
+.elemental-loading-flight__header,
+.elemental-loading-flight__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.elemental-loading-flight__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 5px;
+  min-height: 0;
+  width: 100%;
+}
+.elemental-loading-flight__spinner {
+  grid-column: 2;
+  grid-row: 1;
+  width: clamp(25px, 4vmin, 40px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: conic-gradient(#5ed8ff, #fff, #ffd85d, #ff6848, #5ed8ff);
+  box-shadow: 0 0 18px rgba(94,216,255,.2);
+  animation: elemental-flight-spin 1.05s linear infinite;
+}
+.elemental-loading-flight__spinner::after {
+  content: '';
+  display: block;
+  width: 62%;
+  height: 62%;
+  margin: 19%;
+  border-radius: 50%;
+  background: #090d18;
+}
+.elemental-loading-flight__brand {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  justify-items: start;
+  gap: 0;
+  line-height: 1;
+  text-align: left;
+  animation: elemental-flight-brand-glow 3.2s ease-in-out infinite;
+}
+.elemental-loading-flight__logo-main {
+  font: 900 clamp(27px, 5.1vmin, 53px)/.96 Orbitron, Rajdhani, sans-serif;
+  letter-spacing: -.035em;
+  background: linear-gradient(90deg, #69caff 0%, #4be1c1 34%, #ffd85d 62%, #ff8a3d 80%, #ff4438 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(214,242,255,.2);
+  text-shadow: 0 8px 18px rgba(0,0,0,.42);
+}
+.elemental-loading-flight__logo-sub {
+  color: rgba(120,209,188,.88);
+  font: 800 clamp(14px, 2.5vmin, 27px)/1 Orbitron, Rajdhani, sans-serif;
+  letter-spacing: .38em;
+  padding-left: .16em;
+  text-shadow: 0 5px 12px rgba(0,0,0,.38);
+}
+.elemental-loading-flight__score {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 48px;
+  padding: 6px 9px;
+  border: 1px solid rgba(255, 220, 104, .45);
+  border-radius: 4px;
+  background: rgba(3, 12, 25, .76);
+  color: #ffd06e;
+  font: 900 clamp(13px, 2.3vmin, 20px)/1 Orbitron, sans-serif;
+  text-align: center;
+  text-shadow: 0 0 15px rgba(255, 196, 66, .38);
+}
+.elemental-loading-flight__stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(93, 184, 207, .26);
+  border-radius: 4px;
+  background: #0b1d30;
+  box-shadow: inset 0 0 35px rgba(0, 0, 0, .34);
+  cursor: pointer;
+}
+.elemental-loading-flight__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+.elemental-loading-flight__prompt {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: #fff;
+  font: 600 clamp(12px, 2vmin, 17px)/1.3 system-ui, sans-serif;
+  letter-spacing: .015em;
+  box-shadow: none;
+  animation: elemental-flight-prompt-breathe 2.1s ease-in-out infinite;
+  max-width: min(90%, 540px);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.elemental-loading-flight .elemental-loading-flight__prompt:hover,
+.elemental-loading-flight .elemental-loading-flight__prompt:focus-visible {
+  transform: translate(-50%, -50%);
+  background: none;
+  color: #fff;
+  box-shadow: none;
+}
+.elemental-loading-flight .elemental-loading-flight__prompt:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.elemental-loading-flight__prompt[hidden] { display: none; }
+.elemental-loading-flight__footer { display: grid; gap: 7px; }
+.elemental-loading-flight__loading-label {
+  color:#f4fbff; font:900 clamp(19px,3.5vmin,38px)/1 Orbitron,Rajdhani,sans-serif;
+  letter-spacing:.16em; text-align:center; text-shadow:0 0 20px rgba(94,216,255,.25),0 4px 14px rgba(0,0,0,.7);
+}
+.elemental-loading-flight__status {
+  justify-content: flex-end;
+  color: rgba(204, 229, 237, .78);
+  font: 800 clamp(10px, 1.8vmin, 14px)/1 Rajdhani, sans-serif;
+  letter-spacing: .08em;
+}
+.elemental-loading-flight__status strong {
+  color: #effbff;
+  font-family: Orbitron, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.elemental-loading-flight__track {
+  height: clamp(8px, 1.4vmin, 12px);
+  overflow: hidden;
+  border: 1px solid rgba(160, 203, 225, .28);
+  border-radius: 999px;
+  background: rgba(0, 6, 17, .58);
+  box-shadow: inset 0 2px 8px rgba(0,0,0,.7);
+}
+.elemental-loading-flight__fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--flight-cyan), #68efc3 36%, var(--flight-gold) 68%, var(--flight-orange));
+  box-shadow: 0 0 18px rgba(104, 232, 255, .45);
+  transition: width .18s ease-out;
+}
+.elemental-loading-flight__play {
+  justify-self:center; min-width:clamp(170px,28vw,300px); margin-top:clamp(4px,1vh,10px);
+  padding:clamp(10px,1.8vmin,16px) clamp(24px,5vw,58px); border:2px solid #9af5ff; border-radius:5px;
+  background:linear-gradient(180deg,#55d6f2,#2390c1); color:#061426;
+  font:900 clamp(16px,2.8vmin,27px)/1 Orbitron,Rajdhani,sans-serif; letter-spacing:.1em;
+  box-shadow:inset 0 1px rgba(255,255,255,.7),0 0 30px rgba(66,209,255,.42),0 9px 22px rgba(0,0,0,.35);
+  cursor:pointer; animation:elemental-flight-play-pulse .9s ease-in-out infinite alternate;
+}
+.elemental-loading-flight__play[hidden] { display:none !important; }
+#campaign-level-loading.has-loading-minigame {
+  cursor: default;
+  padding: 8px;
+}
+body #loading-screen.has-loading-minigame,
+body #campaign-level-loading.has-loading-minigame {
+  background: #111831 url('../../elemental run icons/elemental-menu-background.png') center center / cover no-repeat !important;
+  backdrop-filter: none;
+}
+#campaign-level-loading.has-loading-minigame .elemental-loading-flight {
+  width: min(900px, calc(100vw - 18px));
+  height: min(680px, calc(100dvh - 18px));
+}
+@keyframes elemental-flight-spin { to { transform: rotate(360deg); } }
+@keyframes elemental-flight-brand-glow { 50% { filter: drop-shadow(0 0 10px rgba(94,216,255,.18)); } }
+@keyframes elemental-flight-prompt-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .48; } }
+@keyframes elemental-flight-intro-float { 0%,100% { transform:translateY(-7px) rotate(-8deg) scale(.98); } 50% { transform:translateY(8px) rotate(-3deg) scale(1.03); } }
+@keyframes elemental-flight-panel-open { from { opacity:0; transform:scale(.82); } to { opacity:1; transform:scale(1); } }
+@keyframes elemental-flight-card-arrive { from { opacity:0; transform:translateY(12px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes elemental-flight-play-pulse { to { filter:brightness(1.14); transform:scale(1.035); } }
+@media (max-width: 800px), (max-height: 600px) {
+  .elemental-loading-flight {
+    width: calc(100vw - 12px);
+    height: calc(100dvh - 10px);
+    gap: 6px;
+    padding: 8px;
+    border-radius: 10px;
+  }
+  .elemental-loading-flight__header { gap: 3px; }
+  .elemental-loading-flight__score { min-width: 40px; padding: 5px 7px; }
+  .elemental-loading-flight__stage { border-radius: 8px; }
+  .elemental-loading-flight__footer { gap: 4px; }
+}
+@media (max-height: 390px) {
+  .elemental-loading-flight { grid-template-rows: auto minmax(170px, 1fr) auto; }
+  .elemental-loading-flight__spinner { width: 24px; }
+  .elemental-loading-flight__logo-main { font-size: 25px; }
+  .elemental-loading-flight__logo-sub { font-size: 13px; }
+  .elemental-loading-flight__score { font-size: 14px; }
+}
+@media (max-width: 500px) {
+  .elemental-loading-flight__logo-main { font-size: clamp(18px, 5vw, 25px); }
+  .elemental-loading-flight__logo-sub { font-size: clamp(10px, 2.9vw, 13px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .elemental-loading-flight__spinner { animation-duration: 2s; }
+  .elemental-loading-flight__brand { animation: none; }
+  .elemental-loading-flight__prompt { animation: none; }
+  .elemental-loading-flight__fill { transition-duration: .05s; }
+}

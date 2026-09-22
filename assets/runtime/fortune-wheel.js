@@ -186,7 +186,7 @@
         const slot = document.createElement('div');
         slot.className = 'fortune-menu-slot';
         slot.innerHTML = `<button class="fortune-menu-button" type="button" aria-label="Lucky Wheel">${iconSvg('wheel')}<span class="fortune-menu-state"></span><i class="fortune-ready-dot" aria-hidden="true"></i></button><span class="fortune-menu-label"></span>`;
-        dock.appendChild(slot);
+        (dock.querySelector('.menu-utility-row') || dock).appendChild(slot);
         this.dom.menuSlot = slot;
         this.dom.menuButton = slot.querySelector('.fortune-menu-button');
         this.dom.menuState = slot.querySelector('.fortune-menu-state');

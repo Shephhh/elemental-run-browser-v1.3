@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD = '1.5.0-mobile-complete';
+const BUILD = '1.6.24-meshopt-assets';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

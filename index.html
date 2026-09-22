@@ -9,12 +9,12 @@
     <meta name="google-site-verification" content="COTiiA_3UexTN09oOE64Drk1NRgvieoduXjFf7jWGvE">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.5.0-web-poki-three-r185.1-mobile">
+    <meta name="elemental-run-build" content="1.6.24-web-poki-meshopt-assets">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-      // 1.5.0 is a hard cache boundary. Remove stale workers/caches left by
+      // 1.6.24 is a hard cache boundary. Remove stale workers/caches left by
       // older local/browser builds before their runtime can serve mixed files.
       if ('serviceWorker' in navigator && location.protocol !== 'file:') {
         navigator.serviceWorker.getRegistrations().then(function (registrations) {
@@ -32,9 +32,9 @@
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/elemental-run-icon.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="preload" href="assets/runtime/game-runtime.js?v=1.5.0" as="script" fetchpriority="high">
-    <link rel="preload" href="assets/textures/lava-world-floor-v3.webp?v=1.5.0" as="image" type="image/webp" fetchpriority="low">
-    <link rel="preload" href="assets/textures/water-world-floor-v3.webp?v=1.5.0" as="image" type="image/webp" fetchpriority="low">
+    <link rel="preload" href="assets/runtime/game-runtime.js?v=1.6.24" as="script" fetchpriority="high">
+    <link rel="preload" href="assets/textures/lava-world-floor-v3.webp?v=1.6.24" as="image" type="image/webp" fetchpriority="low">
+    <link rel="preload" href="assets/textures/water-world-floor-v3.webp?v=1.6.24" as="image" type="image/webp" fetchpriority="low">
     <!-- Hands and run music are the only large assets needed immediately after PLAY. -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://shephhh.github.io/elemental-run-browser-v1.3/">
@@ -64,8 +64,9 @@
             "operatingSystem": "Web Browser"
         }
     </script>
-    <link rel="stylesheet" href="browser-platform.css?v=1.5.0">
-<script src="assets/runtime/poki-config.js?v=1.5.0"></script>
+    <link rel="stylesheet" href="browser-platform.css?v=1.6.24">
+    <link rel="stylesheet" href="assets/runtime/loading-minigame.css?v=1.6.24">
+<script src="assets/runtime/poki-config.js?v=1.6.24"></script>
     <script>
       // The shared website/Poki package must stay fully offline-capable on the
       // public site. Only inject Poki's SDK when poki-config detected its host.
@@ -77,18 +78,20 @@
         document.head.appendChild(pokiScript);
       }
     </script>
-    <script src="assets/runtime/poki-bridge.js?v=1.5.0"></script>
-    <script src="assets/runtime/poki-platform.js?v=1.5.0"></script>
+    <script src="assets/runtime/poki-bridge.js?v=1.6.24"></script>
+    <script src="assets/runtime/poki-platform.js?v=1.6.24"></script>
 
-<script src="assets/runtime/platform-adapter.js?v=1.5.0"></script>
-<script src="assets/runtime/game-config.js?v=1.5.0"></script>
-<script src="assets/runtime/game-localization.js?v=1.5.0"></script>
-<script src="assets/runtime/map-environments.js?v=1.5.0"></script>
-<script src="assets/runtime/graphics-engine.js?v=1.5.0"></script>
-<script src="assets/runtime/audio-system.js?v=1.5.0"></script>
-<script src="assets/runtime/level-system.js?v=1.5.0"></script>
-<script src="assets/runtime/fortune-wheel.js?v=1.5.0"></script>
-<script src="assets/runtime/tutorial-director.js?v=1.5.0"></script>
+<script src="assets/runtime/platform-adapter.js?v=1.6.24"></script>
+<script src="assets/runtime/game-config.js?v=1.6.24"></script>
+<script src="assets/runtime/game-localization.js?v=1.6.24"></script>
+<script src="assets/runtime/map-environments.js?v=1.6.24"></script>
+<script src="assets/runtime/graphics-engine.js?v=1.6.24"></script>
+<script src="assets/runtime/audio-system.js?v=1.6.24"></script>
+<script src="assets/runtime/level-system.js?v=1.6.24"></script>
+<script src="assets/runtime/level-ghost-system.js?v=1.6.24"></script>
+<script src="assets/runtime/fortune-wheel.js?v=1.6.24"></script>
+<script src="assets/runtime/tutorial-director.js?v=1.6.24"></script>
+<script src="assets/runtime/loading-minigame.js?v=1.6.24"></script>
     <!-- Three.js r185.1 uses its official ESM build/addons. The module bridge at
          the end of body restores the existing global THREE/IIFE contract without
          introducing a bundler or allowing runtime execution before Three is ready. -->
@@ -424,14 +427,14 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            background: radial-gradient(circle, transparent 60%, rgba(255,255,255,0.05) 100%);
+            background: radial-gradient(ellipse at center, transparent 56%, rgba(255,255,255,0.06) 82%, rgba(210,240,255,0.24) 100%);
             z-index: 2;
             opacity: 0; 
             transition: opacity 0.2s, background 0.2s;
         }
         
         .sliding-vignette {
-            background: radial-gradient(circle, transparent 50%, rgba(0, 255, 255, 0.08) 100%) !important;
+            background: radial-gradient(ellipse at center, transparent 46%, rgba(0, 255, 255, 0.10) 78%, rgba(0, 255, 255, 0.28) 100%) !important;
         }
         
         .shield-active-vignette {
@@ -5267,7 +5270,7 @@
         startedAt: startedAt,
         claimed: false,
         runtimeLoaded: false,
-        build: '1.5.0-three-r185.1-mobile-complete',
+        build: '1.6.24-three-r185.1-meshopt-assets',
         fail: function (message) {
             clearInterval(heartbeatTimer);
             paint(18, 'STARTUP ERROR', message || 'Game code could not be loaded.');
@@ -5559,6 +5562,18 @@
                         </svg>
                     </a>
                     <span class="browser-reward-label is-steam-label">STEAM</span>
+                </div>
+            </div>
+            <div class="menu-utility-row" aria-label="Quick controls">
+                <div class="mouse-control-menu-slot">
+                    <button id="menu-mouse-control-btn" class="mouse-control-menu-button" type="button" aria-pressed="false" aria-label="Mouse control off">
+                        <svg viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M24 5c-8.3 0-15 6.7-15 15v8c0 8.3 6.7 15 15 15s15-6.7 15-15v-8C39 11.7 32.3 5 24 5Z"/>
+                            <path d="M24 6v14M10 22h28"/>
+                        </svg>
+                        <span class="mouse-control-state">OFF</span>
+                    </button>
+                    <span class="mouse-control-menu-label">MOUSE</span>
                 </div>
             </div>
         </section>
@@ -6103,7 +6118,7 @@
 </div>
 
 <script type="module" id="elemental-three-runtime-bootstrap">
-    import './vendor/three-r185-bridge.js?v=1.5.0';
+    import './vendor/three-r185-bridge.js?v=1.6.24';
 
     const loadOrderedClassicScript = (src, id) => new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -6116,9 +6131,9 @@
     });
 
     try {
-        await loadOrderedClassicScript('assets/runtime/curved-path-system.js?v=1.5.0', 'elemental-curved-path-runtime');
+        await loadOrderedClassicScript('assets/runtime/curved-path-system.js?v=1.6.24', 'elemental-curved-path-runtime');
         if (!window.ElementalCurvedPathSystem) throw new Error('Curved path system did not initialize.');
-        await loadOrderedClassicScript('assets/runtime/game-runtime.js?v=1.5.0', 'elemental-game-runtime');
+        await loadOrderedClassicScript('assets/runtime/game-runtime.js?v=1.6.24', 'elemental-game-runtime');
         if (window.__elementalEarlyBoot) window.__elementalEarlyBoot.runtimeLoaded = true;
     } catch (error) {
         console.error('[ELEMENTAL RUN] Three.js r185.1 bootstrap failed.', error);

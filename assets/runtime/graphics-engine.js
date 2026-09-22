@@ -33,6 +33,7 @@
     };
 
     function computePixelRatio(preset) {
+      if (global.ElementalPixelArt?.enabled) return global.ElementalPixelArt.pixelRatio();
       const native = global.devicePixelRatio || 1;
       const base = preset.pixelRatio <= 1
         ? Math.min(native, preset.pixelRatio)
@@ -43,6 +44,9 @@
     }
 
     function updateAdaptiveQualityTier(sampleDelta, rawFrameDelta) {
+      // A mobile player selects the named quality preset explicitly. Adapt
+      // resolution and expensive transient effects without rewriting that choice.
+      if (adapter.isMobile()) return;
       if (!state.adaptiveEnabled || state.qualityLocked) return;
       if (!adapter.isBrowserBuild() || state.runSeconds < options.graceSeconds) return;
       state.qualityCooldown = Math.max(0, state.qualityCooldown - sampleDelta);
@@ -142,7 +146,8 @@
       const renderer = ctx.renderer;
       if (!renderer) return;
       if (ctx.cinematicColor) renderer.toneMappingExposure = preset.exposure || ctx.defaultExposure;
-      if (renderer.shadowMap) renderer.shadowMap.type = preset.softShadows ? ctx.three.PCFSoftShadowMap : ctx.three.PCFShadowMap;
+      const pixelArt = global.ElementalPixelArt?.enabled === true;
+      if (renderer.shadowMap) renderer.shadowMap.type = pixelArt ? ctx.three.PCFShadowMap : (preset.softShadows ? ctx.three.PCFSoftShadowMap : ctx.three.PCFShadowMap);
       if (ctx.dirLight && ctx.dirLight.shadow) {
         const size = ctx.getRuntimeShadowMapSize(preset);
         if (ctx.dirLight.shadow.mapSize.width !== size) {
@@ -160,10 +165,12 @@
       if (preset.envMap) ctx.ensureEnvironment();
       else if (ctx.scene) ctx.scene.environment = null;
       if (typeof ctx.applyMaterialTier === 'function') ctx.applyMaterialTier(preset, state.performanceLevel);
-      const allowBloom = !!preset.bloom && state.performanceLevel === 0;
-      const allowAo = !!preset.ao && state.performanceLevel === 0 && !adapter.isMobile();
-      const allowFxaa = !!preset.antialias && state.performanceLevel < 2;
-      const wantComposer = allowBloom || allowAo || allowFxaa;
+      const allowBloom = !pixelArt && !!preset.bloom && state.performanceLevel === 0;
+      const allowAo = !pixelArt && !!preset.ao && state.performanceLevel === 0 && !adapter.isMobile();
+      const allowFxaa = !pixelArt && !!preset.antialias && state.performanceLevel < 2;
+      // Keep the skill/desaturation pass available; the pixel presentation does
+      // tone mapping and palette conversion after the hand overlay instead.
+      const wantComposer = pixelArt || allowBloom || allowAo || allowFxaa;
       if (wantComposer) {
         ctx.ensureComposer();
         if (ctx.getBloomPass()) {
