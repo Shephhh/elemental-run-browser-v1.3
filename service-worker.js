@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD = '1.7.0-interactive-hub';
+const BUILD = '1.7.1-lobby-fixes';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

@@ -3683,7 +3683,7 @@ const arrowEffectPool = [];
         ensureMenuAudio();
         if (target === ui.menuStartBtn) {
             unlockGameplayAudioFromUserGesture();
-            beginRunFromGamepad(true);
+            target.click();
             return true;
         }
         if (target === ui.menuResumeBtn || target === ui.pauseContinueBtn) {
@@ -5333,8 +5333,8 @@ const arrowEffectPool = [];
         document.documentElement.lang = lang;
         document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
         document.body.classList.toggle('language-rtl', isRtl);
-        setText(ui.menuStartLabel, (runStartedFromMenu && !isGameOver && score > 0) ? tr('newRun') : tr('play'));
-        if (ui.menuStartBtn) ui.menuStartBtn.setAttribute('aria-label', (runStartedFromMenu && !isGameOver && score > 0) ? tr('newRun') : tr('play'));
+        setText(ui.menuStartLabel, tr('play'));
+        if (ui.menuStartBtn) ui.menuStartBtn.setAttribute('aria-label', tr('play'));
         setTextBySelector('#menu-highscore-btn .menu-button-text', tr('upgrades'));
         setTextBySelector('#menu-resume-btn .menu-button-text', tr('continue'));
         setTextBySelector('#menu-settings-btn .menu-button-text', tr('settings'));
@@ -5671,7 +5671,7 @@ const arrowEffectPool = [];
         updateUpgradePurchaseAlert();
         updateHandShopUi();
         if (ui.menuStartBtn) {
-            const startLabel = (runStartedFromMenu && !isGameOver && score > 0) ? tr('newRun') : tr('play');
+            const startLabel = tr('play');
             if (ui.menuStartLabel) ui.menuStartLabel.innerText = startLabel;
             ui.menuStartBtn.setAttribute('aria-label', startLabel);
         }
@@ -7005,6 +7005,11 @@ const arrowEffectPool = [];
 
     function createFlightSafeGLTFLoader() {
         const loader = new THREE.GLTFLoader();
+        // Vehicle and hand GLBs are Meshopt-compressed. Every loader, including
+        // the flight-safe wrapper, must register the decoder before parsing.
+        if (THREE.MeshoptDecoder && typeof loader.setMeshoptDecoder === 'function') {
+            loader.setMeshoptDecoder(THREE.MeshoptDecoder);
+        }
         const parse = loader.parse;
         // Fetch remains concurrent; parsing and onLoad share the flight gate.
         loader.parse = function (data, path, onLoad, onError) {
@@ -7494,6 +7499,7 @@ const arrowEffectPool = [];
             : `${tr('buy')} · ${skin.cost.toLocaleString()} ${tr('gold')}`;
         lobbyHub = new window.ElementalLobbyHub(THREE, {
             renderer: () => renderer, mobile: MOBILE_RUNTIME,
+            lockPointer: () => requestPointerLockFromUi?.({ force: true, allowDisabled: true, lobby: true }),
             language: () => normalizeLanguage(menuState.language), tr,
             wallet: () => Math.max(0, Math.floor(menuState.walletCoins || 0)),
             skins: () => HAND_SKINS, handStatus,
@@ -7502,11 +7508,11 @@ const arrowEffectPool = [];
             wheelRotation: () => fortuneWheelSystem?.rotation || 0,
             blocked: () => rewardedAdBusy || fortuneWheelSystem?.overlayOpen || ui.menuDialogLayer?.classList.contains('is-open'),
             onEnter: () => {
-                mainMenuVisible = true; isGamePaused = true;
+                hideMainMenu();
+                isGamePaused = true;
                 if (viewmodelRig) viewmodelRig.visible = false;
                 unlockMenuMusicFromUserGesture(); resetControlActionState();
                 updateHandSkillUi(); clearBhopFeedbackForOverlay();
-                try { if (document.pointerLockElement) document.exitPointerLock(); } catch (_) {}
                 crazyGamesPlatform()?.gameplayStop();
             },
             equip: (id) => {
@@ -7551,6 +7557,14 @@ const arrowEffectPool = [];
             selectLevel: (direction) => levelSystem?.selectLevel((levelSystem.getSelectedLevel() || 1) + direction),
             prepare: async (mode) => {
                 if (mode === 'level' && !shouldRunFirstTutorial()) await prepareCampaignLevelStart(levelSystem.getSelectedLevel(), { showOverlay: false });
+            },
+            theme: () => {
+                if (shouldRunFirstTutorial()) return 0;
+                const level = levelSystem?.getLevelDefinition?.(levelSystem.getSelectedLevel());
+                return Math.max(0, Math.min(5, Math.floor(Number(level?.themePhase) || 0)));
+            },
+            warmTheme: async () => {
+                if (!shouldRunFirstTutorial()) await prepareCampaignLevelStart(levelSystem.getSelectedLevel(), { showOverlay: false });
             },
             start: (mode) => {
                 unlockGameplayAudioFromUserGesture();
@@ -7632,6 +7646,7 @@ const arrowEffectPool = [];
             platform.gameplayStop();
             platform.clearContext();
         }
+        if (lobbyHub?.active) lobbyHub.exit();
         ensureLobbyHub()?.show();
     }
 
@@ -8828,6 +8843,9 @@ const arrowEffectPool = [];
             },
             onOverlayClose: () => {
                 playUiConfirmSound();
+                if (lobbyHub?.active && !MOBILE_RUNTIME && requestPointerLockFromUi) {
+                    requestPointerLockFromUi({ force: true, allowDisabled: true, lobby: true });
+                }
             }
         });
     }
@@ -8926,8 +8944,8 @@ const arrowEffectPool = [];
     }
 
     function beginRunFromMainMenu(resetRun = true, options = {}) {
-        if (lobbyHub?.active || lobbyHub?.state === 'gate') lobbyHub.exit();
-        document.body.classList.remove('hub-gate-active', 'hub-panel-open');
+        if (lobbyHub?.active) lobbyHub.exit();
+        document.body.classList.remove('hub-panel-open');
         levelGhostSystem?.stop();
         if (handPurchaseTutorial.active || handPurchaseTutorial.pending) abortHandPurchaseTutorial(false);
         const tutorialRun = !!options.tutorial;
@@ -10656,12 +10674,6 @@ nextSnowballX = 0;
             updateAudioMix();
             return;
         }
-        if (lobbyHub?.state === 'gate') {
-            const pad = getPrimaryGamepad();
-            if (pad?.buttons[0]?.pressed) lobbyHub.enter();
-            updateAudioMix();
-            return;
-        }
         const rawDelta = delta; // fps ölçümü için ham değer (clamp öncesi)
         // Lag / sekme değişimi / time-slow geçişi büyük bir delta üretebilir; bu durumda
         // engeller (tren `speedX * delta`) tek karede sıçrayıp oyuncunun içinden TÜNELLEYEBİLİR
@@ -10840,14 +10852,19 @@ nextSnowballX = 0;
         const prevAutoClear = renderer.autoClear;
         const prevMask = camera.layers.mask;
         const prevBg = scene.background;
+        const prevNear = camera.near;
         renderer.setRenderTarget(outputTarget); // Pixel art composites both layers before palette conversion.
         renderer.autoClear = false;            // composited dünya görüntüsünü koru (rengi silme)
         // KRİTİK: scene.background renderer.render'da autoClear'dan bağımsız olarak boyanır ve
         // composited dünyayı ezerdi → overlay sırasında geçici olarak kapat.
         scene.background = null;
+        camera.near = .01;
+        camera.updateProjectionMatrix();
         renderer.clearDepth();                 // derinliği temizle → eller her şeyin üstünde + kendi içinde doğru
         camera.layers.set(VIEWMODEL_LAYER);    // sadece viewmodel katmanını çiz
         renderer.render(scene, camera);
+        camera.near = prevNear;
+        camera.updateProjectionMatrix();
         camera.layers.mask = prevMask;
         renderer.autoClear = prevAutoClear;
         scene.background = prevBg;
@@ -10904,7 +10921,6 @@ nextSnowballX = 0;
         else if (levelCompletionInProgress) textMode = 'level_complete';
         else if (isGamePaused) textMode = 'paused';
         if (lobbyHub?.active) textMode = 'lobby';
-        else if (document.body.classList.contains('hub-gate-active')) textMode = 'play_gate';
         const payload = {
             lobby: lobbyHub?.snapshot() || null,
             visual: window.ElementalPixelArt?.inspect() || { style: 'classic' },
@@ -11257,6 +11273,16 @@ nextSnowballX = 0;
         };
         window.__elementalBrowserTest = Object.freeze({
             inspectLobby: () => lobbyHub?.snapshot(),
+            inspectLobbyModels: () => [...(lobbyHub?.models || [])].map(([id, root]) => {
+                const mesh = root.children.find(child => child.isMesh);
+                const box = new THREE.Box3().setFromObject(root);
+                const material = Array.isArray(mesh?.material) ? mesh.material[0] : mesh?.material;
+                return { id, vertices: mesh?.geometry?.attributes?.position?.count || 0,
+                    triangles: (mesh?.geometry?.index?.count || 0) / 3,
+                    min: box.min.toArray(), max: box.max.toArray(),
+                    color: material?.color?.getHexString(), opacity: material?.opacity,
+                    transparent: material?.transparent, visible: mesh?.visible };
+            }),
             showLobby: () => { showMainMenu(true); return lobbyHub?.snapshot(); },
             placeLobbyPlayer: (x, z) => {
                 if (lobbyHub?.active && lobbyHub.canMove(x, z)) {
@@ -14726,15 +14752,6 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         const pos = attrs.position;
         const idx = geo.index ? geo.index.array : null;
         const faces = idx ? idx.length / 3 : pos.count / 3;
-        if (!geo.boundingBox) geo.computeBoundingBox();
-        const geometrySize = geo.boundingBox.getSize(new THREE.Vector3());
-        // Image-to-3D exports occasionally include needle-thin rear-cap bridges.
-        // They span almost the complete authored height and turn into flat blades
-        // after the two gloves are separated. Edge length alone is NOT enough:
-        // valid fingertip/cuff triangles can also be long. Classify a triangle as
-        // corrupt only when it is both unusually long and extremely thin.
-        const maxAuthoredTriangleEdge = Math.max(0.42, Math.max(geometrySize.x, geometrySize.y, geometrySize.z) * 0.34);
-        const maxCorruptTriangleAltitude = Math.max(0.018, Math.max(geometrySize.x, geometrySize.y, geometrySize.z) * 0.0205);
         const L = {}, R = {};
         names.forEach((n) => { L[n] = []; R[n] = []; });
         // Keep each authored connected surface on one hand. Classifying every
@@ -14767,25 +14784,18 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         for (let f = 0; f < faces; f++) {
             const a = idx ? idx[f * 3] : f * 3, b = idx ? idx[f * 3 + 1] : f * 3 + 1, c = idx ? idx[f * 3 + 2] : f * 3 + 2;
             const ax = pos.getX(a), bx = pos.getX(b), cx0 = pos.getX(c);
-            const minX = Math.min(ax, bx, cx0);
-            const maxX = Math.max(ax, bx, cx0);
             const ay = pos.getY(a), az = pos.getZ(a);
             const by = pos.getY(b), bz = pos.getZ(b);
             const cy = pos.getY(c), cz = pos.getZ(c);
-            const ab = Math.hypot(ax - bx, ay - by, az - bz);
-            const bc = Math.hypot(bx - cx0, by - cy, bz - cz);
-            const ca = Math.hypot(cx0 - ax, cy - ay, cz - az);
-            const longestEdge = Math.max(ab, bc, ca);
             const abx = bx - ax, aby = by - ay, abz = bz - az;
             const acx = cx0 - ax, acy = cy - ay, acz = cz - az;
             const crossX = aby * acz - abz * acy;
             const crossY = abz * acx - abx * acz;
             const crossZ = abx * acy - aby * acx;
             const doubleArea = Math.hypot(crossX, crossY, crossZ);
-            const shortestAltitude = longestEdge > 1e-6 ? doubleArea / longestEdge : 0;
-            const isNeedleBridge = longestEdge > maxAuthoredTriangleEdge
-                && shortestAltitude < maxCorruptTriangleAltitude;
-            if (isNeedleBridge) continue;
+            // Long, thin imported finger caps are valid geometry. Removing
+            // them here visibly amputated the fingertips of several skins.
+            if (doubleArea < 1e-10) continue;
             validFaces[f] = 1;
             if (parent) {
                 used[a] = used[b] = used[c] = 1;
@@ -15606,10 +15616,9 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
     }
 
     function shouldUseProceduralAuxVehicleModels() {
-        // The legacy lightweight traffic is an explicit Performance-mode
-        // compromise only. High/Balanced must look identical on first launch,
-        // even when hardware detection marks the device as low-power.
-        return menuState.graphicsQuality === 'performance';
+        // The same authored car and motorcycle meshes are used at every visual
+        // quality tier. Lower presets reduce effects and scenery instead.
+        return false;
     }
 
     function shouldRequireDetailedAuxVehicleModels() {
@@ -16504,7 +16513,10 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         document.addEventListener('pointerlockchange', () => {
             pointerLockRequestInFlight = false;
             if (lobbyHub?.active) {
-                if (document.pointerLockElement) document.exitPointerLock();
+                pointerJustLocked = document.pointerLockElement === renderer.domElement;
+                if (!document.pointerLockElement && !ui.menuDialogLayer?.classList.contains('is-open') && !rewardedAdBusy) {
+                    lobbyHub.clearMovement?.();
+                }
                 return;
             }
             if (document.pointerLockElement === renderer.domElement) {
@@ -16592,6 +16604,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
 
         document.addEventListener('pointerlockerror', () => {
             pointerLockRequestInFlight = false;
+            if (lobbyHub?.active) return;
             if (tutorialDirector?.state === 'start-gate') {
                 isGamePaused = true;
                 if (ui.pauseScreen) ui.pauseScreen.style.display = 'none';
@@ -16631,7 +16644,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         const requestLock = (options = {}) => {
             const force = options && options.force === true;
             if (isGameOver || document.pointerLockElement === renderer.domElement) return;
-            if (mainMenuVisible) return;
+            if (mainMenuVisible && !options.lobby) return;
             if (MOBILE_RUNTIME) {
                 resumeMobileRun();
                 return;
@@ -16684,7 +16697,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                 // into the existing tap-to-resume state and let the next real
                 // click retry from a trusted gesture.
                 setTimeout(() => {
-                    if (!pointerLockRequestInFlight || MOBILE_RUNTIME || isGameOver || mainMenuVisible
+                    if (!pointerLockRequestInFlight || MOBILE_RUNTIME || isGameOver || mainMenuVisible || lobbyHub?.active
                         || document.pointerLockElement === renderer.domElement) return;
                     pointerLockRequestInFlight = false;
                     isGamePaused = true;
@@ -16858,7 +16871,10 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         });
         if (ui.menuStartBtn) ui.menuStartBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            beginRunFromMainMenu(true, { endless: true });
+            ensureLobbyHub()?.enter();
+            if (!MOBILE_RUNTIME && requestPointerLockFromUi) {
+                requestPointerLockFromUi({ force: true, allowDisabled: true, lobby: true });
+            }
             unlockGameplayAudioFromUserGesture();
             stopMenuMusicNow();
             playUiConfirmSound();
@@ -16990,6 +17006,9 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                 unlockMenuMusicFromUserGesture();
                 ensureMenuAudio();
                 closeMenuDialogs();
+                if (lobbyHub?.active && !MOBILE_RUNTIME && requestPointerLockFromUi) {
+                    requestPointerLockFromUi({ force: true, allowDisabled: true, lobby: true });
+                }
                 if (handPurchaseTutorial.active || handPurchaseTutorial.pending) abortHandPurchaseTutorial(false);
                 if (btn.closest('#menu-upgrades-dialog') && levelSystem?.handleUpgradeDialogClosed?.()) {
                     document.body.classList.remove('level-finish-upgrade-open');

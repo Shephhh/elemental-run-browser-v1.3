@@ -10,12 +10,13 @@
       this.keys = new Set(); this.zones = []; this.solids = []; this.clickable = [];
       this.resources = new Set(); this.labels = []; this.models = new Map();
       this.pendingModels = new Map(); this.failedModels = new Set(); this.modelEpoch = 0;
+      this.nextModelLoadAt = 0; this.jumpVelocity = 0;
       this.time = 0; this.hold = 0; this.zone = null; this.latched = null;
       this.yaw = 0; this.pitch = 0.48; this.velocity = new THREE.Vector2();
       this.touchMove = new THREE.Vector2(); this.temp = new THREE.Vector3();
       this.look = new THREE.Vector3(); this.desiredCamera = new THREE.Vector3();
       this.ray = new THREE.Raycaster(); this.ndc = new THREE.Vector2();
-      this.state = 'gate'; this.serial = 0; this.lastUi = '';
+      this.state = 'menu'; this.serial = 0; this.lastUi = '';
       this.createUi(); this.bindInput();
     }
 
@@ -63,9 +64,10 @@
       this.scene = new T.Scene(); this.scene.background = new T.Color('#17283c');
       this.scene.fog = new T.Fog('#17283c', 42, 100);
       this.camera = new T.PerspectiveCamera(60, 1, .1, 130);
-      this.scene.add(new T.HemisphereLight('#e4efff', '#73604d', 2.1));
-      const sun = new T.DirectionalLight('#ffe2b0', 2.8); sun.position.set(-12, 22, 8); this.scene.add(sun);
+      this.hemisphere = new T.HemisphereLight('#e4efff', '#73604d', 2.1); this.scene.add(this.hemisphere);
+      this.sun = new T.DirectionalLight('#ffe2b0', 2.8); this.sun.position.set(-12, 22, 8); this.scene.add(this.sun);
       const stone = this.material('#6c7c86'), dark = this.material('#263b4b'), floor = this.material('#415766');
+      this.floorMaterial = floor;
       const trim = this.material('#d1b987', { metalness: .3 });
       this.box(48, 1.2, 48, dark, 0, -.65, -4);
       this.box(46, .14, 46, floor, 0, -.1, -4);
@@ -99,6 +101,8 @@
         this.mesh(new T.ConeGeometry(7 + i % 3, 12 + i % 5, 5), this.material(i % 2 ? '#253e4e' : '#304b5a'), Math.sin(angle) * 57, -5, Math.cos(angle) * 57 - 4);
       }
       this.text('ELEMENTAL RUN', 15, 0, 11, -23, '#f4d59d', 62);
+      this.themeLabel = this.text('', 7, 0, 9.65, -23, '#d8e9ed', 34);
+      this.buildThemeDecor();
       this.avatar = new T.Group(); this.scene.add(this.avatar);
       this.body = this.mesh(new T.BoxGeometry(1.25, 1.55, 1.25), this.material('#73d2bd', { metalness: .15 }), 0, 0, 0, this.avatar);
       const edges = new T.LineSegments(this.track(new T.EdgesGeometry(this.body.geometry)), this.track(new T.LineBasicMaterial({ color: '#d6fff1' })));
@@ -118,10 +122,8 @@
         this.solids.push({ x, z, hx: 1.8, hz: 1.8 });
         const label = this.text(skin.name, 5, x, 4.9, z, skin.edge, 36);
         const price = this.text('', 4.6, x, 4.25, z, '#f3dfb0', 32);
-        const preview = this.track(new T.TextureLoader().load(skin.preview)); preview.colorSpace = T.SRGBColorSpace;
-        const placeholder = this.mesh(new T.PlaneGeometry(2.2, 2.7), this.track(new T.MeshBasicMaterial({ map: preview, transparent: true, alphaTest: .03, side: T.DoubleSide, toneMapped: false })), x, 2.95, z);
         const zone = this.pad('hand:' + skin.id, side * 13.8, z, skin.accent, () => this.api.equip(skin.id), skin.name, () => this.api.handStatus(skin));
-        Object.assign(zone, { skin, pedestal: { x, z }, placeholder, price, label });
+        Object.assign(zone, { skin, pedestal: { x, z }, price, label });
       });
       this.buildMonitor(dark, trim);
       this.buildWheel(dark, trim);
@@ -134,6 +136,71 @@
       this.text('2× SPEED', 4.3, -7.5, 4, 4.3, '#ffe097');
       this.text(this.api.adsAvailable() ? this.copy('WATCH AD', 'REKLAM İZLE') : 'POKI', 3.4, -7.5, 3.35, 4.3, '#e5eaf0', 34);
       this.monitorDirty = true;
+    }
+
+    buildThemeDecor() {
+      const T = this.T;
+      this.themeGroups = Array.from({ length: 6 }, () => { const group = new T.Group(); this.scene.add(group); return group; });
+      const palettes = ['#44b9df', '#4a9b62', '#c8dbf0', '#c65a36', '#3a9db4', '#d6e8f5'];
+      for (let phase = 0; phase < 6; phase++) {
+        const group = this.themeGroups[phase];
+        const accent = this.material(palettes[phase], { emissive: palettes[phase], emissiveIntensity: phase === 3 ? .2 : .05 });
+        const dark = this.material(phase === 3 ? '#422931' : phase === 5 ? '#6f8499' : '#355265');
+        for (const side of [-1, 1]) for (let i = 0; i < 8; i++) {
+          const x = side * (26 + i % 3 * 2.5), z = -23 + i * 6.1;
+          if (phase === 0) {
+            this.mesh(new T.BoxGeometry(2.5, 5 + i % 4 * 2.3, 2.5), dark, x, 2.5 + i % 4 * 1.15, z, group);
+            this.mesh(new T.BoxGeometry(.22, 2.7, 2.6), accent, x - side * 1.3, 4.2, z, group);
+          } else if (phase === 1 || phase === 5) {
+            this.mesh(new T.CylinderGeometry(.28, .45, 3.4, 6), dark, x, 1.7, z, group);
+            this.mesh(new T.ConeGeometry(phase === 5 ? 2.2 : 2.5, 5.3, 7), accent, x, 5.3, z, group);
+            if (phase === 5) this.mesh(new T.ConeGeometry(1.2, 1.2, 7), this.material('#f7fbff'), x, 8.2, z, group);
+          } else if (phase === 2) {
+            for (let j = 0; j < 3; j++) this.mesh(new T.SphereGeometry(1.8 + j * .22, 8, 6), accent, x + j * .95, 5 + (i % 3), z, group);
+          } else if (phase === 3) {
+            this.mesh(new T.ConeGeometry(2.5, 5.5, 7), dark, x, 2.7, z, group);
+            this.mesh(new T.ConeGeometry(.55, 1.2, 7), accent, x, 5.7, z, group);
+          } else {
+            this.mesh(new T.CylinderGeometry(2.2, 2.5, .6, 12), accent, x, .25, z, group);
+            this.mesh(new T.TorusGeometry(1.5, .12, 5, 16), this.material('#a6e5e7'), x, .63, z, group).rotation.x = -Math.PI / 2;
+          }
+        }
+      }
+    }
+
+    applyTheme(force = false) {
+      if (!this.scene) return;
+      const phase = Math.max(0, Math.min(5, Math.floor(Number(this.api.theme?.()) || 0)));
+      if (!force && phase === this.themePhase) return;
+      this.themePhase = phase;
+      const colors = ['#17283c', '#a5cce0', '#b5d9f5', '#47292a', '#84b8c4', '#a8bfce'];
+      const floors = ['#415766', '#58775d', '#8699b0', '#62443c', '#4d7f86', '#a5b8c3'];
+      const lights = ['#ffe2b0', '#fff0c6', '#ffffff', '#ffad73', '#d4f7ff', '#e9f6ff'];
+      const labels = ['CITY', 'NATURE', 'SKY', 'LAVA', 'WATER', 'SNOW'];
+      this.scene.background.set(colors[phase]); this.scene.fog.color.set(colors[phase]);
+      this.floorMaterial.color.set(floors[phase]); this.sun.color.set(lights[phase]);
+      this.hemisphere.color.set(lights[phase]);
+      this.themeLabel.set(labels[phase]);
+      this.themeGroups.forEach((group, index) => { group.visible = index === phase; });
+      if (this.active) this.scheduleThemeWarm();
+    }
+
+    scheduleThemeWarm() {
+      if (this.themeWarmPromise || this.themeWarmScheduledFor === this.themePhase || !this.api.warmTheme) return;
+      const phase = this.themePhase;
+      this.themeWarmScheduledFor = phase;
+      const run = () => {
+        this.themeWarmScheduledFor = null;
+        if (!this.active || this.state !== 'exploring' || this.themePhase !== phase) return;
+        this.themeWarmPromise = Promise.resolve(this.api.warmTheme())
+          .catch((error) => console.warn('[LobbyThemeWarm]', error))
+          .finally(() => {
+            this.themeWarmPromise = null; this.themeWarmPhase = phase;
+            if (this.active && this.themePhase !== phase) this.scheduleThemeWarm();
+          });
+      };
+      if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 2500 });
+      else setTimeout(run, 250);
     }
 
     buildPortal(mode, x, color, dark, trim) {
@@ -201,55 +268,47 @@
     }
 
     createUi() {
-      this.gate = document.createElement('section'); this.gate.id = 'hub-play-gate'; this.gate.hidden = true;
-      this.gate.innerHTML = '<div class="hub-wordmark">ELEMENTAL <span>RUN</span></div><button id="hub-play" type="button">PLAY <span aria-hidden="true">➜</span></button>';
-      document.body.appendChild(this.gate);
       this.hud = document.createElement('section'); this.hud.id = 'hub-hud'; this.hud.hidden = true;
       this.hud.innerHTML = '<header><div class="hub-brand">ELEMENTAL <b>RUN</b><small>LOBBY</small></div><div class="hub-tools"><span id="hub-wallet"></span><button id="hub-settings" type="button" aria-label="Settings">⚙</button></div></header><div id="hub-message" role="status" aria-live="polite"></div><div id="hub-prompt"><strong></strong><span></span><progress max="1.5" value="0"></progress></div><footer id="hub-hint"></footer><div id="hub-stick" aria-label="Move"><i></i></div><button id="hub-home" type="button" aria-label="Recenter camera">⌖</button>';
       document.body.appendChild(this.hud);
       this.prompt = this.hud.querySelector('#hub-prompt'); this.message = this.hud.querySelector('#hub-message');
-      this.gate.querySelector('button').onclick = () => this.enter();
       this.hud.querySelector('#hub-settings').onclick = () => this.api.openPanel('settings');
       this.hud.querySelector('#hub-home').onclick = () => { this.yaw = 0; this.pitch = .48; };
     }
 
     show() {
-      if (this.visited) { this.enter(); return; }
-      this.state = 'gate'; this.gate.hidden = false;
-      document.body.classList.add('hub-gate-active');
-      this.gate.querySelector('button').focus({ preventScroll: true });
+      this.active = false; this.state = 'menu'; this.hud.hidden = true;
+      document.body.classList.remove('hub-active', 'hub-gate-active');
     }
     enter() {
       this.clearHandoff();
       this.build(); this.visited = true; this.active = true; this.state = 'exploring'; this.serial++;
-      this.gate.hidden = true; this.hud.hidden = false;
+      this.hud.hidden = false;
       document.body.classList.remove('hub-gate-active'); document.body.classList.add('hub-active');
       this.avatar.position.set(0, .85, 11); this.avatar.rotation.set(0, 0, 0);
       this.avatar.visible = true;
       if (this.savedPixelRatio == null) this.savedPixelRatio = this.api.renderer().getPixelRatio();
       this.api.renderer().setPixelRatio(Math.min(window.devicePixelRatio || 1, this.mobile ? 1 : 1.25));
-      this.velocity.set(0, 0); this.yaw = 0; this.pitch = .48;
+      this.velocity.set(0, 0); this.jumpVelocity = 0; this.yaw = 0; this.pitch = .48;
       this.keys.clear(); this.hold = 0; this.zone = null; this.latched = null;
-      this.api.onEnter(); this.refresh(true); this.updateCamera(1, true);
+      this.api.onEnter(); this.applyTheme(true); this.refresh(true); this.updateCamera(1, true);
     }
     exit() {
       this.active = false; this.state = 'inactive'; this.serial++; this.modelEpoch++;
       this.keys.clear(); this.touchMove.set(0, 0); this.velocity.set(0, 0);
-      this.hud.hidden = true; this.gate.hidden = true;
+      this.hud.hidden = true;
       document.body.classList.remove('hub-active', 'hub-gate-active');
       if (this.savedPixelRatio != null) { this.api.renderer().setPixelRatio(this.savedPixelRatio); this.savedPixelRatio = null; }
       // Free the heavy display copies; the runner's own selected-hand cache is separate.
       for (const id of [...this.models.keys()]) this.releaseModel(id);
     }
+    clearMovement() { this.keys.clear(); this.touchMove.set(0, 0); this.velocity.set(0, 0); }
     blocked() { return this.api.blocked() || document.hidden || this.state !== 'exploring'; }
     notify(text) { this.message.textContent = text; this.messageUntil = this.time + 3.5; }
 
     bindInput() {
       const movement = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
       window.addEventListener('keydown', (event) => {
-        if (this.state === 'gate' && !this.gate.hidden && ['Enter', 'Space'].includes(event.code) && !event.repeat) {
-          event.preventDefault(); event.stopImmediatePropagation(); this.enter(); return;
-        }
         if (!this.active) return;
         if (event.code === 'Escape') { this.keys.clear(); this.api.escape(); event.preventDefault(); event.stopImmediatePropagation(); return; }
         if (event.target.matches?.('input,select,textarea')) return;
@@ -257,16 +316,32 @@
           if (!this.blocked()) this.keys.add(event.code);
           event.preventDefault(); event.stopImmediatePropagation();
         }
+        if (event.code === 'Space' && !event.repeat && !this.blocked()) {
+          if (this.avatar.position.y <= .89) this.jumpVelocity = 8.5;
+          event.preventDefault(); event.stopImmediatePropagation();
+        }
       }, true);
-      window.addEventListener('keyup', (event) => { this.keys.delete(event.code); }, true);
+      window.addEventListener('keyup', (event) => {
+        this.keys.delete(event.code);
+        if (!this.keys.size && this.touchMove.lengthSq() < .01) this.velocity.set(0, 0);
+        if (this.active && movement.includes(event.code)) {
+          event.preventDefault(); event.stopImmediatePropagation();
+        }
+      }, true);
       window.addEventListener('blur', () => { this.keys.clear(); this.touchMove.set(0, 0); this.pointer = null; });
       document.addEventListener('visibilitychange', () => { this.keys.clear(); this.touchMove.set(0, 0); });
       window.addEventListener('pointerdown', (event) => {
         if (!this.active || this.blocked() || event.target !== this.api.renderer().domElement) return;
+        if (!this.mobile && document.pointerLockElement !== event.target) this.api.lockPointer?.();
         this.pointer = { id: event.pointerId, x: event.clientX, y: event.clientY, sx: event.clientX, sy: event.clientY };
         event.target.setPointerCapture?.(event.pointerId); event.preventDefault(); event.stopImmediatePropagation();
       }, true);
       window.addEventListener('pointermove', (event) => {
+        if (this.active && !this.blocked() && document.pointerLockElement === this.api.renderer().domElement) {
+          this.yaw -= Math.max(-110, Math.min(110, event.movementX || 0)) * .005;
+          this.pitch = Math.max(.18, Math.min(.9, this.pitch + Math.max(-110, Math.min(110, event.movementY || 0)) * .004));
+          event.stopImmediatePropagation(); return;
+        }
         const p = this.pointer;
         if (!p || event.pointerId !== p.id || !this.active || this.blocked()) return;
         this.yaw -= (event.clientX - p.x) * .005;
@@ -332,6 +407,7 @@
         if (!blocked) { this.yaw -= stick(2) * dt * 2.1; this.pitch = Math.max(.18, Math.min(.9, this.pitch + stick(3) * dt * 1.3)); }
         const axisX = blocked ? 0 : Number(this.keys.has('KeyD') || this.keys.has('ArrowRight')) - Number(this.keys.has('KeyA') || this.keys.has('ArrowLeft')) + this.touchMove.x + stick(0);
         const axisZ = blocked ? 0 : Number(this.keys.has('KeyS') || this.keys.has('ArrowDown')) - Number(this.keys.has('KeyW') || this.keys.has('ArrowUp')) + this.touchMove.y + stick(1);
+        if (!axisX && !axisZ) this.velocity.set(0, 0);
         const length = Math.max(1, Math.hypot(axisX, axisZ)), c = Math.cos(this.yaw), s = Math.sin(this.yaw);
         const tx = (axisX * c + axisZ * s) / length * 7.5, tz = (axisZ * c - axisX * s) / length * 7.5;
         const damping = 1 - Math.exp(-16 * dt);
@@ -339,7 +415,11 @@
         const p = this.avatar.position, nx = p.x + this.velocity.x * dt, nz = p.z + this.velocity.y * dt;
         if (this.canMove(nx, p.z)) p.x = nx; else this.velocity.x = 0;
         if (this.canMove(p.x, nz)) p.z = nz; else this.velocity.y = 0;
-        const speed = this.velocity.length(); p.y = .85 + Math.abs(Math.sin(this.time * 9)) * Math.min(.08, speed * .012);
+        const speed = this.velocity.length();
+        this.jumpVelocity = (this.jumpVelocity || 0) - 22 * dt;
+        p.y = Math.max(.85, p.y + this.jumpVelocity * dt);
+        if (p.y === .85) this.jumpVelocity = 0;
+        this.body.position.y = p.y === .85 ? Math.abs(Math.sin(this.time * 9)) * Math.min(.08, speed * .012) : 0;
         if (speed > .2) {
           const target = Math.atan2(-this.velocity.x, -this.velocity.y);
           const diff = Math.atan2(Math.sin(target - this.avatar.rotation.y), Math.cos(target - this.avatar.rotation.y));
@@ -353,6 +433,7 @@
       this.wheel.rotation.z = -(this.api.wheelRotation() || 0) * Math.PI / 180;
       this.adIcon.position.y = 2.2 + Math.sin(this.time * 1.8) * .1;
       this.adIcon.rotation.y = Math.sin(this.time * .6) * .25;
+      for (const hand of this.models.values()) hand.rotation.y += dt * .42;
       if (this.messageUntil < this.time) this.message.textContent = '';
       const r = this.api.renderer(), canvas = r.domElement;
       const aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight);
@@ -384,17 +465,17 @@
 
     refresh(force = false) {
       if (!this.scene) return;
+      this.applyTheme();
       if (!force && this.nextRefresh > this.time) return;
       this.nextRefresh = this.time + .25;
       const wallet = this.api.wallet(), upgrades = this.api.upgrades();
       this.hud.querySelector('#hub-wallet').textContent = `◈ ${wallet.toLocaleString()}`;
       this.hud.querySelector('#hub-hint').textContent = this.mobile
         ? this.copy('Left stick: move · Drag to look · Stand on a pad', 'Sol kontrol: yürü · Sürükle: bak · Pedin üzerinde bekle')
-        : this.copy('WASD / Arrows: move · Drag mouse: orbit · Stand on a pad for 1.5s · ESC: settings', 'WASD / Oklar: yürü · Fareyi sürükle: bak · Pedin üzerinde 1,5 sn bekle · ESC: ayarlar');
+        : this.copy('WASD / Arrows: move · Mouse: look · Space: jump · Stand on a pad · ESC: settings', 'WASD / Oklar: yürü · Fare: bak · Boşluk: zıpla · Pedde bekle · ESC: ayarlar');
       this.levelTitle.set(this.api.levelLabel()); this.wheelLabel.set(this.api.wheelStatus());
       for (const z of this.zones) if (z.skin) {
         z.price.set(this.api.handStatus(z.skin));
-        z.placeholder.quaternion.copy(this.camera.quaternion);
         z.label.mesh.quaternion.copy(this.camera.quaternion); z.price.mesh.quaternion.copy(this.camera.quaternion);
       }
       const signature = JSON.stringify(upgrades) + ':' + wallet + ':' + this.api.language();
@@ -417,37 +498,74 @@
     }
 
     streamModels() {
-      // One GLB at a time, at most two resident stand models. Baked billboard
-      // placeholders remain for distant stands, avoiding eight simultaneous parses.
-      const p = this.avatar.position;
-      const nearest = this.zones.filter((z) => z.skin).sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
-      const wanted = nearest.filter((z) => Math.hypot(z.x - p.x, z.z - p.z) < 11).slice(0, 2);
-      for (const id of this.models.keys()) if (!wanted.some((z) => z.skin.id === id)) this.releaseModel(id);
-      if (this.pendingModels.size || this.velocity.length() > 1) return;
-      const zone = wanted.find((z) => !this.models.has(z.skin.id) && !this.failedModels.has(z.skin.id));
+      // Load exactly one authored model at a time while idle. Every pedestal
+      // uses 3D geometry; proximity never swaps or morphs its display.
+      if (this.pendingModels.size || this.velocity.length() > .25 || this.time < this.nextModelLoadAt) return;
+      const zone = this.zones.find((z) => z.skin && !this.models.has(z.skin.id) && !this.failedModels.has(z.skin.id));
       if (!zone) return;
       const id = zone.skin.id, epoch = this.modelEpoch;
       const loader = new this.T.GLTFLoader(); if (this.T.MeshoptDecoder) loader.setMeshoptDecoder(this.T.MeshoptDecoder);
       this.pendingModels.set(id, true);
       loader.load(this.api.handPath(id), (gltf) => {
         this.pendingModels.delete(id);
+        this.nextModelLoadAt = this.time + .6;
         const root = gltf.scene;
         if (!this.active || epoch !== this.modelEpoch) { this.disposeModel(root); return; }
-        const bounds = new this.T.Box3().setFromObject(root), size = bounds.getSize(new this.T.Vector3()), center = bounds.getCenter(new this.T.Vector3());
-        const wrapper = new this.T.Group(), fit = 2.5 / Math.max(size.x, size.y, size.z, .01);
-        root.position.sub(center); wrapper.add(root); wrapper.scale.setScalar(fit);
-        wrapper.position.set(zone.pedestal.x, 2.8, zone.pedestal.z);
-        root.traverse((node) => {
-          if (!node.isMesh) return;
-          node.castShadow = node.receiveShadow = false; node.layers.set(0);
-          for (const mat of (Array.isArray(node.material) ? node.material : [node.material])) {
+        try {
+          root.updateMatrixWorld(true);
+          let source = null; root.traverse((node) => { if (!source && node.isMesh) source = node; });
+          if (!source?.geometry) throw new Error('Missing hand mesh');
+          const geometry = this.singleHandGeometry(source.geometry, source.matrixWorld);
+          const bounds = geometry.boundingBox, size = bounds.getSize(new this.T.Vector3()), center = bounds.getCenter(new this.T.Vector3());
+          const wrapper = new this.T.Group(), mesh = new this.T.Mesh(geometry, source.material);
+          mesh.position.sub(center); mesh.castShadow = false; mesh.receiveShadow = false;
+          wrapper.add(mesh); wrapper.scale.setScalar(2.5 / Math.max(size.x, size.y, size.z, .01));
+          wrapper.position.set(zone.pedestal.x, 2.85, zone.pedestal.z);
+          for (const mat of (Array.isArray(mesh.material) ? mesh.material : [mesh.material])) {
             if (mat.map) mat.map.colorSpace = this.T.SRGBColorSpace;
             if (mat.emissiveMap) mat.emissiveMap.colorSpace = this.T.SRGBColorSpace;
-            mat.envMapIntensity = .25; mat.roughness = Math.max(.5, mat.roughness || .5);
+            // These GLBs bake their visible albedo in emissiveTexture while
+            // baseColorFactor is black. Promote it for lit 3D presentation.
+            if (!mat.map && mat.emissiveMap) {
+              mat.map = mat.emissiveMap;
+              mat.color.setHex(0xffffff);
+              mat.emissiveIntensity = .16;
+              mat.needsUpdate = true;
+            }
+            if ('envMapIntensity' in mat) mat.envMapIntensity = .25;
+            if ('roughness' in mat) mat.roughness = Math.max(.5, mat.roughness || .5);
           }
-        });
-        this.scene.add(wrapper); this.models.set(id, wrapper); zone.placeholder.visible = false;
-      }, undefined, () => { this.pendingModels.delete(id); this.failedModels.add(id); });
+          root.traverse((node) => node.geometry?.dispose());
+          this.scene.add(wrapper); this.models.set(id, wrapper);
+        } catch (error) { this.failedModels.add(id); this.disposeModel(root); console.warn('[LobbyHand]', id, error); }
+      }, undefined, (error) => { this.pendingModels.delete(id); this.failedModels.add(id); console.warn('[LobbyHand]', id, error); });
+    }
+    singleHandGeometry(source, matrix) {
+      const T = this.T, geometry = source.clone(); geometry.applyMatrix4(matrix);
+      const pos = geometry.getAttribute('position'), src = geometry.index?.array;
+      const total = src ? src.length : pos.count, picked = [];
+      for (let i = 0; i < total; i += 3) {
+        const a = src ? src[i] : i, b = src ? src[i + 1] : i + 1, c = src ? src[i + 2] : i + 2;
+        if (pos.getX(a) + pos.getX(b) + pos.getX(c) >= 0) picked.push(a, b, c);
+      }
+      if (picked.length < 3) { geometry.dispose(); throw new Error('No right-hand triangles'); }
+      const compact = new T.BufferGeometry(), remap = new Map(), indices = [];
+      for (const index of picked) {
+        if (!remap.has(index)) remap.set(index, remap.size);
+        indices.push(remap.get(index));
+      }
+      for (const [name, attribute] of Object.entries(geometry.attributes)) {
+        // KHR_mesh_quantization uses normalized integer attributes. Copying
+        // their decoded float components back into an integer array rounds the
+        // entire glove to the origin, leaving apparently empty pedestals.
+        const itemSize = attribute.itemSize, values = new Float32Array(remap.size * itemSize);
+        for (const [oldIndex, newIndex] of remap) {
+          for (let c = 0; c < itemSize; c++) values[newIndex * itemSize + c] = attribute.getComponent(oldIndex, c);
+        }
+        compact.setAttribute(name, new T.BufferAttribute(values, itemSize, false));
+      }
+      compact.setIndex(indices); compact.computeBoundingBox(); compact.computeBoundingSphere(); geometry.dispose();
+      return compact;
     }
     disposeModel(root) {
       const geometries = new Set(), materials = new Set(), textures = new Set();
@@ -462,7 +580,6 @@
     releaseModel(id) {
       const root = this.models.get(id); if (!root) return;
       this.scene.remove(root); this.disposeModel(root); this.models.delete(id);
-      const zone = this.zones.find((z) => z.skin?.id === id); if (zone) zone.placeholder.visible = true;
     }
 
     async transition(mode) {
@@ -517,7 +634,7 @@
     }
     snapshot() {
       return { active: this.active, state: this.state, handoffActive: !!this.handoff, player: this.avatar ? { x: +this.avatar.position.x.toFixed(2), y: +this.avatar.position.y.toFixed(2), z: +this.avatar.position.z.toFixed(2) } : null,
-        coordinateSystem: 'Lobby: X right, Y up, -Z forward (independent of runner)', zone: this.zone?.id || null, hold: +this.hold.toFixed(2), residentModels: [...this.models.keys()], pendingModels: [...this.pendingModels.keys()], zones: this.zones.map((z) => ({ id: z.id, x: z.x, z: z.z })) };
+        coordinateSystem: 'Lobby: X right, Y up, -Z forward (independent of runner)', themePhase: this.themePhase, themeWarm: !!this.themeWarmPromise, zone: this.zone?.id || null, hold: +this.hold.toFixed(2), residentModels: [...this.models.keys()], pendingModels: [...this.pendingModels.keys()], zones: this.zones.map((z) => ({ id: z.id, x: z.x, z: z.z })) };
     }
     dispose() {
       this.exit(); this.clearHandoff(); for (const resource of this.resources) resource.dispose?.(); this.resources.clear();

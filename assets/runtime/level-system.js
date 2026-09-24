@@ -306,7 +306,7 @@
     }
 
     createUi() {
-      if (document.getElementById('menu-levels-btn')) return;
+      if (document.getElementById('elemental-level-style')) return;
       const style = document.createElement('style');
       style.id = 'elemental-level-style';
       style.textContent = `
@@ -387,19 +387,8 @@
       `;
       document.head.appendChild(style);
 
-      const nav = document.querySelector('#main-menu .menu-button-stack');
-      const start = document.getElementById('menu-start-btn');
-      if (nav && start) {
-        const button = document.createElement('button');
-        button.id = 'menu-levels-btn';
-        button.className = 'menu-button primary';
-        button.type = 'button';
-        button.innerHTML = '<span class="menu-button-icon" aria-hidden="true">▦</span><span class="menu-button-text">LEVELS</span>';
-        button.innerHTML = `<span class="menu-button-icon" aria-hidden="true">${icon('levels')}</span><span class="menu-button-text">LEVELS</span>`;
-        start.classList.remove('primary');
-        nav.insertBefore(button, start);
-        this.dom.menuButton = button;
-      }
+      // The 2D main menu has one PLAY entry into the lobby. Campaign mode is
+      // selected at its physical portal, so do not inject a second mode button.
 
       const layer = document.getElementById('menu-dialog-layer');
       if (layer) {
@@ -554,10 +543,6 @@
       if (this.dom.menuButton) {
         const label = this.dom.menuButton.querySelector('.menu-button-text');
         if (label) label.textContent = text.levels;
-      }
-      const startLabel = document.getElementById('menu-start-label');
-      if (startLabel && document.body.classList.contains('main-menu-active')) {
-        startLabel.textContent = text.endless;
       }
       this.renderSelector();
     }
