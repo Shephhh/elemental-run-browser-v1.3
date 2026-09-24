@@ -1,0 +1,27 @@
+/* Lobby overlays use their own layout; shop dialogs retain the shared economy UI. */
+#hub-play-gate[hidden],#hub-hud[hidden]{display:none!important}
+#hub-play-gate{position:fixed;inset:0;z-index:1500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(28px,8vh,76px);background:linear-gradient(150deg,rgba(9,23,38,.5),rgba(15,26,41,.6)),url('../../elemental run icons/elemental-menu-background.png') center/cover}
+.hub-wordmark{color:#c6e2e3;font:900 clamp(24px,5vw,62px) Orbitron,system-ui,sans-serif;letter-spacing:.07em;text-align:center;text-shadow:0 4px 20px #06131e}.hub-wordmark span{color:#edc68e}
+#hub-play{min-width:clamp(220px,28vw,370px);padding:22px 36px;border:1px solid #c9fff0;border-radius:14px;background:linear-gradient(#b2eedb,#5ab9af);color:#12323b;font:900 clamp(22px,4vmin,36px) Orbitron,system-ui,sans-serif;box-shadow:0 7px 0 #255e64,0 20px 60px #081a25;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:30px}
+#hub-play:hover{filter:brightness(1.1)}#hub-play:focus-visible{outline:3px solid #ffde9d;outline-offset:7px}
+body.hub-gate-active #main-menu{display:none!important}
+body.hub-active #main-menu,body.hub-panel-open #main-menu{display:block!important;position:fixed!important;inset:0!important;background:none!important;pointer-events:none!important;z-index:1800!important}
+body.hub-active #main-menu:before,body.hub-active #main-menu:after,body.hub-panel-open #main-menu:before,body.hub-panel-open #main-menu:after{display:none!important}
+body.hub-active #main-menu>*:not(.main-menu-shell),body.hub-panel-open #main-menu>*:not(.main-menu-shell){display:none!important}
+body.hub-active #main-menu .main-menu-shell,body.hub-panel-open #main-menu .main-menu-shell{display:contents!important}
+body.hub-active #main-menu .main-menu-shell>*:not(#menu-dialog-layer),body.hub-panel-open #main-menu .main-menu-shell>*:not(#menu-dialog-layer){display:none!important}
+body.hub-active #menu-dialog-layer.is-open,body.hub-panel-open #menu-dialog-layer.is-open{pointer-events:auto!important;position:fixed!important;inset:0!important;transform:none!important;width:100%!important;height:100%!important}
+body.hub-active #ui,body.hub-active #progress-wrapper,body.hub-active #progress-text,body.hub-active #bhop-container,body.hub-active #mobile-controls,body.hub-active #mobile-pause-btn,body.hub-active #hand-skill-hud,body.hub-active #crosshair,body.hub-active #how-to-play-overlay,body.hub-active #fortune-boost-hud{display:none!important}
+#hub-hud{position:fixed;inset:0;z-index:1100;pointer-events:none;color:#edf4ef;font-family:Orbitron,system-ui,sans-serif}
+#hub-hud header{display:flex;align-items:flex-start;justify-content:space-between;padding:max(18px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) 0 max(24px,env(safe-area-inset-left));gap:16px}
+.hub-brand{font-size:clamp(14px,2vw,25px);letter-spacing:.03em;text-shadow:0 2px 8px #142633}.hub-brand b{color:#e9c68d}.hub-brand small{display:block;font:600 10px system-ui;letter-spacing:.28em;color:#a5bbc9;margin-top:7px}
+.hub-tools{display:flex;align-items:center;gap:12px}#hub-wallet{color:#f5d591;background:#132734dd;padding:11px 18px;border:1px solid #7a775e;border-radius:10px;font-weight:700;font-size:clamp(13px,1.6vw,20px)}
+#hub-hud button{pointer-events:auto;border:1px solid #8bafb8;background:#1e3849eb;color:#edf8f5;border-radius:10px;cursor:pointer;font:600 24px system-ui;min-width:44px;min-height:44px;touch-action:none}
+#hub-message{position:absolute;top:18%;left:50%;transform:translateX(-50%);max-width:80%;background:#142936e8;border-radius:10px;padding:10px 16px;text-align:center;font:600 clamp(13px,2vmin,18px) system-ui}#hub-message:empty{display:none}
+#hub-prompt{position:absolute;bottom:max(72px,15vh);left:50%;transform:translateX(-50%);width:min(400px,62vw);text-align:center;background:#132734ed;border:1px solid #81b6b7;padding:14px 20px;border-radius:14px}
+#hub-prompt[hidden]{display:none}#hub-prompt strong{display:block;font-size:clamp(12px,2vmin,19px);color:#f6ddb2}#hub-prompt span{display:block;font:500 clamp(12px,1.8vmin,16px) system-ui;margin:8px 0}#hub-prompt progress{width:100%;height:5px;accent-color:#9fe6c6;display:block}
+#hub-hint{position:absolute;bottom:max(16px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);text-align:center;width:90%;font:500 clamp(10px,1.5vmin,13px) system-ui;color:#d5e3e8;text-shadow:0 2px 4px #07121c}
+#hub-home{position:absolute;right:max(24px,env(safe-area-inset-right));bottom:55px}#hub-stick{display:none}
+@media(pointer:coarse){#hub-stick{display:grid;place-items:center;position:absolute;left:max(24px,env(safe-area-inset-left));bottom:max(40px,env(safe-area-inset-bottom));width:96px;height:96px;border-radius:50%;background:#152f436e;border:1px solid #c0e5e69c;pointer-events:auto;touch-action:none}#hub-stick i{width:40px;height:40px;background:#a8d7d7c9;border:1px solid #e1fff3;border-radius:50%;pointer-events:none}#hub-hint{width:65%;font-size:10px}#hub-hud header{padding-top:10px}.hub-brand small{display:none}#hub-prompt{bottom:46px;width:min(340px,50vw);padding:9px 12px}}
+@media(max-height:450px){#hub-hud header{padding:9px 16px}.hub-brand{font-size:14px}#hub-wallet{padding:8px 12px}#hub-prompt strong{font-size:12px}#hub-prompt span{margin:5px 0}#hub-hud button{min-height:38px;min-width:38px}.hub-brand small{display:none}}
+@media(prefers-reduced-motion:reduce){#hub-play{transition:none}}

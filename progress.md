@@ -131,6 +131,17 @@ TODO:
 - Rebuilt Water waterfalls and Lava channels as rounded, beveled, multi-frequency spline ribbons. Waterfalls now reach the ground, terminate in irregular pools, and carry a narrow foam highlight; Lava channels use the same organic silhouette with a hot inner highlight.
 - Automated Water QA reported 17 mountains, 34 fluid meshes, minimum fluid height below the terrain surface, and zero mountain overlap pairs. A fresh Snow QA run reported zero mountain overlap pairs. Browser console/page errors remained empty.
 - Bumped the service-worker shell cache so returning browser/mobile players receive the terrain and fluid update.
+## 2026-09-24 — 1.7.0 interactive lobby
+
+- Added an isolated, unbent Three.js hub scene using the existing renderer, a kinematic cube controller, AABB boundaries, orbit drag and mobile joystick. Initial PLAY enters the hub; legacy main-menu navigation is hidden while shared shop/settings dialogs remain available.
+- Eight glove stands load nearby GLBs sequentially (two resident display models maximum); 1.5-second pads call existing purchase/equip operations. Monitor UV raycasts buy the four existing upgrades. Wheel respects existing unlock/cooldown and ads grant speed only for completed results.
+- Portals prepare campaign resources before a 1.15-second camera handoff into the runner. ESC pause gains an Upgrades button. Runtime collision and curved-world implementation unchanged.
+- First desktop end-to-end test passed: movement, settings, 200-gold Ember purchase, 50-gold Score upgrade, Endless portal, pause shop, return to lobby, Level 1 Nature portal; no JS errors. Visual review found initial camera too steep and low-resolution lobby, now corrected. More mobile/first-tutorial/transaction tests pending.
+- Final follow-up: camera framing and monitor layout corrected; reward stand has a floating lightning icon. A short captured-frame crossfade bridges lobby camera and runner, then releases the render target. Returning to unfinished tutorial correctly resets the consumed entry gate; direct run entry also exits the PLAY gate state.
+- Desktop and Android-emulated end-to-end flows passed with no page errors. Additional tests passed for bounds, interrupted pad dwell, insufficient funds, single purchase, wheel lock/cooldown/result, skipped/completed mocked ads, no repeated ads while standing, first Cyber tutorial and display-model release. Native CDP touch events verified joystick, orbit and recenter; unfinished tutorial replay and crossfade cleanup passed.
+- Official develop-web-game client ran through a loading-wait adapter; final screenshot inspected at `output/hub-final/shot-0.png`. All QA output remains excluded from distribution. `PROJECT_CONTEXT.md` documents new state/control/asset contracts. Real-device frame pacing and real Poki ad inventory still require platform testing; no zero-hitch guarantee is claimed.
+
+
 ## 2026-07-28 - Mobile control split, portrait runner camera, and mountain seam repair
 
 - Rebuilt elemental mountain peak deformation with periodic seam-safe harmonics, denser capped geometry, regenerated normals, and stable bounds. Duplicate cylinder seam vertices now receive identical offsets, preventing open cracks/backface exposure.

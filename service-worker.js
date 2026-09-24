@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD = '1.6.24-meshopt-assets';
+const BUILD = '1.7.0-interactive-hub';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

@@ -1001,7 +1001,7 @@ let skyClouds = [];
     const REVIVE_SURGE_TIME = 1.74;
     const TIME_SLOW_UPGRADE_COST = 2000;
     const MAGNET_UPGRADE_COST = 2000; // glide ile aynı fiyat (kullanıcı isteği)
-    const HAND_PREVIEW_VERSION = '1.6.24';
+    const HAND_PREVIEW_VERSION = '1.7.0';
     const HAND_SKINS = Object.freeze([
         { id: 'ember', name: 'EMBER GRIP', cost: 200, skill: 'doubleJump', base: '#361b17', accent: '#ff6a1f', edge: '#ffd06a', particle: 'embers', preview: `assets/hands/previews/hand_ember.webp?v=${HAND_PREVIEW_VERSION}` },
         { id: 'frost', name: 'FROST WEAVE', cost: 500, skill: 'timeSlow', base: '#d6efff', accent: '#43c7ff', edge: '#ffffff', particle: 'snow', preview: `assets/hands/previews/hand_frost.webp?v=${HAND_PREVIEW_VERSION}` },
@@ -1054,6 +1054,7 @@ let skyClouds = [];
     const GROUND_COIN_LINE_MIN_COUNT = 5;
     const GROUND_COIN_LINE_MAX_COUNT = 8;
     let mainMenuVisible = false;
+    let lobbyHub = null;
     let tutorialDirector = null;
     let tutorialStagedHazards = null;
     let tutorialHazardSerial = 0;
@@ -6553,6 +6554,10 @@ const arrowEffectPool = [];
     }
 
     function closeMenuDialogs() {
+        if (document.body.classList.contains('hub-panel-open')) {
+            document.body.classList.remove('hub-panel-open');
+            if (!mainMenuVisible && ui.mainMenu) ui.mainMenu.style.display = 'none';
+        }
         pendingControlBinding = null;
         rebirthConfirmArmed = false;
         handShopPreviewActive = false;
@@ -7482,6 +7487,97 @@ const arrowEffectPool = [];
         }, 80);
     }
 
+    function ensureLobbyHub() {
+        if (lobbyHub || !window.ElementalLobbyHub || !renderer) return lobbyHub;
+        const handStatus = (skin) => menuState.selectedHandSkin === skin.id ? tr('selected')
+            : getOwnedHandSkinIds().includes(skin.id) ? tr('select')
+            : `${tr('buy')} · ${skin.cost.toLocaleString()} ${tr('gold')}`;
+        lobbyHub = new window.ElementalLobbyHub(THREE, {
+            renderer: () => renderer, mobile: MOBILE_RUNTIME,
+            language: () => normalizeLanguage(menuState.language), tr,
+            wallet: () => Math.max(0, Math.floor(menuState.walletCoins || 0)),
+            skins: () => HAND_SKINS, handStatus,
+            handPath: (id) => getHandModelAssetPath(id),
+            adsAvailable: areRewardedAdsEnabled,
+            wheelRotation: () => fortuneWheelSystem?.rotation || 0,
+            blocked: () => rewardedAdBusy || fortuneWheelSystem?.overlayOpen || ui.menuDialogLayer?.classList.contains('is-open'),
+            onEnter: () => {
+                mainMenuVisible = true; isGamePaused = true;
+                if (viewmodelRig) viewmodelRig.visible = false;
+                unlockMenuMusicFromUserGesture(); resetControlActionState();
+                updateHandSkillUi(); clearBhopFeedbackForOverlay();
+                try { if (document.pointerLockElement) document.exitPointerLock(); } catch (_) {}
+                crazyGamesPlatform()?.gameplayStop();
+            },
+            equip: (id) => {
+                const skin = HAND_SKIN_BY_ID[id];
+                if (!getOwnedHandSkinIds().includes(id) && menuState.walletCoins < skin.cost) return tr('notEnoughGold');
+                buyOrEquipHandSkin(id);
+                return `${skin.name} · ${tr('selected')}`;
+            },
+            wheelStatus: () => {
+                if (fortuneWheelSystem?.canOpenFromMenu()) return tr('ready');
+                const state = fortuneWheelSystem?.snapshot();
+                if (!state?.firstSpinClaimed) return normalizeLanguage(menuState.language) === 'tr' ? 'BÖLÜM 2 SONRASI' : 'AFTER LEVEL 2';
+                const seconds = Math.max(0, 300 - Math.floor(state.cooldownSeconds));
+                return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+            },
+            spin: () => {
+                if (!fortuneWheelSystem?.canOpenFromMenu()) return normalizeLanguage(menuState.language) === 'tr' ? 'Çark henüz hazır değil' : 'Wheel is not ready yet';
+                if (fortuneWheelSystem.open('menu')) fortuneWheelSystem.spin();
+            },
+            rewardSpeed: async () => {
+                if (!areRewardedAdsEnabled() || rewardedAdBusy) return browserTr('adUnavailable');
+                const result = await requestRewardedAd('lobby_speed_5m');
+                if (result?.status !== 'completed') return browserTr('adUnavailable');
+                fortuneWheelSystem.applyReward({ type: 'speed', seconds: 300 });
+                fortuneWheelSystem.persist(); fortuneWheelSystem.refreshUi(true);
+                playUiConfirmSound(); return browserTr('rewardGranted');
+            },
+            upgrades: () => [
+                [tr('score'), getScoreUpgradeLevel(), SCORE_UPGRADE_MAX_LEVEL, getNextScoreUpgradeCost()],
+                [tr('gold'), getCoinUpgradeLevel(), COIN_UPGRADE_MAX_LEVEL, getNextCoinUpgradeCost()],
+                [tr('jump'), getJumpUpgradeLevel(), JUMP_UPGRADE_MAX_LEVEL, getNextJumpUpgradeCost()],
+                [tr('speed'), getSpeedUpgradeLevel(), SPEED_UPGRADE_MAX_LEVEL, getNextSpeedUpgradeCost()]
+            ].map(([name, level, max, cost]) => ({ name, level, max, cost, maxed: level >= max, canBuy: level < max && menuState.walletCoins >= cost })),
+            buyUpgrade: (index) => [buyScoreMultiplierUpgrade, buyCoinMultiplierUpgrade, buyJumpHeightUpgrade, buySpeedUpgrade][index]?.(),
+            openPanel: (panel) => openLobbyPanel(panel),
+            escape: () => {
+                if (fortuneWheelSystem?.overlayOpen) return;
+                if (ui.menuDialogLayer?.classList.contains('is-open')) closeMenuDialogs();
+                else openLobbyPanel('settings');
+            },
+            levelLabel: () => shouldRunFirstTutorial() ? (normalizeLanguage(menuState.language) === 'tr' ? 'EĞİTİM' : 'TUTORIAL') : `LEVEL ${levelSystem?.getSelectedLevel() || 1}`,
+            selectLevel: (direction) => levelSystem?.selectLevel((levelSystem.getSelectedLevel() || 1) + direction),
+            prepare: async (mode) => {
+                if (mode === 'level' && !shouldRunFirstTutorial()) await prepareCampaignLevelStart(levelSystem.getSelectedLevel(), { showOverlay: false });
+            },
+            start: (mode) => {
+                unlockGameplayAudioFromUserGesture();
+                if (mode === 'level' && shouldRunFirstTutorial()) {
+                    const director = initializeTutorialDirector();
+                    // An unfinished lesson can be restarted after returning to the hub.
+                    if (!director.active && director.state === 'idle') director.gateConsumed = false;
+                    director.start();
+                }
+                else beginRunFromMainMenu(true, mode === 'endless'
+                    ? { endless: true, deferPointerLock: true }
+                    : { level: levelSystem.getSelectedLevel(), source: 'lobby', deferPointerLock: true });
+            }
+        });
+        return lobbyHub;
+    }
+
+    function openLobbyPanel(panel = 'upgrades') {
+        hideHowToPlayOverlay(true);
+        openMenuDialog(panel === 'settings' ? ui.menuSettingsDialog : ui.menuUpgradesDialog);
+        document.body.classList.add('hub-panel-open');
+        if (ui.mainMenu) { ui.mainMenu.style.display = 'flex'; ui.mainMenu.setAttribute('aria-hidden', 'false'); }
+        if (panel === 'hands') setUpgradeShopTab('hands');
+        updateUpgradeCards();
+        try { if (document.pointerLockElement) document.exitPointerLock(); } catch (_) {}
+    }
+
     function showMainMenu(resetRun = false) {
         levelGhostSystem?.stop();
         if (tutorialDirector && (tutorialDirector.active || tutorialDirector.state === 'start-gate')) tutorialDirector.cancel();
@@ -7536,6 +7632,7 @@ const arrowEffectPool = [];
             platform.gameplayStop();
             platform.clearContext();
         }
+        ensureLobbyHub()?.show();
     }
 
     function hideMainMenu() {
@@ -8829,6 +8926,8 @@ const arrowEffectPool = [];
     }
 
     function beginRunFromMainMenu(resetRun = true, options = {}) {
+        if (lobbyHub?.active || lobbyHub?.state === 'gate') lobbyHub.exit();
+        document.body.classList.remove('hub-gate-active', 'hub-panel-open');
         levelGhostSystem?.stop();
         if (handPurchaseTutorial.active || handPurchaseTutorial.pending) abortHandPurchaseTutorial(false);
         const tutorialRun = !!options.tutorial;
@@ -10551,6 +10650,18 @@ nextSnowballX = 0;
     }
 
     function stepGame(delta) {
+        if (lobbyHub?.active) {
+            if (ui.menuDialogLayer?.classList.contains('is-open')) pollGamepadInput(Math.min(.05, delta));
+            lobbyHub.update(delta);
+            updateAudioMix();
+            return;
+        }
+        if (lobbyHub?.state === 'gate') {
+            const pad = getPrimaryGamepad();
+            if (pad?.buttons[0]?.pressed) lobbyHub.enter();
+            updateAudioMix();
+            return;
+        }
         const rawDelta = delta; // fps ölçümü için ham değer (clamp öncesi)
         // Lag / sekme değişimi / time-slow geçişi büyük bir delta üretebilir; bu durumda
         // engeller (tren `speedX * delta`) tek karede sıçrayıp oyuncunun içinden TÜNELLEYEBİLİR
@@ -10714,6 +10825,7 @@ nextSnowballX = 0;
         }
         renderViewmodelOverlay(pixelFrame?.target || null);
         if (pixelFrame) window.ElementalPixelArt.present(renderer);
+        lobbyHub?.renderHandoff(realDelta);
         updateGlobalParticles(delta);
         updateImpactFx(delta);
         updateAudioMix();
@@ -10791,7 +10903,10 @@ nextSnowballX = 0;
         else if (firstRunRewindSequence) textMode = 'first_run_rewind';
         else if (levelCompletionInProgress) textMode = 'level_complete';
         else if (isGamePaused) textMode = 'paused';
+        if (lobbyHub?.active) textMode = 'lobby';
+        else if (document.body.classList.contains('hub-gate-active')) textMode = 'play_gate';
         const payload = {
+            lobby: lobbyHub?.snapshot() || null,
             visual: window.ElementalPixelArt?.inspect() || { style: 'classic' },
             coordinateSystem: "world units; x is forward, y is up, z is lateral",
             mode: textMode,
@@ -11141,6 +11256,22 @@ nextSnowballX = 0;
             return renderGameToText();
         };
         window.__elementalBrowserTest = Object.freeze({
+            inspectLobby: () => lobbyHub?.snapshot(),
+            showLobby: () => { showMainMenu(true); return lobbyHub?.snapshot(); },
+            placeLobbyPlayer: (x, z) => {
+                if (lobbyHub?.active && lobbyHub.canMove(x, z)) {
+                    lobbyHub.avatar.position.set(x, .85, z);
+                    lobbyHub.velocity.set(0, 0);
+                    lobbyHub.updateCamera(1, true);
+                }
+                return lobbyHub?.snapshot();
+            },
+            projectLobbyPoint: (x, y, z) => {
+                lobbyHub.camera.updateMatrixWorld();
+                const p = new THREE.Vector3(x, y, z).project(lobbyHub.camera);
+                const r = renderer.domElement.getBoundingClientRect();
+                return { x: r.left + (p.x + 1) * r.width / 2, y: r.top + (1 - p.y) * r.height / 2 };
+            },
             inspectR185Optimization: () => getR185OptimizationSnapshot(),
             inspectThreeMigration: () => {
                 const materials = new Set();
@@ -14739,7 +14870,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
     // Recolouring and primitive silhouette attachments were removed in 1.3.90;
     // build 1.5.0 supplies all eight authored GLBs with intact topology.
     const HAND_MODEL_DIRECTORY = 'assets/hands';
-    const HAND_MODEL_MANIFEST_PATH = `${HAND_MODEL_DIRECTORY}/manifest.json?v=1.6.24`;
+    const HAND_MODEL_MANIFEST_PATH = `${HAND_MODEL_DIRECTORY}/manifest.json?v=1.7.0`;
     const LEGACY_HAND_MODEL_PATH = 'assets/hand.glb';
     let viewmodelGlbManifestPromise = null;
 
@@ -15693,8 +15824,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         beginShadowStabilization(MOBILE_RUNTIME ? 4 : 6, 'loading-finish');
         if (!isGameOver) {
             isGamePaused = true;
-            if (shouldRunFirstTutorial()) showFirstRunTutorialGate();
-            else showMainMenu(true);
+            showMainMenu(true);
         }
         const loadingScreen = ui.loadingScreen;
         startAnimationLoop();
@@ -16095,7 +16225,18 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
     }
 
     function setupEventListeners() {
+        const pauseUpgradeButton = document.createElement('button');
+        pauseUpgradeButton.id = 'pause-upgrades-btn';
+        pauseUpgradeButton.type = 'button';
+        pauseUpgradeButton.className = 'pause-menu-button';
+        pauseUpgradeButton.innerHTML = `<span class="pause-button-icon" aria-hidden="true">⇈</span><span class="pause-button-text">${tr('upgrades')}</span>`;
+        ui.pauseMenuBtn?.before(pauseUpgradeButton);
+        pauseUpgradeButton.addEventListener('click', (event) => { event.stopPropagation(); openLobbyPanel('upgrades'); });
         window.addEventListener('keydown', (e) => {
+            if (lobbyHub?.active) return;
+            if (e.code === 'Escape' && document.body.classList.contains('hub-panel-open')) {
+                e.preventDefault(); closeMenuDialogs(); return;
+            }
             if (isPokiBuild() && (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
                 // The game sits inside Poki's scrollable page; never let core
                 // runner keys scroll the host document.
@@ -16362,6 +16503,10 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
 
         document.addEventListener('pointerlockchange', () => {
             pointerLockRequestInFlight = false;
+            if (lobbyHub?.active) {
+                if (document.pointerLockElement) document.exitPointerLock();
+                return;
+            }
             if (document.pointerLockElement === renderer.domElement) {
                 pointerLockRecoveryPending = false;
                 pointerLockRecoveryReason = '';
@@ -17297,7 +17442,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         }
         const repeatX = 8;
         const repeatY = 8;
-        const authored = loadAuthoredFloorTexture('assets/textures/lava-world-floor-v3.webp?v=1.6.24', repeatX, repeatY);
+        const authored = loadAuthoredFloorTexture('assets/textures/lava-world-floor-v3.webp?v=1.7.0', repeatX, repeatY);
         return {
             albedo: authored,
             emissive: authored,
@@ -17869,7 +18014,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         const repeatX = 8;
         const repeatY = 10;
         return {
-            albedo: loadAuthoredFloorTexture('assets/textures/water-world-floor-v3.webp?v=1.6.24', repeatX, repeatY),
+            albedo: loadAuthoredFloorTexture('assets/textures/water-world-floor-v3.webp?v=1.7.0', repeatX, repeatY),
             normal: createRepeatSurfaceTexture(normalData, size, THREE.NoColorSpace, repeatX, repeatY),
             roughness: createRepeatSurfaceTexture(roughnessData, size, THREE.NoColorSpace, repeatX, repeatY),
             foam: createRepeatSurfaceTexture(foamData, size, THREE.SRGBColorSpace, repeatX, repeatY),
@@ -37570,7 +37715,7 @@ function setObjectOpacity(obj, alpha) {
     // Hosted browser players need a fresh shell after the tutorial repair. The
     // web-platform builds remove this registration during packaging.
     if (isBrowserBuild() && !isPokiBuild() && !isCrazyGamesBuild() && 'serviceWorker' in navigator && location.protocol !== 'file:') {
-        navigator.serviceWorker.register('./service-worker.js?v=1.6.24', { updateViaCache: 'none' }).then((registration) => {
+        navigator.serviceWorker.register('./service-worker.js?v=1.7.0', { updateViaCache: 'none' }).then((registration) => {
             registration.update().catch(() => {});
             if (registration.waiting) markServiceWorkerUpdateReady();
             registration.addEventListener('updatefound', () => {
