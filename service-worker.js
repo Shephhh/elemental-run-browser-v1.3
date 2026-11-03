@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD = '1.7.1-lobby-fixes';
+const BUILD = '1.74.1-continuous-finish-horizon';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

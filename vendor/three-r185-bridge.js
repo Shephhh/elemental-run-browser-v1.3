@@ -1,4 +1,4 @@
-import * as ThreeModule from 'three';
+import * as ThreeModule from './three.module.min.js';
 import { GLTFLoader } from './loaders/GLTFLoader.js';
 import { MeshoptDecoder } from './three-r185.1-package/examples/jsm/libs/meshopt_decoder.module.js';
 import { EffectComposer } from './postprocessing/EffectComposer.js';

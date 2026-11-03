@@ -1,8 +1,9 @@
 {
-  "version": "1.7.1",
+  "version": "1.74.1",
   "platform": "web+poki",
   "three": "0.185.1",
-  "sourceBuild": "1.6.24-web-poki-meshopt-assets",
+  "sourceBuild": "1.6.25-web-poki-meshopt-assets",
   "visualStyle": "standard",
-  "builtAt": "2026-09-24T20:27:06.000Z"
+  "assetCompression": "meshopt+webp-color-q94-98+unchanged-pbr+stand-lod+hat-lod+mp3-vbr-q4",
+  "builtAt": "2026-11-03T10:11:00.000Z"
 }

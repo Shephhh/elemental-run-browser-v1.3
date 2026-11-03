@@ -1,5 +1,14 @@
 # ELEMENTAL RUN — Baked Viewmodel Hand Assets
 
+## 1.63.0 — download-size optimization
+
+First-person GLBs keep the exact geometry, Meshopt payload, UVs, nodes, skin and
+material assignments. Color/emissive images now use same-resolution WebP94/98
+(changed-image PSNR≥39.31dB, alpha exact); normal/roughness images unchanged.
+This is high-quality lossy color encoding, not pixel-exact/lossless encoding.
+Lobby LODs below were not changed. Build/verification tool and reversible source
+backups live only in output/asset-size-163; they are not shipped in the ZIP.
+
 This directory is the source of truth for the distinct first-person hand skins completed in build `1.3.91`.
 
 ## Required files
@@ -16,6 +25,10 @@ The runtime resolves the selected shop skin to these exact, case-sensitive paths
 - `hand_elemental.glb`
 
 All eight purchasable skins above are authored, optimized runtime assets. The free `default` skin intentionally remains `../hand.glb`; it is not duplicated in this directory.
+
+## Lobby-only display LODs (1.7.27)
+
+`lobby/hand_{id}.glb` contains dedicated stand copies of these eight models. The first-person originals above are unchanged. Lobby copies retain baked materials/UVs, reduce triangle count conservatively with a 0.2% error ceiling, and use maximum 768px WebP textures plus Meshopt compression. The existing connected-component single-hand selector still runs after loading. Total display asset bytes are 4,594,752 versus 25,211,672 in the originals; total pair triangles are 258,327 versus 960,000. Build-time tool: `output/asset-tools/lobby-lod.mjs` (development only; output tooling is not shipped). Never replace the high-detail viewmodel path with the lobby path.
 
 After adding a validated file, add its skin ID (for example `"ember"`) to `manifest.json#available`. The manifest prevents missing optional models from generating 404 errors in portal consoles.
 
@@ -45,6 +58,14 @@ Each GLB must:
 - `VIEWMODEL_LAYER`, `renderViewmodelOverlay()` and the lightweight particle system remain unchanged. Build 1.3.105 keeps the legacy Poki hand position while refining only its animation, retaining the multi-GLB shop and newer skill overlays.
 
 ## Current delivery strategy
+
+- Poki/web build 1.7.15 embeds **lossless WebP** textures in all nine hand GLBs
+  (including `../hand.glb`) through the required `EXT_texture_webp` extension.
+  The bundled r185.1 GLTFLoader already supports it. Pixel values, texture
+  resolution, meshopt geometry bytes, UVs, normals, indices, nodes and baked
+  material values are preserved; no resize, weld or simplification is applied.
+  Do not add PNG fallback copies to these optimized GLBs: that doubles texture
+  payloads. PNG source backups exist only in the excluded QA/output directory.
 
 - Source meshes are approximately 120,000 triangles each and are copied without
   topology-changing simplification by `tools/build-hand-models.ps1`. Only the

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <base href="./assets/current/">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ELEMENTAL RUN</title>
@@ -9,12 +10,12 @@
     <meta name="google-site-verification" content="COTiiA_3UexTN09oOE64Drk1NRgvieoduXjFf7jWGvE">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-    <meta name="elemental-run-build" content="1.7.1-lobby-fixes">
+<meta name="elemental-run-build" content="1.74.1-continuous-finish-horizon">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-      // 1.7.1 is a hard cache boundary. Remove stale workers/caches left by
+      // 1.74.1 is a hard cache boundary. Remove stale workers/caches left by
       // older local/browser builds before their runtime can serve mixed files.
       if ('serviceWorker' in navigator && location.protocol !== 'file:') {
         navigator.serviceWorker.getRegistrations().then(function (registrations) {
@@ -32,9 +33,9 @@
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/elemental-run-icon.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="preload" href="assets/runtime/game-runtime.js?v=1.7.1" as="script" fetchpriority="high">
-    <link rel="preload" href="assets/textures/lava-world-floor-v3.webp?v=1.7.1" as="image" type="image/webp" fetchpriority="low">
-    <link rel="preload" href="assets/textures/water-world-floor-v3.webp?v=1.7.1" as="image" type="image/webp" fetchpriority="low">
+    <link rel="preload" href="game-runtime.js?v=1.74.1" as="script" fetchpriority="high">
+    <link rel="preload" href="assets/textures/lava-world-floor-v3.webp?v=1.74.1" as="image" type="image/webp" fetchpriority="low">
+    <link rel="preload" href="assets/textures/water-world-floor-v3.webp?v=1.74.1" as="image" type="image/webp" fetchpriority="low">
     <!-- Hands and run music are the only large assets needed immediately after PLAY. -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://shephhh.github.io/elemental-run-browser-v1.3/">
@@ -64,9 +65,9 @@
             "operatingSystem": "Web Browser"
         }
     </script>
-    <link rel="stylesheet" href="browser-platform.css?v=1.7.1">
-    <link rel="stylesheet" href="assets/runtime/loading-minigame.css?v=1.7.1">
-<script src="assets/runtime/poki-config.js?v=1.7.1"></script>
+    <link rel="stylesheet" href="browser-platform.css?v=1.74.1">
+    <link rel="stylesheet" href="loading-minigame.css?v=1.74.1">
+<script src="poki-config.js?v=1.74.1"></script>
     <script>
       // The shared website/Poki package must stay fully offline-capable on the
       // public site. Only inject Poki's SDK when poki-config detected its host.
@@ -78,22 +79,50 @@
         document.head.appendChild(pokiScript);
       }
     </script>
-    <script src="assets/runtime/poki-bridge.js?v=1.7.1"></script>
-    <script src="assets/runtime/poki-platform.js?v=1.7.1"></script>
+    <script src="preparation-recovery.js?v=1.74.1"></script>
+    <script src="play-session.js?v=1.74.1"></script>
+    <script src="poki-bridge.js?v=1.74.1"></script>
+    <script src="poki-platform.js?v=1.74.1"></script>
 
-<script src="assets/runtime/platform-adapter.js?v=1.7.1"></script>
-<script src="assets/runtime/game-config.js?v=1.7.1"></script>
-<script src="assets/runtime/game-localization.js?v=1.7.1"></script>
-<script src="assets/runtime/map-environments.js?v=1.7.1"></script>
-<script src="assets/runtime/graphics-engine.js?v=1.7.1"></script>
-<script src="assets/runtime/audio-system.js?v=1.7.1"></script>
-<script src="assets/runtime/level-system.js?v=1.7.1"></script>
-<script src="assets/runtime/level-ghost-system.js?v=1.7.1"></script>
-<script src="assets/runtime/fortune-wheel.js?v=1.7.1"></script>
-<script src="assets/runtime/tutorial-director.js?v=1.7.1"></script>
-<script src="assets/runtime/loading-minigame.js?v=1.7.1"></script>
-<script src="assets/runtime/lobby-hub.js?v=1.7.1"></script>
-<link rel="stylesheet" href="assets/runtime/lobby-hub.css?v=1.7.1">
+<script src="platform-adapter.js?v=1.74.1"></script>
+<script src="game-config.js?v=1.74.1"></script>
+<script src="game-localization.js?v=1.74.1"></script>
+<script src="map-environments.js?v=1.74.1"></script>
+<script src="graphics-engine.js?v=1.74.1"></script>
+<script src="audio-system.js?v=1.74.1"></script>
+<script src="level-system.js?v=1.74.1"></script>
+<script src="campaign-run.js?v=1.74.1"></script>
+<link rel="stylesheet" href="campaign-run.css?v=1.74.1">
+<script src="level-ghost-system.js?v=1.74.1"></script>
+<script src="fortune-wheel.js?v=1.74.1"></script>
+<script src="tutorial-director.js?v=1.74.1"></script>
+<script src="loading-minigame.js?v=1.74.1"></script>
+<script src="lobby-onboarding.js?v=1.74.1"></script>
+<script src="lobby-rewards.js?v=1.74.1"></script>
+<script src="cube-avatar.js?v=1.74.1"></script>
+<script src="mode-concourse.js?v=1.74.1"></script>
+<script src="lobby-hub.js?v=1.74.1"></script>
+<link rel="stylesheet" href="lobby-hub.css?v=1.74.1">
+<script src="runner-2d.js?v=1.74.1"></script>
+<link rel="stylesheet" href="runner-2d.css?v=1.74.1">
+<script src="surf-architecture.js?v=1.74.1"></script>
+<script src="surf-biomes.js?v=1.74.1"></script>
+<script src="surf-stages.js?v=1.74.1"></script>
+<script src="surf-maps.js?v=1.74.1"></script>
+<script src="surf-shelters.js?v=1.74.1"></script>
+<script src="surf-course-polish.js?v=1.74.1"></script>
+<script src="surf-physics.js?v=1.74.1"></script>
+<script src="surf-effects.js?v=1.74.1"></script>
+<script src="surf-run.js?v=1.74.1"></script>
+<script src="obby-course.js?v=1.74.1"></script>
+<script src="party-race.js?v=1.74.1"></script>
+<script src="obby-art.js?v=1.74.1"></script>
+<script src="obby-interface.js?v=1.74.1"></script>
+<script src="party-environment.js?v=1.74.1"></script>
+<script src="obby-run.js?v=1.74.1"></script>
+<script src="troll-obby.js?v=1.74.1"></script>
+<link rel="stylesheet" href="obby-run.css?v=1.74.1">
+<link rel="stylesheet" href="surf-run.css?v=1.74.1">
     <!-- Three.js r185.1 uses its official ESM build/addons. The module bridge at
          the end of body restores the existing global THREE/IIFE contract without
          introducing a bundler or allowing runtime execution before Three is ready. -->
@@ -548,7 +577,7 @@
                 radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.82) 0 42%, rgba(0, 0, 0, 0.36) 58%, transparent 72%);
             filter: blur(0.28px) drop-shadow(0 0 14px rgba(0, 0, 0, 0.72));
             mix-blend-mode: multiply;
-            animation: oilSplatterFade 7.2s ease-out forwards;
+            animation: oilSplatterFade 2.4s ease-out forwards;
         }
 
         @keyframes oilSplatterFade {
@@ -884,12 +913,14 @@
             text-shadow: 0 3px 0 rgba(0,0,0,0.65);
         }
         #loading-subtext {
+            display: none;
             color: rgba(226, 238, 248, 0.78) !important;
             font-size: 13px !important;
             margin-bottom: 10px !important;
             letter-spacing: 0.7px !important;
         }
         #loading-hint {
+            display: none;
             margin-bottom: 18px;
             font-size: 13px;
             color: rgba(220, 235, 255, 0.7);
@@ -5257,6 +5288,7 @@
         <div id="loading-bar-container">
             <div id="loading-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="3" style="width:3%"></div>
         </div>
+        <button id="boot-play-btn" type="button" hidden><span aria-hidden="true">▶</span><span class="boot-play-label">PLAY</span></button>
 </div>
 </div><script>
 /*
@@ -5272,7 +5304,7 @@
         startedAt: startedAt,
         claimed: false,
         runtimeLoaded: false,
-        build: '1.7.1-lobby-fixes',
+        build: '1.26.0-poki-surf',
         fail: function (message) {
             clearInterval(heartbeatTimer);
             paint(18, 'STARTUP ERROR', message || 'Game code could not be loaded.');
@@ -5967,7 +5999,7 @@
                 <div id="menu-settings-root" class="menu-settings settings-hub" aria-live="polite"></div>
             </section>
         </div>
-        <div class="menu-version-tag" aria-hidden="true">v1.7.1</div>
+        <div class="menu-version-tag" aria-hidden="true">v1.74.1</div>
     </div>
 </div>
 <div id="pause-screen">
@@ -6117,10 +6149,11 @@
         <button id="retry-btn">TEKRAR DENE</button>
         <button id="gameover-menu-btn" type="button">MAIN MENU</button>
     </div>
+
 </div>
 
 <script type="module" id="elemental-three-runtime-bootstrap">
-    import './vendor/three-r185-bridge.js?v=1.7.1';
+    import './vendor/three-r185-bridge.js?v=1.74.1';
 
     const loadOrderedClassicScript = (src, id) => new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -6133,9 +6166,9 @@
     });
 
     try {
-        await loadOrderedClassicScript('assets/runtime/curved-path-system.js?v=1.7.1', 'elemental-curved-path-runtime');
+        await loadOrderedClassicScript('curved-path-system.js?v=1.74.1', 'elemental-curved-path-runtime');
         if (!window.ElementalCurvedPathSystem) throw new Error('Curved path system did not initialize.');
-        await loadOrderedClassicScript('assets/runtime/game-runtime.js?v=1.7.1', 'elemental-game-runtime');
+        await loadOrderedClassicScript('game-runtime.js?v=1.74.1', 'elemental-game-runtime');
         if (window.__elementalEarlyBoot) window.__elementalEarlyBoot.runtimeLoaded = true;
     } catch (error) {
         console.error('[ELEMENTAL RUN] Three.js r185.1 bootstrap failed.', error);

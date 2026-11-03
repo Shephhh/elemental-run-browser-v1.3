@@ -1,0 +1,37 @@
+#campaign-finish-toast[hidden],#campaign-death-summary[hidden]{display:none!important}
+#campaign-map-mist[hidden]{display:none!important}
+#campaign-map-mist{position:fixed;inset:0;z-index:120;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 50% 45%,rgba(var(--mist-color),1) 0%,rgba(var(--mist-color),.98) 48%,rgba(var(--mist-color),1) 100%);will-change:opacity}
+#campaign-finish-toast{position:fixed;top:115px;left:50%;transform:translateX(-50%);z-index:180;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 30px);padding:12px 19px;background:rgba(17,24,30,.94);border:1px solid #cbae64;border-radius:12px;color:#f4eee0;box-shadow:0 8px 26px #0005;pointer-events:none;font-family:Rajdhani,system-ui,sans-serif}
+#campaign-finish-toast .campaign-check{display:grid;place-items:center;border-radius:50%;width:37px;height:37px;color:#91f1b0;border:2px solid currentColor;font-size:27px;flex-shrink:0}
+.campaign-toast-title{font-family:Orbitron,system-ui,sans-serif;font-size:15px;letter-spacing:.06em}.campaign-toast-meta{display:flex;gap:15px;font-weight:700;font-size:16px;margin-top:4px}.campaign-toast-gold{color:#ffdb7c}.campaign-toast-next{display:block;color:#b2c4ce;font-size:12px;margin-top:3px}
+.campaign-toast-medal.is-gold,.campaign-summary-row.is-gold{color:#ffda78}.campaign-toast-medal.is-silver,.campaign-summary-row.is-silver{color:#dce9f3}.campaign-toast-medal.is-bronze,.campaign-summary-row.is-bronze{color:#d6a17e}
+#campaign-finish-toast.is-entering{animation:campaign-result-in .4s cubic-bezier(.2,.8,.2,1) both}.campaign-continuous:is(.main-menu-active,.hub-active,.game-over-active) #campaign-finish-toast{display:none}
+#campaign-death-summary{border:1px solid #b59b5a55;border-radius:10px;padding:10px 13px;margin:8px auto;width:min(480px,100%);box-sizing:border-box;font-family:Rajdhani,system-ui,sans-serif;color:#ebeee9;text-align:left;background:#0e151bcc}#campaign-death-summary>strong{font:700 12px Orbitron,system-ui,sans-serif}.campaign-summary-totals{color:#ffe09b;font-weight:700;font-size:18px;margin:5px 0}.campaign-summary-list{max-height:116px;overflow:auto;font-size:13px}.campaign-summary-row{display:grid;grid-template-columns:1.25fr 1fr .8fr .8fr;gap:8px;padding:5px 0;border-top:1px solid #ffffff15}.campaign-summary-row span:last-child{text-align:right}
+@keyframes campaign-result-in{from{opacity:0;transform:translate(-50%,8px) scale(.94)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+#campaign-finish-toast.is-leaving{animation:campaign-result-out .38s cubic-bezier(.4,0,.8,.3) both}
+@keyframes campaign-result-out{from{opacity:1;transform:translate(-50%,0) scale(1)}to{opacity:0;transform:translate(-50%,-12px) scale(.98)}}
+@media(max-height:500px) and (orientation:landscape){#campaign-finish-toast{top:83px;padding:7px 13px;gap:8px}.campaign-toast-title{font-size:11px}.campaign-toast-meta{font-size:13px}.campaign-toast-next{font-size:10px}#campaign-finish-toast .campaign-check{width:28px;height:28px;font-size:21px}#campaign-death-summary{padding:6px 10px;margin:4px auto}.campaign-summary-list{max-height:55px}.campaign-summary-totals{font-size:14px;margin:3px 0}.campaign-summary-row{padding:3px 0}}
+@media(prefers-reduced-motion:reduce){#campaign-finish-toast:is(.is-entering,.is-leaving){animation:none}}
+/* Counter celebrations must not scale text beyond the left card edge. */
+body.campaign-continuous #game-over .stats strong{transform-origin:left center}
+/* A failed attempt shares the finish card, not its victory medal/confetti. */
+#level-complete-overlay.is-run-failed .level-complete-medal{font:500 54px system-ui;color:#e2c887;border-color:#bfa873;background:#29251c}
+#level-complete-overlay.is-run-failed .level-celebration-confetti,#level-complete-overlay.is-run-failed .level-complete-coins{display:none}
+#level-complete-overlay.is-run-failed .level-complete-kicker,#level-complete-overlay.is-run-failed .level-complete-ghost-times{display:none!important}
+#level-complete-overlay.is-run-failed .level-complete-medal{display:grid;place-items:center}
+#level-complete-overlay .level-complete-medal svg.level-retry-icon{width:34px;height:34px;display:block;overflow:visible;flex:none}
+#campaign-death-summary{padding:0;border:0;background:none;margin:14px auto 18px}
+#campaign-death-summary .campaign-summary-list{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-height:190px;overflow:auto;padding:2px}
+.campaign-summary-tile{display:flex;flex:0 0 90px;box-sizing:border-box;flex-direction:column;align-items:center;gap:4px;padding:9px 7px;border:1px solid #8697a344;border-radius:9px;background:#111a23;color:#a8cbb8;min-width:0}
+.campaign-summary-tile>strong{font:700 10px Orbitron,system-ui,sans-serif;color:#e5e9ed;white-space:nowrap}
+.campaign-tile-medal{display:grid;place-items:center;width:27px;height:31px;font-size:24px}.campaign-tile-medal svg{width:27px;height:31px;display:block}
+.campaign-tile-time{font:700 16px Rajdhani,system-ui,sans-serif;color:#dce8ee}
+.campaign-summary-tile.is-gold{color:#ffd569;border-color:#bfa34d66}.campaign-summary-tile.is-silver{color:#cddce6}.campaign-summary-tile.is-bronze{color:#c99568}
+@media(max-height:600px) and (orientation:landscape){#level-complete-overlay.is-run-failed .level-complete-card{padding:18px 22px}#campaign-death-summary{margin:9px auto 12px}#campaign-death-summary .campaign-summary-list{max-height:100px}.campaign-summary-tile{padding:6px}.campaign-tile-time{font-size:14px}#level-complete-overlay.is-run-failed .level-complete-medal{width:48px;height:48px;margin-bottom:5px}.level-retry-icon{width:30px;height:30px}#level-complete-overlay.is-run-failed .level-complete-title{font-size:27px;margin:7px 0 10px}}
+.level-failure-reason{font:600 17px Rajdhani,system-ui,sans-serif;color:#e2e7eb}.level-failure-hint{font:600 14px Rajdhani,system-ui,sans-serif;color:#c4d9e4}
+#level-complete-overlay.is-run-failed .level-complete-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#level-complete-overlay.is-run-failed .level-complete-actions button{min-height:44px!important;font-size:11px!important;white-space:normal}
+#level-complete-overlay.is-run-failed #level-next-btn{grid-column:1/-1!important;min-height:48px!important;font-size:13px!important}
+#level-complete-overlay.is-run-failed .level-complete-card{max-height:calc(100dvh - 30px);overflow:auto}
+@media(max-height:500px) and (orientation:landscape){#level-complete-overlay.is-run-failed .level-complete-medal{width:38px;height:38px;font-size:30px;margin-bottom:3px}#level-complete-overlay.is-run-failed .level-complete-title{margin:5px 0;font-size:19px}.level-failure-reason{font-size:13px}.level-failure-hint{font-size:11px}}
+#runtime-graphics-recovery[hidden]{display:none!important}#runtime-graphics-recovery{position:fixed;inset:0;z-index:100000;background:#090f19eb;display:grid;place-items:center;color:#eaf2f5;font-family:Rajdhani,system-ui,sans-serif}#runtime-graphics-recovery>div{max-width:420px;text-align:center;padding:24px;border:1px solid #a8b8c5;border-radius:12px;background:#111e2a}#runtime-graphics-recovery p{font-size:21px}#runtime-graphics-recovery button{border:1px solid #e5c77d;background:#22313e;color:#fff;padding:12px 26px;border-radius:8px;font:700 15px Orbitron,system-ui,sans-serif;cursor:pointer}.loading-recovery-copy{font:600 16px Rajdhani,system-ui,sans-serif;color:#ffcf94}
