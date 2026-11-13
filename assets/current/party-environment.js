@@ -24,11 +24,43 @@ function planDecor(data,variant,rows,radius,occupied){
  const scenicDepth=race?data.depth+240:data.depth;
  const count=race?Math.max(1,Math.min(rows,Math.ceil(scenicDepth/(radius*1.9+4))+1)):Math.min(rows,Math.max(1,Math.floor(Math.PI*Math.max(ext.x,(ext.hi-ext.lo)/2)/(radius*1.8+3))));
  for(let j=0;j<count;j++)for(const side of [-1,1]){let chosen=null;for(let band=0;band<(variant===0?1:5)&&!chosen;band++)for(let attempt=0;attempt<7&&!chosen;attempt++){
-  const landmark=variant===3?115:0;let x,z;if(race){z=-(count===1?scenicDepth*.5:j*scenicDepth/(count-1))-variant*5+(attempt?Math.ceil(attempt/2)*(attempt%2?1:-1)*(radius*.8+3):0);if(z>25||z< -scenicDepth-35)continue;let edge=9;for(const p of data.platforms)if(Math.abs(p.z-z)<p.d/2+radius*.4)edge=Math.max(edge,Math.abs(p.x)+p.w/2);x=side*(edge+radius+3+landmark+band*(radius*2.2+10));}
+  const landmark=variant===3&&!(data.troll&&data.theme.phase===0)?115:0;let x,z;if(race){z=-(count===1?scenicDepth*.5:j*scenicDepth/(count-1))-variant*5+(attempt?Math.ceil(attempt/2)*(attempt%2?1:-1)*(radius*.8+3):0);if(z>25||z< -scenicDepth-35)continue;let edge=9;for(const p of data.platforms)if(Math.abs(p.z-z)<p.d/2+radius*.4)edge=Math.max(edge,Math.abs(p.x)+p.w/2);x=side*(edge+radius+3+landmark+band*(radius*2.2+10));}
   else{const a=(j*2+(side>0?1:0))*Math.PI/count+variant*.31+attempt*.11;x=Math.cos(a)*(ext.x+radius+6+landmark+band*(radius*2.2+10));z=(ext.lo+ext.hi)/2+Math.sin(a)*((ext.hi-ext.lo)/2+radius+6+landmark+band*(radius*2.2+10));}
   if(Math.abs(x)+radius>235||occupied.some(p=>Math.hypot(x-p.x,z-p.z)<radius+p.radius+2))continue;chosen={x,z,radius,index:j,variant,side};
  }if(chosen){occupied.push(chosen);plans.push(chosen);}}
  return plans;
+}
+// Mix species in world order, then instance by model. A shared conservative
+// footprint keeps the same no-overlap guarantee for every tree in the row.
+const treeDecorVariants=Object.freeze([0,4,5,1,6,7]);
+function mixedTreePlans(data,occupied){
+ const rows=Math.min(data.troll?16:34,Math.ceil((data.depth+240)/26)+1);
+ const plans=[...planDecor(data,0,rows,11,occupied),...planDecor(data,1,rows,11,occupied)];
+ const assign=(ordered,offset)=>ordered.forEach((p,i)=>{p.variant=treeDecorVariants[(i+offset)%treeDecorVariants.length];});
+ if(data.kind==='race')for(const side of [-1,1])assign(plans.filter(p=>p.side===side).sort((a,b)=>b.z-a.z),side>0?2:0);
+ else {const center=-data.depth/2,ordered=plans.slice().sort((a,b)=>Math.atan2(a.z-center,a.x)-Math.atan2(b.z-center,b.x));assign(ordered,0);if(ordered.length>1&&ordered.at(-1).variant===ordered[0].variant)ordered.at(-1).variant=4;}
+ return plans;
+}
+function plantNatureTrees(T,data,api,own,placements,scene,cells,stats){
+ const plans=mixedTreePlans(data,placements),dummy=new T.Object3D();
+ for(const [i,variant] of treeDecorVariants.entries()){
+  const slots=plans.filter(p=>p.variant===variant);if(!slots.length)continue;
+  const geometry=api.decor(1,variant);if(!geometry)continue;
+  own(geometry);geometry.computeBoundingBox();const b=geometry.boundingBox,size=b.getSize(new T.Vector3()),center=b.getCenter(new T.Vector3());
+  const scale=Math.min([38,37,34,29,36,25][i]/Math.max(1,size.y),22/(1.05*Math.max(1,Math.hypot(size.x,size.z))));
+  const mat=own(new T.MeshStandardMaterial({vertexColors:true,roughness:.85}));
+  stats.push({variant,triangles:(geometry.index?.count||geometry.attributes.position.count)/3,instances:slots.length});
+  for(let start=0;start<slots.length;start+=8){
+   const group=slots.slice(start,start+8),mesh=own(new T.InstancedMesh(geometry,mat,group.length));let lo=Infinity,hi=-Infinity;
+   group.forEach(({x,z,index,side},j)=>{
+    const yaw=index*.77+variant*.61+side*.37,c=Math.cos(yaw),s=Math.sin(yaw),k=scale*(.86+((index+variant)%3)*.09);
+    dummy.position.set(x-(center.x*c+center.z*s)*k,-2-b.min.y*k,z-(-center.x*s+center.z*c)*k);
+    dummy.rotation.set(0,yaw,0);dummy.scale.setScalar(k);dummy.updateMatrix();mesh.setMatrixAt(j,dummy.matrix);
+    lo=Math.min(lo,z-11);hi=Math.max(hi,z+11);
+   });
+   mesh.instanceMatrix.setUsage(T.StaticDrawUsage);mesh.computeBoundingSphere();scene.add(mesh);cells.push({mesh,lo,hi});
+  }
+ }
 }
 function ground(T,data,api,own){
  const phase=data.theme.phase,profile=profiles[phase],race=data.kind==='race',width=900,depth=race?data.depth+800:900,z=-data.depth/2;
@@ -59,7 +91,7 @@ function backdrop(T,data,placements,api,own){
  const reserve=p=>{const r=Math.hypot(p.w,p.d)*.55;for(let tries=0;tries<10&&placements.some(q=>Math.hypot(p.x-q.x,p.z-q.z)<r+q.radius+2);tries++)p.x+=Math.sign(p.x||1)*12;return p;};
  const batch=(geometry,material,items)=>{if(!items.length)return;const mesh=own(new T.InstancedMesh(own(geometry),own(material),items.length));for(let i=0;i<items.length;i++){const p=items[i];dummy.position.set(p.x,p.y,p.z);dummy.rotation.set(0,p.yaw||0,0);dummy.scale.set(p.w,p.h,p.d);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);}mesh.computeBoundingSphere();root.add(mesh);};
  if(phase===0){
-  for(let i=0;i<Math.ceil(depth/32)+10;i++)for(const side of [-1,1]){const h=24+(i*17%49),z=80-i*32;points.push(reserve({x:side*(177+(i%3)*15),y:-2+h/2,z,w:10+i%4*3,h,d:14+i%3*3}));}
+  for(let i=0;i<Math.ceil(depth/32)+10;i++)for(const side of [-1,1]){const h=24+(i*17%49),z=80-i*32;points.push(reserve({x:side*((data.troll?72:177)+(i%3)*15),y:-2+h/2,z,w:10+i%4*3,h,d:14+i%3*3}));}
   const mat=new T.MeshStandardMaterial({color:0x1c3c59,roughness:.62,metalness:.35,emissive:0x143e56,emissiveIntensity:.6,fog:true});
   mat.onBeforeCompile=s=>{s.vertexShader='varying vec3 skylineP;\n'+s.vertexShader;s.vertexShader=s.vertexShader.replace('#include <project_vertex>','#include <project_vertex>\nvec4 skyP=instanceMatrix*vec4(transformed,1.);skylineP=(modelMatrix*skyP).xyz;');s.fragmentShader='varying vec3 skylineP;\n'+s.fragmentShader;s.fragmentShader=s.fragmentShader.replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>\nfloat win=step(.38,fract(skylineP.y*.33))*step(.54,fract((skylineP.x+skylineP.z)*.28));totalEmissiveRadiance+=mix(vec3(.02,.3,.42),vec3(.35,.04,.25),step(.5,fract(skylineP.z*.053)))*win;');};mat.customProgramCacheKey=()=> 'party-skyline-162';batch(new T.BoxGeometry(1,1,1),mat,points);
  }else if(phase===4){
@@ -68,14 +100,15 @@ function backdrop(T,data,placements,api,own){
   batch(new T.IcosahedronGeometry(.5,1),new T.MeshStandardMaterial({color:0x477c75,roughness:.92}),points);
   batch(new T.IcosahedronGeometry(.5,1),new T.MeshStandardMaterial({color:0x6d975a,roughness:.97}),points.map(p=>({...p,y:p.y+p.h*.43,w:p.w*.78,h:p.h*.19,d:p.d*.8})));
  }
- if(phase===1||phase===5){
+ // Cyber uses actual textured buildings and window-lit skyline, NOT ground cubes.
+ if(phase===5){
   const leaves=[];for(const p of placements){if(p.variant>1||phase===5&&p.variant!==0)continue;for(let k=0;k<5;k++){const angle=k*2.4+p.index*.4;leaves.push({x:p.x+Math.cos(angle)*2.6,y:phase===5?20+k*2.2:23+k*1.8,z:p.z+Math.sin(angle)*2.6,w:2.8+k%2*.5,h:3.2,d:2.7,yaw:angle});}}
   batch(new T.IcosahedronGeometry(1,1),new T.MeshStandardMaterial({color:phase===5?0xc2dfed:0x4c8756,roughness:.92}),leaves);
  }
  // A second scale of scenery fills gaps between the giant source models.
  // Respect both the playable footprint and every accepted source/infill circle.
  const infill=[],reserved=placements.slice(),rows=race?Math.ceil(depth/19):26;
- for(let i=0;i<rows;i++)for(const side of [-1,1]){const radius=4.4+(i%3)*.5,z=race?12-i*19:-data.depth/2+Math.sin(i*2.399)*95;let edge=12;for(const p of data.platforms)if(Math.abs(p.z-z)<p.d/2+radius+2)edge=Math.max(edge,Math.abs(p.x)+p.w/2);for(let band=0;band<7;band++){const x=side*(edge+radius+5+band*12);if(reserved.some(p=>Math.hypot(x-p.x,z-p.z)<radius+p.radius+2))continue;const h=phase===0?5+i%3*2:phase===1?3+i%3*.8:phase===5?3.5+i%3:3+i%4;infill.push({x,y:phase===4?-.7:-2+h*.32,z,w:radius*1.35,h,d:radius*1.1,yaw:i*.87});reserved.push({x,z,radius});break;}}
+ for(let i=0;phase!==0&&i<rows;i++)for(const side of [-1,1]){const radius=4.4+(i%3)*.5,z=race?12-i*19:-data.depth/2+Math.sin(i*2.399)*95;let edge=12;for(const p of data.platforms)if(Math.abs(p.z-z)<p.d/2+radius+2)edge=Math.max(edge,Math.abs(p.x)+p.w/2);for(let band=0;band<7;band++){const x=side*(edge+radius+5+band*12);if(reserved.some(p=>Math.hypot(x-p.x,z-p.z)<radius+p.radius+2))continue;const h=phase===0?5+i%3*2:phase===1?3+i%3*.8:phase===5?3.5+i%3:3+i%4;infill.push({x,y:phase===4?-.7:-2+h*.32,z,w:radius*1.35,h,d:radius*1.1,yaw:i*.87});reserved.push({x,z,radius});break;}}
  batch(phase===0?new T.BoxGeometry(1,1,1):new T.IcosahedronGeometry(.5,1),new T.MeshStandardMaterial({color:[0x29465c,0x427e50,0xc5d8eb,0x443e48,0x5c8b82,0xc5e4f0][phase],roughness:.87,metalness:phase===0?.3:0}),infill);
  root.name='party-horizon-detail';root.userData.instances=points.length;root.userData.infill=infill.length;root.userData.infillBounds=reserved.slice(placements.length);return root;
 }
@@ -95,5 +128,5 @@ else if(phase>1.5&&phase<2.5)c=mix(body,crest,.25+.35*sin(vUv.x*28.+sin(vUv.y*12
 else c+=accent*flow*.09;c=mix(c,crest,cap*(.6+.4*pow(.5+.5*sin(vUv.x*265.+time*2.),2.)));c*=.8+.2*abs(vN.z);gl_FragColor=vec4(c,1.);}` }));
  const mesh=new T.Mesh(geo,mat);mesh.name='party-pursuit-'+p.name;mesh.frustumCulled=false;mesh.userData.biome=p.name;return mesh;
 }
-g.ElementalPartyEnvironment={ground,surge,profiles,planDecor,backdrop};
+g.ElementalPartyEnvironment={ground,surge,profiles,planDecor,backdrop,treeDecorVariants,mixedTreePlans,plantNatureTrees};
 })(window);

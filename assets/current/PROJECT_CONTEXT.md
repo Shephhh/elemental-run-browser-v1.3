@@ -1,6 +1,297 @@
 # ELEMENTAL RUN — geliştirme bağlamı ve devir notu
 
-> Son standart web/Poki kaynak paketi: `BUILD.json` sürüm **1.74.1** (3 Kasım 2026). Klasör adı değişmedi. Geçmiş konuşmadaki tüm isteklerin aynen geçerli olduğunu varsaymayın; aşağıdaki güncel bölüm ve kaynak kod esas alınır.
+> Son standart web/Poki kaynak paketi: `BUILD.json` sürüm **1.89.2**. Klasör adı değişmedi. Geçmiş konuşmadaki tüm isteklerin aynen geçerli olduğunu varsaymayın; aşağıdaki güncel bölüm ve kaynak kod esas alınır.
+
+## 1.89.2 — Gerçek oynanış videoları ve modların amacı
+
+Öğretici kartı sağda, masaüstünde ekran alanının biraz yarısından fazlası boyutunda. Gerçek oyundan sessiz MP4 kayıtları kullanır; ayrı 3D önizleme/ikinci WebGL bağlamı kaldırıldı. Devam etmek için dokun yazısı kartın altında ve dışında; X/Escape anında kapatır, bekleme yok. Her modun amacı ve kazanma/kaybetme mantığı ilk sayfada; Troll/Surf/2D dört, Party/Flappy üç sayfa. 30 dil, gerçek tuş atamaları ve eldiven varyantları korunur. Aynı görülme kaydı v2 devam eder; eskiden izleyenler ? üzerinden yeni sürümü görebilir.
+
+Seviyeler girişinde eski kısa hazırlık paneli geri geldi; sıcak girişte en az180ms, soğukta gerçek hazırlık süresi. Sürekli sınırlar ve eğitim→1 geçişine yeni ekran eklenmedi. İlk iki normal bölümde araç/engel temposu yumuşatıldı; 3–120 ve hedef puanlar aynı. Troll hızı7.0, diğer modlar/fizik/kayıt/ekonomi değişmedi. Player Fit incelemesi output/PLAYER_FIT_RETENTION_2026-11-13.md; en son tamamlanan test11 Kasım ve bu yerel sürümü ölçmüyor. Ayrıntılar MODE_TUTORIAL_AI_HANDOFF.md. Yerel paket, canlıya yükleme yok.
+
+## 1.89.1 — Oyun içinde sağda küçük 3D öğretici
+
+Önce gerçek mod açılır, eski yükleme görünümü kapanır; ardından sağda küçük 3D örnek sahneli kart açılır. Geri/İleri/Atla/Oyna yok: kart dışına tıklama ilerletir, çarpı/Escape mevcut oyuna döner. Yardım menü yazısı yerine ESC sırasında sağ üstte ? var; Flappy kendi ? düğmesini korur. Kart açıkken dünya/sayaç/ödül/SDK durur. mode-tutorial-3d.js tek ek önizleme bağlamını tekrar kullanır. Görülme kaydı v2; oyun rekorları değişmez.
+
+Lobi/Oyunlar sol üst yazı yerine kart simgesi aynı dikdörtgen galeriyi açar. Troll normal hız 7.0 m/s, diğer modlar 7.5 olarak kalır; buzun özel ivmesi/son atlayışı korunur. Geometri ve CourseVersion değişmez. Güncel ayrıntılar MODE_TUTORIAL_AI_HANDOFF.md; yerel paket, canlıya yüklenmez.
+
+## 1.89.0 — Moda özel animasyonlu öğreticiler
+
+Troll/Party/Surf/2D/Flappy ilk girişlerinde sayfalı Canvas 2D öğreticiler açılır; aynı moda tekrar girişte gösterilmez. Duraklatma ekranında Nasıl Oynanır, Flappy başlığında ? üzerinden tekrar izlenir. Mevcut Seviyeler/Sonsuz Koşu eğitimleri değişmez. Öğretici sırasında dünya, ödül kazanımı ve SDK gameplay durur; kayıt/parkur sürümleri korunur. Yeni dosyalar mode-tutorial.js/css/copy.js; ayrıntılı devir MODE_TUTORIAL_AI_HANDOFF.md içinde. Yerel paket, canlıya yüklenmez.
+
+## 1.88.13 — Kart sırası ve Troll 2-1
+
+Başlangıç galerisinde Seviyeler ilk, Troll ikinci sırada; ilk görünüm asset hazırlığı aynı sırayı kullanır. Troll kırmızı NEW özelliğini korur. Troll 2-1 neon ölüm panellerinin yüksekliği 1,70'ten 0,45 metreye indirildi; alt yüzey Y=8, genişlik/uzunluk ve ölümcül temas korunur. CourseVersion 15 ve rekorlar değişmez. Player Fit analizi output/PLAYER_FIT_2026-11-12.md içinde; SDK/telemetri veya canlı test ayarı değiştirilmedi.
+
+## 1.88.12 — Troll 3-2 sahte kırılmada opak destek
+
+Son tuzakta oyuncunun bastığı şerit artık gizlenmez: mevcut materyali/ölçeği ve opacity=1 korunur. Aynı parçacık havuzu bu şeridin kenarlarından küçük parçalar koparır; parçalar bitince de ana şerit görünür kalır. Diğer şeritlerin gerçek parçalanması/kısa karşı renk flaşı, uyarı ve checkpoint bekleme süreleri değişmedi. Fizik/kayıtlar ve CourseVersion 15 korunur.
+
+## 1.88.11 — Troll 3-2 uyarı ve parçalanma
+
+Son şerit tuzağı 0,62 saniye uyarı verir; görünmez destek ve 0,10–0,27 s yanıltıcı karşı renk flaşı bunun ardından başlar. Normal faz değişiminde uyarı .48 s + .26 s tolerans boyunca sürer; eski incelip bir an tam boyuta dönme kaldırıldı. Kapanan şeritler .64 s içinde parçalanıp düşer; yeni parçalar sadece görseldir. İki sabit instanced havuz (uyarı 18, parçalar masaüstü 240 / mobil 144 kapasite) kullanılır. Checkpoint kilidi, güvenli rota, 120Hz fizik ve CourseVersion 15/kayıtlar korunur.
+
+## 1.88.10 — Eski yükleme görünümü, galeriye özel hazırlık
+
+Yükleme panelinin 1.88.8'de değiştirilen görünümü tamamen geri alındı; orijinal arka plan/Orbitron/spinner/renkli bar ve imleç geçerli. Yuvarlak font ve yüksek kontrastlı imleç yalnız dikdörtgen seçim ekranında kalır. İlk görünümde gereken 2 portre / 4 yatay kartın düz resimleri, kanyon ve galeri fontu mevcut yükleme sırasında en fazla iki istekle hazırlanır; son katılma en fazla 1200 ms bekler. Uzak kartların düz resimleri kısa görünüm-önü penceresinde yüklenir, alfa katmanları tek görünür kart / tek resim decode sırasından geçer. Katman hatasında düz poster kalır; sahne girişinde sıra/gözlemciler temizlenir. Dünya hazırlığı, oyunlar, kayıtlar, son parlama ve kedi düzenlemeleri değişmedi.
+
+## 1.88.9 — Kenardan tek geçiş parlama ve daha seyrek kedi efekti
+
+Kart parlaması artık fareyi takip etmez. Kart içine girilen sol/sağ/üst/alt kenar bir kez belirlenir; eski .85 saniyelik parlama o kenardan karşıya ilerler ve söner. İçeride hareket etmek animasyonu yeniden başlatmaz. Kedi ölüm efekti masaüstü 16, mobil 10 yeniden kullanılan sticker; eskisinden daha büyük, tüm ekran hücrelerine dağıtılır ve merkez görünüşü daha açık tutulur. Yarısı aynalıdır; ses, fade, pause/exit temizliği değişmedi.
+
+## 1.88.8 — Galeri etkileşimleri ve yükleme uyumu
+
+Başlıklar ve yükleme paneli yerel Fredoka değişken fontu kullanır (vendor/fonts/FREDOKA-OFL.txt). İmleç koyu dolgulu, siyah dış konturlu beyaz/sarı halka; başlık ve yalnız ikon play, hover/klavye odağında sarıya geçip yatayda tek grup olarak ortalanır. Parlama pointer konumu/yönünü izler. Gezinme tuşlarının beyaz dış çerçevesi ve sol tuşun 3D yansıtılması kaldırıldı; ileri/geri hareket artık sabit kart ofsetlerine hizalanır. Aynı canyon/altın-beyaz dili gerçek yükleme paneline de uygulandı; yükleme ilerlemesi ve oyun mantığı değişmedi.
+
+## 1.88.7 — Canlı sticker posterleri
+
+Yedi açılış posteri temiz arka plan + şeffaf karakter + iki nesne katmanı kullanır. Hover/klavye odağı yalnız bir kartta bağımsız yumuşak hareket ve parıltıları açar. Mobilde en fazla 3, masaüstünde 4 katmanlı kart tutulur; görünmez sekmede ve azaltılmış hareket tercihinde hareket durur. Kaynak görseller, tam üretim yönergeleri ve envanter: [MODE_GALLERY_LAYERS.md](MODE_GALLERY_LAYERS.md). Oynanış, kayıtlar ve parkur sürümleri değişmedi.
+
+## 1.88.6 — Uzun illüstrasyon galerisi
+
+Açılışta çok satırlı fotoğraf kutuları değil, tek sıra uzun illüstrasyon posterleri kullanılır. Yeni davranış boot-mode-gallery.js/CSS içinde; sağ/sol ok, wheel, sürükleme ve klavye ile gezinilir. Yuvarlak imleç korunur. Her modun resmi ImageGen ile özgün üretilmiştir; [sanat yönergeleri](MODE_GALLERY_ART.md). Troll kırmızı ve NEW, diğer çerçeveler beyazdır. Sahneler, kayıtlar ve fizik değişmedi.
+
+## 1.88.5 — Açılış mod posterleri
+
+Yedi modun kartları gerçek oyun karelerinden üretilen WebP görselleriyle kaplı. Troll Obby kırmızı, diğer kartlar kalın beyaz çerçeveli. Başlıklar kaldırıldı; meydana erişim yazısız ev düğmesiyle sürüyor. Arka plandaki iki CSS katmanı yalnız seçim ekranında hareket eder, azaltılmış hareket tercihinde durur. Tıklama, hazırlık ve Poki kuralları değişmedi.
+
+## 1.88.4 — Açılış mod kartları ve Troll ölüm efekti
+
+Yükleme bittiğinde yedi oynanabilir mod doğrudan seçilebilir. Troll Obby ilk sırada kırmızı çerçeveli NEW kartı; Elemental Meydanı ayrı düğme. Yeni kayıtta Seviyeler kartı mevcut eğitimi başlatır. Poki kapısı hâlâ gerçek kullanıcı tıklaması bekler; yükleme veya mod hazırlığı oynanış olarak sayılmaz. Troll'de ölümde küçük, yarısı aynalanmış kedi görselleri ve iki saniyelik ses çalar; parkur kayıtları ve CourseVersion 15 değişmedi.
+
+## 1.88.3 — Troll 3: Şerit çıkışı ve uzatılan odalar
+
+3-2 tuzağı artık renk anına bağlı değil; görünmez şeritte beklenmeden kontrol noktası alınamaz. 3-3 ve 3-4 45'er metre uzatıldı. Vantilatör köprüye dik, rüzgâr çizgileri daha seyrek. Buzun son açıklığı 15,5 m. Toplam 711 m, CourseVersion 15. [Güncel yerleşim](TROLL_OBBY_LEVEL_3.md).
+
+## 1.88.2 — Troll 3: Faz tuzakları ve Troll sesleri
+
+621 m; tam genişlikte kırmızı barlar, yakın sütun dizisi, sahte GO, 137 m renk grupları, takipçi fan ve dört yükseklik çifti. Buz modelleri/efektleri gelişti; buz fiziği değişmedi. Troll 1–3 olay sesleri ve bağlama göre tek ortam sesi kanalı mevcut Web Audio SFX yolunu kullanır. Troll CourseVersion 14, önceki Troll 3 zamanını arşivler. [Güncel yerleşim](TROLL_OBBY_LEVEL_3.md).
+
+## 1.88.1 — Troll 3: Uzun Siber Parkur
+
+Beş oda toplam 532 m. Trafik koridoru tek parça ve yalnız GO/STOP; yumruk parkurun solundan gelir. İkinci oda 70 m'lik altı paralel şerit; üçüncü oda dinlenme adasız 93 m rüzgâr köprüsü. Tutkal yerine kaygan buz, öldürücü engeller ve hız isteyen 15,5 m atlayış var. Uzun kuşbakışı finalde hareketli, sahte ve yükseklikleri yanıltıcı levhalar kullanılır. Troll CourseVersion 13; Troll 1/2 zamanları ve açılmış aşamalar korunur. [Troll 3 yerleşimi](TROLL_OBBY_LEVEL_3.md).
+
+## 1.88.0 — Troll 3: Siber Denetim
+
+Cyber parkuru 266 m ve beş kontrol noktalı aşama: trafik ışığı/siber yumruk, görünmez katı levha, ters çapraz rüzgâr, tutkal buz ve kuşbakışı final. 120 Hz destek/çarpışma mimarisi ve diğer parkurlar korunur. Troll CourseVersion 12 yalnız Troll 3'ün eski en iyi süresini arşivler; 1–2 süreleri ve bölüm erişimleri korunur. Yerleşim ve çözümler [Troll 3 parkur belgesinde](TROLL_OBBY_LEVEL_3.md).
+
+## 1.87.4 — Cyber lobi duvarları ve Lav manzarası
+
+Ana lobinin Cyber duvarlarında geniş metal paneller ve seyrek devre ayrıntıları kullanılır. Seviyeli Koşu Lav girişinde iki volkan ve daha erken bir tünel hazırlanır; uzak sis tünel ve dağ siluetlerini yutmaz. Sonsuz Koşu ve Oyunlar salonu değişmedi. Troll 2'nin mevcut düzeni [ayrı parkur belgesinde](TROLL_OBBY_LEVEL_2.md) anlatılır.
+
+## 1.87.3 — Beş biyoma özgü dekor çeşitleri
+
+Cyber, Gökyüzü, Lav, Su ve Kar için ayrı zemin dekor alanları tanımlandı. Her biyomun üç farklı yer dekoru kompozisyonu ve değişken duvar motifleri bulunur; Games girişindeki iki yan dekor da bire bir ayna değildir. Yürünebilir alan, etkileşim noktaları, Doğa dekoru, zemin malzemeleri ve Oyunlar salonu korunur.
+
+## 1.87.2 — Asimetrik lobi dekorları
+
+Ana lobi dekoru düzenli zemin sıraları yerine biyoma özgü sabit tohumla, açık alanlarda farklı ölçü ve yoğunluklarda kümelenir. Halı, taş şeritler, merdivenler ve etkileşim pedleri için boşluk bırakılır. Duvarların sarmaşık ve süs dizilimi ile köşe saksılarının görünümü çeşitlendirilmiştir. Üç dekor çizim grubu, zeminler ve Oyunlar salonu korunur.
+
+## 1.87.1 — Doğa lobisinin çim zemini
+
+Doğa lobisindeki geniş taş zemin dikişsiz çim dokusuyla değiştirildi. Orta halı, iki yanındaki taş şeritler ve zemin yüksekliği aynı; diğer biyomlara, Oyunlar salonuna ve koşu haritalarına dokunulmadı.
+
+## 1.87.0 — Ana lobinin biyoma özgü dekoru
+
+Uçan maskotlar, bayraklar, genel portal süsleri ve dolaşan toz noktaları kaldırıldı. Doğa'da duvar sarmaşıkları, portal kökleri ve yol kenarı çiçekleri; Kar'da buz sarkıtları; Cyber'da duvar tesisatı; Lav'da kor ve obsidyen; Gökyüzü'nde fildişi taş ve kanat motifleri; Su'da mercan dekoru eklendi. `buildPlazaDressing` her tema için üç statik instancing grubu kurar, yalnızca aktif tema görünür. Yeni dekorun çarpışması yoktur, ped ve merdiven alanlarından uzak tutulur; Oyunlar salonu ayrı kalır.
+
+## 1.86.0 — Ana lobinin altı malzeme ve mimari profili
+
+Ana lobide biyomlar artık yalnız renk değiştirmez: Doğa kumtaşı/yosun, Kar mat buz ve kar, Cyber devreli metal, Lav kor çatlaklı bazalt, Gökyüzü altın derzli açık taş, Su dalga oyuklu turkuaz döşeme kullanır. Altı doku opaktır; zemin yüksekliği, çarpışma, jöle izi, stand konumları ve son ölüm biyomu seçimi değişmedi.
+Duvar kabartmaları, köşe saksıları ve portal, yükseltme ekranı ve çark kaplamaları instancing ile çizilir. Üç mevcut ışık ana lobi için ayrı ayarlanır; Oyunlar salonu kendi ışığını, gökyüzünü ve modellerini korur. Dış sis geçişi sadece ana lobi modellerinde genişletildi.
+
+## 1.85.0 — Altı temalı ana lobi ve yumuşak sis
+
+Ana lobi, Oyunlar alanıyla aynı gökyüzü ve sis sistemini kullanır, ancak
+ayrı dekor ve ışık ayarlarına sahiptir. Altı biyomda farklı dış silüetler,
+temaya uygun köşe objeleri, aydınlatma ve taş yol detayları bulunur.
+Dört duvar korunur; görünür yüksekliği 8,6 m olup manzarayı daha çok açar.
+Zemin yüksekliği, etkinlik noktaları, kontrol ve kamera değişmedi.
+İki alanın dekorları geçişte ayrı görünür. Aydınlatma üç mevcut ışığı
+kullanır. Dış modellerin sis karışımı genişletildi; sabit yükseklikteki
+şeffaf üst katmanlar daha az belirgin.
+
+## 1.84.0 — Meydanın altında hafif bulut katmanları
+
+Normal Sky koşusunun zeminindeki katmanlı bulut görünümü meydana
+uyarlandı: temaya göre üst tabaka yaklaşık 14–17 m aşağıda, saydam ve
+soluk; alt katman uzaktaki modellerin diplerini gizliyor. Mobilde iki,
+masaüstünde üç katman aynı geometriyi paylaşır. Dış silüetler ve bileşik
+modeller 1,65× ölçekli, daha aralıklı ve tabanları aşağı uzatılmıştır.
+Normal Sky haritasının kendisi, meydan içi modeller, portallar, karakter
+ve son ölümden tema seçimi değişmedi.
+
+## 1.83.0 — Yüzen meydan ve bulut denizi
+
+Meydanın katmanlı taş alt gövdesi, oyun zeminini tek bir yüzen platform olarak
+tamamlar. Çevrede tek bir opak bulut yüzeyi vardır: kenara yakın çöker,
+uzaktaki binaların, dağların ve diğer kara modellerinin diplerini kapatır.
+Dış modeller aynı yükseklik profiline göre sisle yumuşatılır; Cyber kaideleri
+kaldırıldı, uzaktaki kayalar ve Gökyüzü kalıntıları sisin içinden yükselir.
+Sis rengi ve yüksekliği biyoma göre değişir. Yakındaki oynanabilir
+alan, portal, kamera ve çarpışma değişmedi. Mobilde yüzey ağı daha seyrek;
+hareket azaltma tercihinde sis dokusu sabit.
+
+## 1.82.0 — Dört yönlü oyunlar meydanı manzaraları
+
+`concourse-art.js` dış çevreyi dört sektörde, farklı uzaklık ve yüksekliklerde
+kurar. Ortak bulut kümeleri (96 masaüstü, 60 mobil) ve uzak tepeler tüm
+yönlerde bulunur. Doğa ve Gökyüzü'nde ayrıca yüzen adalar görünür.
+Her biyomun kendine özgü ufku vardır: Doğa ormanı, Cyber silüeti,
+Gökyüzü kalıntıları, Lav volkanları, Su fener ve yelkenlileri, Kar zirveleri.
+Çevre modelleri oynanabilir sınırların dışında, çarpışmasız, instanced ve
+statik gölge bütçesinin dışındadır. Mobilde bulut ve bazı dekor örnekleri
+azaltılır. Biyom seçimi, duvarlar, portal yerleşimi ve karakter değişmedi.
+
+## 1.81.0 — Son ölüm biyomuna göre meydan
+
+Oyunlar meydanının dört kenarında 2,22 m yüksekliğinde temalı duvarlar bulunur.
+Duvarın görünen kalınlığı ve hareket sınırı aynı yerde; normal zıplamanın
+tepe noktası 1,64 m. Portallar ve meydan planı değişmedi. Doğa çitli,
+Cyber neon ve binalı, Gökyüzü bulut taşlı, Lav bazalt ve korlu, Su mercan
+ve gelgit havuzlu, Kar çam ve buzlu bir görünüm kullanır. Ortak malzemeler
+yeniden renklendirilir, yalnız aktif biyomun instanced modelleri çizilir.
+
+`elemental-run-last-death-biome-v1` gerçek ölümün anlık biyomunu saklar
+(0 Cyber, 1 Doğa, 2 Gökyüzü, 3 Lav, 4 Su, 5 Kar). Ana lobi ve Oyunlar
+meydanı bu değeri kullanır; kayıt yoksa Doğa. Çıkış, bitiriş ve ölümden
+önce devreye giren koruma bu değeri değiştirmez. Oynanış/başlangıç seviyesi
+seçimi ayrı kalır.
+
+## 1.80.0 — Açık oyunlar meydanı
+
+`concourse-art.js`, kullanıcı referansındaki günbatımı/portal bahçesini oluşturur.
+Eski salonun yüksek duvarları ve kirişleri yerine alçak sınırlar, 80 instanced taş,
+ışıklı bordürler, sekiz dallı ağaç, çim adaları, bulutlar ve dokuz yüzen ada vardır.
+Portal gövdeleri katmanlı ve moda özel renklidir; mevcut yedi mod/geri dönüş
+girişinin konumu ve Coming Soon işlevsizliği korunur. Toplam sekiz portal.
+
+Işık/fog yalnız oyunlar alanında uygulanır, ana lobiye dönünce geri yüklenir.
+Masaüstü 1024 px tek seferlik gölge haritası; mobil temas gölgeleri. Render bayrakları
+her çizimde geri yüklenir, yeni tam ekran post-process veya ağ asset'i eklenmedi.
+Bulutların hafif hareketi reduced-motion tercihinde durur. Karakter ve tuzak fiziği,
+CourseVersion, kayıtlar ve mod içi haritalar değiştirilmedi. Aynı yerel Poki ZIP'i;
+canlı yayın yapılmaz.
+
+Hazır oyunlar alanına moddan dönüşte gizli ana lobi/eller yeniden compile edilmez;
+yalnız yeniden oluşturulan composer tamponları hazırlanır. Portal trim materyalleri
+paylaşılır ve statik mimari birleştirilir. Masaüstü referans açısı 140 çizim / 51.570
+üçgen ölçüldü; bunlar headless QA ölçümleri, cihaz FPS garantisi değildir.
+
+## 1.79.4 — Troll 2 satranç dizilimi, kaya ve sarmal
+
+32 kırmızı diken plakası satranç düzeninde, güvenli atlayış rotası bağımsızdır.
+Yanlış boş kareye iniş komşu plakayı kaydırır. Kaya pürüzsüz ve fiziksel
+yarıçapı 3,85 m; kapalı kabin önü artık kaçış alanı değildir. Sarmal basamaklar
+çarpışma zamanını koruyarak yerinde saydamlaşır. CourseVersion 11.
+
+## 1.79.3 — Troll 2 rota ve kamera rötuşları
+
+Dikenli finalde düz sıralar, yan geçiş ve alternatif güvenli kareler var.
+Sarmalda karakter/kamera yüksekliği basamak fazıyla yumuşar; çarpışma aynı.
+Labirent çıkmazı WRONG WAY tabelasını açar; kabinlerin katı çatıları vardır.
+CourseVersion 10 yalnız eski Troll 2 zamanını arşivler.
+
+## 1.79.2 — Daha sakin jöle ve büyük Troll 2 parkuru
+
+381 m, 91 hücreli kapalı/aydınlatılmış labirent, 96 basamaklı sarmal, yukarı
+eğimli kaya yolu, üç geniş kabin çifti ve 64 karelik görünür kırmızı diken
+finali. Komşu diken plakaları gerçek iniş noktasına kayar. Kayan blokların
+göreli dizilimi aynı; jöle düz yürüyüşte sağa sola sallanmaz. CourseVersion 9.
+
+## 1.79.1 — Troll 2 boyut ve akış revizyonu
+
+327 m. Daha geniş buz kabuklu labirent, yürünebilir 32 basamak ve yüksek CP3,
+tek parça 77 m eğim, daha hızlı kaya ve altı kabin çifti. 2-5 yerel geometri
+ve tetikleri aynı. 2-6, iniş noktasını öngören hareketli dikenli 36 kare.
+CourseVersion 8 yalnız değişen Troll 2 süresini arşivler.
+
+## 1.79.0 — Troll 2: altı aşamalı Kar parkuru
+
+240 m, altı sıralı kontrol noktası. Neon duvarlar, %99 şeffaf çıkmaz labirent,
+çöken sarmal ve gizli ters pad, yuvarlanan kaya/kabinler, dört senkron kayan
+blok ve atlayış menziline göre dizilmiş dikenler. Swept-AABB ve hareket
+değerleri aynı. Troll CourseVersion 7: sadece eski Troll 2 rekoru arşivlenir.
+Güncel bölüm düzeni `LEVELS_TROLL_PARTY.md` içinde. Yerel Poki paketi.
+
+## 1.78.1 — Daha yumuşak jöle ve dağınık zemin lekeleri
+
+Jölenin tepesi hızlanma, durma ve dönüşe yay gecikmesiyle tepki verir; yüz ve
+şapka aynı dönüşümü paylaşır. Daha yuvarlak gövde, yavaşça sönen iniş sekmesi
+ve görsel zemin ankrajı; fizik değişmedi. Düz iz yerine farklı biçim, boyut,
+açı ve yan sapmada gölcükler ile küçük damlalar. İzin tek çizim grubu, havuz
+sınırları, yüzey denetimleri ve hareket azaltma davranışı korunur.
+
+## 1.78.0 — Lobi ve Troll Obby jöle karakter
+
+`cube-avatar.js` jöle malzemesini, tabana sabitlenen görsel esnemeyi ve geçici
+zemin izlerini paylaşır. Lobi/oyun salonu bir iz havuzu, Troll kendi havuzunu
+kullanır; masaüstü 48/1,8 sn, mobil 24/1,4 sn. Yeni ışık veya harici asset yok.
+Troll izleri yalnız görünür ve sabit desteklere yazılır; saydam, sahte, kayan ve
+çöken rotaları göstermez. Yeniden başlama, kontrol noktası ve sahne değişimi
+havuzu temizler. Hareket azaltma ayarı boşta salınımı ve iniş damlalarını kapatır.
+Fizik, kamera, tuzaklar, CourseVersion 6 ve kayıtlar aynı. Yalnız yerel Poki paketi.
+
+## 1.77.1 — Troll 1 dama ve final düzeltmesi
+
+Dama 12 bitişik 4,2 m kare, emissive kırmızı, kontrol noktası öncesi ekstra taş yok.
+Final orta yeşil taşlar opak; ilk siyah çizgi duvarı ve sağlam sarı yanlar korunur.
+Turuncu çizgide duvar yok; kahverengi yanlar sahte. Tüm saydam Troll 1 taşları
+%1 opaklıkta. Diğer leveller ve ağaçlar değişmedi.
+
+## 1.77.0 — Beş aşamalı Troll 1 ve karışık Doğa ağaçları
+
+Troll 1 çizimden yeniden kuruldu: beş 32 m aşama, kayan taş, saydam köprü,
+ters köprü, ölümcül dama tahtası ve görünmez duvarlar. Fizik/kamera aynı.
+Troll 2/3 düzen ve v4 kayıtları korunur. Doğa yol kenarı seçimi ön/arka komşu
+aynı türü eler; Troll/Party sıra dekoru beş aileyi karıştırır, Surf Doğa dekoru
+da yakın yerleşime göre çeşitlenir. Ayrıntılar LEVELS_TROLL_PARTY.md'de.
+
+## 1.76.1 — Köşeli ve türlere göre farklı ağaç taçları
+
+Kısa/uzun çamların üst üç katmanı ve tepe konisi aynı dik eksende; rastgele uç
+kayması/eğimi yok. Geniş yapraklılarda altı ayrı köşeli tek-taç profili: geniş
+meşe, sivri genç meşe, uzun huş, asimetrik ikiz huş, rüzgârlı sonbahar ve basık
+elma. 12 köşe/7halka/168üçgen; baloncuk kümeleri yok. Dallar daha dar taçlara
+uyduruldu. KayKit/Kenney görsel araştırması, kendi geometri kodu; dış asset yok.
+Mevcut cache/instancing/renk sahipliği aynı, özel Snow/Lava ağaçları değişmez.
+Ayrıntı PROCEDURAL_TREE_TEST.md; model/seam/renk/tepe/bütçe ve tarayıcı testleri.
+Yerel kaynak/aynı ZIP, otomatik canlı yayın yok.
+
+## 1.76.0 — Troll üç bölüm / Cyber dolgu temizliği
+
+Troll CourseVersion 4: 160/200/240m, aynı hareket/kamera/fizik. Ayrı oda dizileri,
+gizli dar yan yollar, çift hediye geçişleri, geniş çökme zinciri+geri atan pad,
+Cyber Y4/W1 alt yol ve ulaşılabilir 1.4m dönüş basamakları; tek deck üzerinde
+öğrenilebilir hiddenKill S-labirenti. CP6 X=-6/W3; kapı ve CP görselleri de burada.
+Eski PB arşivlenir, kazanılmış erişimler korunur. Hazards[] boş: Troll hacimleri
+platforms[].trap üzerinden tek kez tetiklenir. Gerçek JSON/koordinat/safePath
+LEVELS_TROLL_PARTY.md'de; yorumlu kaynak obby-course.js. Cyber ground infill küpleri
+yok, gerçek dokulu binalar ve yakın skyline; sabit instancing bütçeleri. Normal
+Level/Endless/2D/Surf ve Party oynanabilir parkurları değişmez. 88 gerçek fizik
+bağlantısı, maze yürüyüşü, tuzak/reset/CP ve coplanar çakışma kontrolleri geçti.
+Yerel kaynak/aynı ZIP; canlı site hâlâ1.74.1, otomatik yayın yok.
+
+## 1.75.1 — Eski ağaç aileleri / bütünlüklü taçlar
+
+Meşe, çam, huş, sonbahar ve elma olmak üzere eski8Doğa varyantı varsayılan geri
+getirildi. Geniş yapraklılarda iç içe küre kümeleri yerine tek kapalı,432üçgenli,
+hafif düzensiz/fasetli taç var. Kökler, dallar, huş bantları ve elmalar korunur;
+çamın eski katmanları değişmez. Cohesive-tree-canopy modülü mevcut cache/batching
+ile çalışır. Vertex renkleri geometri birleşiminde korunur (beyaz taç regresyonu
+oyun içi QA'da yakalanıp düzeltildi). Nature üstüne ayrı Party yaprak topları yok;
+Snow/Lava özel modelleri aynı. Reddedilen1.75.0 deneyi yalnız ?trees=study ile
+açılır, normal varsayılan değildir. Ayrıntı PROCEDURAL_TREE_TEST.md. Yerel kaynak/
+aynı ZIP; canlı web hâlâ1.74.1. Gerçek cihaz60FPS garantisi yok.
+
+## 1.75.0 — Seyrek yapraklı prosedürel ağaç testi (artık varsayılan değil)
+
+Kullanıcının HTML referansından uyarlanan8Doğa varyantı;5–7yaprak kümesi,
+960–1288üçgen, iki vertex-color geometri parçası. Ortak Doğa cache'i üzerinden
+modlara girer; kar/lav ağaçları değişmez. Geçici geometri dispose, spawn'da yeni
+rekürsiyon yok. Bu deney artık yalnız ?trees=study ile açılır (reload). Party bağımsız Nature
+tepe yaprak eklentileri yeni modele çakışmasın diye testte kapalı. Yeni renderer,
+shadow4096 veya büyüme/popping yok. Ayrıntı PROCEDURAL_TREE_TEST.md. Yerel test;
+canlı web sitesi hâlâ1.74.1, otomatik yayın yapılmadı.
 
 ## 1.74.1 — Bitişten sonra devam eden çevre
 
@@ -8,7 +299,7 @@ Troll/Party ortak zemini finish'ten400m öteye uzanır; eski merkezleme zemini45
 sonra kesiyordu. Dekor planı/backdrop240m öteye hazırlanır, kaynak model bütçesi
 korunur. Oynanabilir platform/CP/finish kuralları aynı. LEVELS_TROLL_PARTY.md güncel
 Troll koordinat envanteri ve Party9playlist özetidir. GitHub Pages yayını ayrı
-output/site-publish checkout'unda aynı mevcut depoya gönderilir; durum progress.md.
+output/site-publish checkout'unda aynı mevcut depoya gönderilir; durum progress.md. Canlı1.74.1 doğrulandı; mevcut workflow yetkisi korunarak root index base=assets/current/ ile aynı paket yayınlanır. Güncellemede bu alt paket ve root index birlikte senkronize edilmelidir.
 
 ## 1.74.0 — Troll lobi avatarı/kamera ve performans düzeni
 
@@ -1457,3 +1748,11 @@ Yeni aktif skiller: `airDash` yaklaşık 0,35 sn ileri atılım/7 sn cooldown, `
 - `render_game_to_text().lobby` ve localhost `__elementalBrowserTest.inspectLobby/showLobby/placeLobbyPlayer/projectLobbyPoint` kontrolleri QA içindir. `output/test-hub*.cjs` uçtan uca masaüstü/mobil/ped/ödül testlerini, `output/run-hub-official.mjs` resmi web-game istemcisine yükleme bekleme adaptörünü içerir. `output/` pakete eklenmez.
 - Yeni lobiye özel kısa açıklamalar Türkçe/İngilizce fallback'tir; mevcut mağaza/yükseltme metinleri 30 dilli `tr` sistemini kullanır. Düşük güçlü gerçek cihazda performans ve gerçek Poki reklamı ayrıca cihaz/platform testi gerektirir.
 - OYNA öncesi 2D ana menü korunur; ortak mağaza/ayarlar DOM'u ekonomi ve erişilebilirlik için korunur. Lobi biyomu seçili levelin Nature/Snow/City/Lava/Water/Sky fazına uyar ve uygun campaign hazırlığını boşta kademeli başlatır. Portal bitmemiş hazırlığı bekler; tüm cihazlarda sıfır takılma garantisi yoktur. Yayın staging'inde `lobby-hub.css` de `assets/runtime/` altına gider; arka plan yolu `../../elemental run icons/...` yapılmalıdır.
+# v1.89.3 — Lean initial boot, no guide cards, Troll jump/camera fixes
+
+- Removed side-mode tutorial cards, `?` controls and their video/poster downloads. Kept main gallery and lobby cards icon; normal Levels/Endless playable tutorials remain.
+- Only prepare lobby/tutorial/Nature entry after the appropriate mode choice, using existing preparation gates. No GLB-hand wait before a DOM-only gallery. Required scene readiness is not bypassed, and hidden preparation/fade time still does not advance gameplay/active clocks.
+- Troll only: one press per jump, no hold-autohop, no landing momentum/combo gain. Party, Surf, 2D, ice launch/reverse pads unchanged; course version/records unchanged.
+- Troll camera ray starts at avatar center instead of look-ahead inside maze; exterior roof always blocks camera; final interpolated camera segment checked too. Hidden gameplay walls remain unrevealed outside.
+- Local package only, no live publication. QA details in `progress.md`.
+

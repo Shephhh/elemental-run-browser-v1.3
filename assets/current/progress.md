@@ -1,12 +1,298 @@
 Original prompt:
 Projeme oyuncuların harita yüklenirken sıkılmaması için yükleme ekranında oynanabilen bir Flappy Bird tarzı minigame eklemek istiyorum. Elemental Run temasına uygun minigame, gerçek yükleme çubuğu ve sonraki haritanın asenkron preload/cache akışıyla birlikte çalışmalı. Yükleme bitince minigame hiç başlamadıysa doğrudan geçilmeli; başladıysa oyuncu ölene kadar devam etmeli ve ölüm anında ana oyuna geçilmeli.
 
+## 1.89.3 — Remove guide cards, trim initial boot, Troll no-bhop and maze camera
+
+- Current user request: remove new tutorial cards, lighten initial loading, disable Troll bhop, prevent camera entering maze from outside. The main mode gallery remains, as announced.
+- Removed controller/media/copy/CSS and clip/poster assets; moved retained lobby icon CSS to lobby-hub.css. Removed Flappy and pause help; kept initial loading-fade/clock guard under bootModeRevealPending. Do not restore old card freeze/SDK hooks.
+- Deferred lobby prepareForEntry and complete tutorial/adjacent Level1 prep until selected, with existing mode-entry readiness/overlay retained. Gallery no longer waits for hand GLBs. No FPS/visual quality reduction or fake gameplay reporting. Basic shared world resources still initialize before choice; further aggressive lazy initialization needs separate dependency audit.
+- True REAL_BOOT comparison (software WebGL/local HTTP, same first-user Levels route): v1.89.2 ZIP runtime boot-ready 17063.9ms, current 5036.8ms (~70% less before gallery). This moves required selected-mode preparation to entry; it does NOT claim every tutorial starts 70% sooner or predict real-network/Poki timings.
+- Troll press-edge jump buffer, no landing bonus/combo; Party hold-bhop unchanged. All 21 Troll1 safe links, full six-checkpoint Troll2/381m route, full Troll3/711m route passed without abilities/deaths. All 64 spike cells, maze ledges, staircase fade, cabin/boulder, group shifts, ice launch, Cyber3-2 support/flash and low red strips passed.
+- Browser desktop/mobile Troll2 entry and 32 exterior camera orbits each passed; no card UI/media requests or new JS/WebGL errors. Exterior approach/inside screenshots inspected. Fresh normal tutorial entry passed and Level1 remains ready before play. Actual Party/Surf/2D/Flappy/lobby entries passed, screenshots inspected. Full route/step tests also passed after removal.
+- Portal regression found during QA: staging the tutorial while the lobby still owns its transition exits the hub before its cinematic can finish. Shared-only preparation remains in the portal queue; full tutorial staging runs in start() after hub exit under the existing overlay. Fresh lobby→Games→Levels playable tutorial now passes with nextRunReady:true. Failed earlier QA18937 is superseded by passing QA18938; no pending blocker.
+- Final local release is1.89.3 in the same folder/ZIP. Removed49 tutorial media/readme entries and four tutorial code/style files; no live upload. Main gallery remains. Further initial-core lazy-loading is intentionally left for a separate dependency audit, not a current TODO/blocker.
+
+## 1.89.2 — Actual gameplay clips, mode goals, large guides and early pacing
+
+- User revisions: restore brief Levels entry loader; use real gameplay, enlarge card to just over half the viewport area, move Tap to Continue below/outside; inspect latest Player Fit and improve real retention. Added clear objective/win/failure logic to all five side-mode guides after follow-up.
+- Replaced procedural 3D preview with24 actual silent game clips plus24 WebP posters (~3.9MB, active page only, no initial preload). One reused video, no extra WebGL context/RAF, hidden/reduced-motion pause and close/src cleanup. Four pages Troll/Surf/2D, three Party/Flappy,30 locales,8 glove clips; trusted outside paging/X and pause-help ownership preserved. Seen marker remains v2, records untouched.
+- Restored visible original Levels preparation panel above handoff/gallery, with180ms readable warm response and real cold preparation. Initial tutorial label is localized. Continuous level boundaries and tutorial→level1 path unchanged. Blocked boot simulation during mode preparation; no fake SDK gameplay time.
+- Read Chrome latest completed test (Nov11):500 sessions,1:56 average,18% engaged,53 median FPS;~65% in first2minute buckets. Game Events cohort663 is not the same denominator; tutorial139/73% completion, Level1/2 failed51/57% are attempts/events, not proven player churn. Error24h table empty is not proof of zero past errors. Evidence and inference limits in output/PLAYER_FIT_RETENTION_2026-11-13.md; no external test/version/settings writes.
+- Hypothesis: softened only normal Level1/2 traffic/spacing/density/opening. VM regression confirms3–120 and target scores unchanged. No Troll trap/Party/Surf/2D physics or rewards changed. Improvement requires another real test, not guaranteed.
+- QA:54 responsive/RTL pages, all goal types/eight glove media,30 reuse cycles, active-page-only media, reduced/hidden pause; actual5mode entries/help, first tutorial/returning Level1 loader and Endless entry passed without new page/WebGL errors. Screenshots inspected. Same local folder/ZIP1.89.2, no live upload. Capture tools/raw frames/reports remain excluded development output.
+
+## 1.89.1 — In-world 3D side cards and lobby gallery shortcut
+
+- Replaced the fullscreen Canvas 2D lesson with a small right-side card containing real pooled Three.js previews. Enter the prepared actual mode first; reveal the card after the original loader fade. No Back/Next/Skip/Play buttons: click/tap outside to advance, X/Escape to close in the current game. World/countdown/reward/boost/SDK pause ownership remains correct. Seen marker is version 2; no course/record reset.
+- Shared pause help is now a top-right question icon, not a menu text button. Flappy keeps its header question icon. Lobby/Games top-left branding is replaced with a cards icon opening the existing gallery; handlers/cursors are cleaned before re-mount, home preserves pose, choosing a side mode exits the hub first.
+- Troll normal speed 7.5 -> 7.0 m/s; Party and the special ice launch cap/acceleration stay unchanged. Bhop uses the correct base. Geometry, jump, gravity, collision and trap timing unchanged.
+- Reopened gallery hides the hub's separate reward/HUD layers until its fade completes, preventing the Ember progress widget from covering posters. Actual Games→Party portal and Flappy stand first/repeat entry pass as well as boot-card entry. Final local ZIP verification covers 165 source hashes / 210 entries, excluding development output.
+- QA: actual desktop Troll/Party/Surf and mobile 2D/Flappy entries and Help pass; real-preparation portrait Troll also passes. Forty-two responsive/RTL component pages, eight gloves, three goals, 30 reuse cycles, trusted close/persistence/reduced-motion/hidden-tab checks pass. RTL text stays RTL while the card stays physically right. Lobby gallery reopened three times with seven cards/one cursor, mode selection and return passed. Troll 1's 21 safe links, Troll 2's complete six-stage course and Troll 3's complete 711m route pass at lower speed without abilities; no geometry edits needed. Low red strips and both-bank phase-trick regressions pass. Normal Levels tutorial and Endless entry remain intact. New preview holds one cached canvas/context, no RAF when closed; no new browser/WebGL errors. No live upload.
+
+## 1.89.0 — Animated first-entry mode guides
+
+- Added a shared lightweight Canvas 2D manual-page guide for Troll/Party/Surf/2D/Flappy, registered 22 copy entries in all 30 locales, and kept normal Levels/Endless tutorials and original loading/menu graphics unchanged. First entry only; persistent seen state is separate from records. Help is available from each mode's pause UI/arcade header. Skip/Play require trusted input, there is no forced watch/practice time, and cancellation does not mark seen.
+- Boot cards, Games portals and the Flappy stand use the same prepared-entry gate. World/countdowns/reward accrual freeze during the guide; existing wall-clock boosts retain remaining time. The SDK resolver reports inactive/mode-tutorial. Flappy worker/main-loop pause and retry duration are preserved; its older capture listener no longer consumes guide Escape.
+- Protected prepared side-mode rendering until the boot overlay fade is over so Surf/2D cannot advance unseen. No physics, course versions, payout, 3D asset or existing record changes.
+- One connected canvas/RAF/observer, abortable listeners, cached jelly sprite/gradient and a fixed draw-cost ring. Reduced motion and hidden-tab pause are implemented. Illustrated lessons have per-device/custom key chips and equipped-glove variants; Party goal adapts to race/survival/hunt.
+- Component QA: 42 desktop/small/Arabic portrait pages without overflow, all Party goals, all eight glove variants (no active key for passive revive), custom bindings, storage/reload, trusted activation, cancellation and pointer-lock retry passed. Local draw P95 about .2ms. Official client tests cover all five mode entries/help, 30 reopen cycles, portal cancel/first/repeat entry, stand first/repeat entry, active reward duration preservation and SDK-inactive tutorial. Normal Levels and Endless entry regressions plus the full 711m Troll route pass with no page/WebGL errors. See MODE_TUTORIAL_AI_HANDOFF.md and output/qa-18900-* for details. Local release only; no live upload.
+
+## 1.88.13 — Levels first and low Troll 2-1 red strips
+
+- Swapped only Levels/Troll in both the boot gallery and initial poster preload order. Troll keeps its red NEW styling, trusted interaction gate and original loading screen.
+- Troll 2-1's ten neon lethal side strips are .45m high instead of 1.7m, with the bottom still Y=8. Footprints, emission and safe island positions remain unchanged. CourseVersion 15 and records retained.
+- Reviewed the latest Chrome Player Fit report read-only: 11 Nov 2026, 500 sessions, 1m56s average, 18% engaged, median FPS 53. Evidence, histogram, the 663-vs-500 event cohort warning and official SDK/measurement limits are in output/PLAYER_FIT_2026-11-12.md. No SDK signals or test settings changed.
+- Focused 120Hz tests verify all ten low strips remain lethal and the middle landing safe; existing Troll 3-2 sequence test passes. Browser desktop/mobile QA verifies card order, NEW styling, Troll 2 strip dimensions and real trusted entry; no page/WebGL errors. Local Poki package only; no live upload.
+
+## 1.88.12 — Keep occupied troll lane opaque during fake breakup
+
+- User clarified that the occupied lane should keep its original appearance rather than becoming invisible. Replaced its hidden state with cyberFeint: the full original mesh remains visible/opacity 1/transparent false and supports the player throughout the trap.
+- The existing fragment pool emits smaller outward chips along the retained lane's edges. Other lanes still use the original full breakup; no new draw calls/pools/materials, physics or timing changes.
+- Both-bank pure tests and complete 711m route pass. Desktop and mobile browser checks confirm opaque intact support during chipping (opacity=1, transparent=false), original warning/flash/checkpoint flow, unchanged real breakup elsewhere, restoration, reset and reduced motion with no page/WebGL errors. The final desktop check also verifies the whole support remains opaque after all fragments have vanished, before the trick resolves. Screenshots inspected, local ZIP updated; no live deployment. Records and CourseVersion unchanged.
+
+## 1.88.11 — Troll 3-2 telegraph and pooled lane breakup
+
+- Root cause: the end trick immediately set cyberHidden=true and warning=false; regular bank warnings also shrank the body then reset it to full height during the overlap before instantly hiding it. Added .62 s end-trick warning and retained support across the normal bank beat; existing flash/wait timers begin after that warning.
+- All disappearing lane surfaces now receive explicit yellow triangle/exclamation marks, small visual-only tremor and a .64 s panel breakup. Normal .48 s warning continues through the .26 s physical overlap, with no shrink/pop. Initial color is established before CP1 so crossing the checkpoint doesn't suddenly hide half the scene.
+- Two reused InstancedMesh pools: 18 warning icons and 240 desktop / 144 mobile fragment capacity, shared geometry/materials, preallocated colors and deterministic generated seeds. No per-break mesh/material creation, new lights/shadow pass or colliders; reduced-motion keeps static icons and subdued fragments. Respawn/checkpoint reset removes stale effects.
+- Pure 120Hz tests pass both banks, warning-before-hide, retained invisible support, delayed flash, unlock, normal break timing and respawn. The full 711 m route passes without teleporting, abilities or deaths. Desktop/mobile browser checks passed warning visibility, shatter counts/capacity, hidden support, checkpoint lock/unlock, restore, one pool per scene, reduced motion, original death effect and no page/WebGL errors. CourseVersion 15 and records retained.
+
+## 1.88.10 — Restore loader visuals; prioritize gallery preparation
+
+- User clarified: restore the original loading screen, only optimize loading for the new rectangle picker. Removed all gallery CSS overrides of real loading background, panel, brand, type, spinner, bar, percentage and cursor. New typography/cursor remain scoped to boot-play-ready only.
+- Added non-blocking first-viewport artwork start + bounded 1200 ms join tasks to the existing pipeline, without removing/bypassing any world readiness task. Two download/decode workers warm only first 2 portrait / 4 landscape flat posters + canyon; gallery font is requested at preparation time rather than an unconditional early font preload. References are released on mount.
+- Far card images use data-src until a short 180px lookahead observer requests them. Alpha layers use a prioritized single-card queue and at most one image decode at a time, with yields, timeout/fallback, 15-second failed-layer retry cooldown, original 4 desktop / 3 coarse-pointer residency limits, suspend/resume and full cleanup.
+- QA: desktop seven-card preparation/layer motion and Troll entry/CP/death/fade/pool passed; loader computed style exactly matches original cascade with gallery CSS disabled. Portrait mobile injected a failed Troll alpha asset: flat fallback stayed visible, six other cards loaded, queue stayed peakDecodes=1 and mode launch/cleanup passed. Zero page/WebGL errors; visual captures and game text states inspected. No physics/save/CourseVersion changes or live deployment.
+- Deadline unit test used non-resolving image/font promises with scaled clocks: menu join returned at its deadline while preparation remained pending, without requesting all seven cards. Browser startup reports show only first 4 (desktop) / 2 (portrait) posters prepared; prepared Image references are released at mount. Local package updated after validation.
+
+## 1.88.9 — Entry-edge shine and fewer, larger cat cutouts
+
+- User clarified: keep the old one-shot sweep, choose its starting edge on pointer entry, never track the mouse within a card. Added four .85-second CSS sweep directions; crossed-edge resolution handles fast pointer movement. Card-internal movement changes only existing tilt/parallax, not the shine direction or start time.
+- Troll death pool reduced 32 -> 16 desktop / 24 -> 10 mobile; half remain mirrored. Cutouts are ~1.5x larger, jittered through the full viewport instead of only the central vertical band; central desktop cells move outward to preserve the game view. Portrait/landscape distributions differ, reduced-motion uses 6.
+- Existing death laugh, fade duration and cleanup preserved. Desktop official-client QA passed all four edge directions, exactly one sweep, no mouse following/restart inside the card, fade completion while hovering, reduced motion, navigation, mode entry and DOM cleanup. Death verification: 16 cutouts/8 mirrored, all four screen quadrants, widths >80px, reused pool across three deaths, explicit cleanup, reduced-motion count 6, original laugh/fade intact, zero page/WebGL errors. Mobile 640×360 landscape and 390×680 portrait also passed: 10 cutouts/5 mirrored, all quadrants, widths >38px, pooling/fade/reduced-motion/cleanup, checkpoint behavior and game entry. Screenshots and action-burst game states inspected. Only cosmetic changes, no CourseVersion/save/physics changes. Local ZIP updated after validation; no live deployment.
+
+## 1.88.8 — Gallery cursor, captions, shine and navigation
+
+- User request: improve cursor contrast, change title font, yellow hover titles with icon-only play centered horizontally, directional mouse-driven shine, fix left navigation/remove nav frame, coordinate loading design.
+- Added bundled Fredoka variable font and its unmodified SIL OFL license from Google Fonts. No third-party runtime font request. Gallery title/caption and loading panel typography now share it.
+- High-contrast native circular cursor has an opaque dark center, black contour and white/yellow ring, plus a stronger non-interactive halo. Other game/lobby cursors are unchanged.
+- Wrapped mode title/play SVG in a centered flex caption, animate icon width/opacity without vertically moving the caption. Fixed a CSS specificity conflict caught by the first browser test (caption's base white overrode hover yellow).
+- Replaced a fixed glint sweep with pointer position and shortest-arc direction tracking. Layered sticker animation remains independent and bounded.
+- Navigation now targets stable card offsets and tracks pending smooth-scroll destinations. Removed whole-button rotateY and all navigation bracket pseudo borders. Three next/three previous clicks returned to the first card in the first browser run.
+- Styled the actual loading panel with the same canyon, white/gold and rounded type; progress timing, mode preparation and gameplay unchanged. Scoped UI variables also override the old shared panel theme without changing pause/settings panels.
+- QA: full desktop Troll run passed seven layered cards, hover yellow/play alignment (no vertical caption displacement), right/down/left shine, high-contrast cursor, three next/three previous clicks, no nav frame, reduced-motion and post-entry cleanup/death effects. 640×360 mobile full gallery/2D entry and 390×680 portrait targeted interaction/2D entry passed with zero page/WebGL errors. One concurrent desktop/mobile browser attempt exhausted test-host resources; mobile was rerun alone and passed. Use sequential browser tests on this host.
+
+## 1.88.7 — Independent sticker poster layers
+
+- Latest request: split the existing mode illustrations into separate characters/objects and add subtle independent hover motion and glows.
+- Added 28 ImageGen-edited assets: clean base, alpha hero, two alpha prop groups for each of seven posters. Preserved source PNGs; shipped 640×960 WebP plates total 914,748 bytes. All 21 foreground alpha channels checked (transparent minimum 0, opaque maximum 255). Complete prompt set and source/output mapping: MODE_GALLERY_LAYERS.md.
+- Added boot-poster-layers.js/CSS. Originals remain visible until all four layers decode; no duplicated character underneath. Only one hovered/focused poster animates. All offscreen/hidden/suspended/reduced-motion behavior and explicit cleanup are bounded; max 4 desktop / 3 mobile layered residents.
+- Desktop QA passed all seven cards: independent hero/a/b transforms, one active card, true layer dimensions, fallback hidden, keyboard navigation, reduced motion, tab suspension, repeated scrolling within memory cap. Troll entry cleaned up all layer/halo/sticker DOM, retained CP lock/unlock and mirrored death/audio fade behavior. Zero page/WebGL errors.
+- Mobile 640×360 landscape (2D entry) and 390×680 portrait (fresh Flappy entry) passed the same seven-card layer/motion/residency tests, native touch swipe, reduced motion and cleanup. Screenshots and action-burst render_game_to_text states inspected; zero page/WebGL errors. No gameplay/course/save changes and no live upload.
+
+## 1.88.6 — Illustrated portrait carousel
+
+- Replaced the previous screenshots with seven distinct ImageGen poster illustrations. The prompt set and asset paths are in MODE_GALLERY_ART.md.
+- One horizontal row of tall posters now matches the user's sketch, with a partial next-card preview, bracket controls, wheel/drag/touch navigation and keyboard Home/End/arrows. No multi-row box grid.
+- Circular cursor is preserved on every descendant. A halo, restrained tilt, parallax, sheen and click ripple react to interaction. Sixteen drifting SVG stickers and three orbit accents add independent background motion. Cleanup and reduced-motion are explicit.
+- Keyboard QA uncovered a hidden first-time tutorial gate consuming gallery navigation. That gate now ignores keys while boot is visible; choosing another mode cancels the stale prepared gate without marking the tutorial complete.
+- Fresh Troll entry also needs the hub avatar source even when boot skipped the hub for tutorial preparation. The existing hub builder now supplies that source before Troll cloning, without entering the lobby or changing the character.
+- QA: all seven mode entry reports have zero page/WebGL errors. Final fresh-profile Level and Troll runs passed, as did portrait native touch swiping. Gallery tests cover first/last navigation, keyboard navigation, drag-without-launch, native circular cursor, sticker motion, reduced motion and removal of the halo/sticker DOM after entry. Art size: 529,410 bytes for seven 640×960 WebPs.
+
+## 1.88.5 — Full-screen illustrated mode picker
+
+- Replaced card icons with seven cropped gameplay screenshots. The desktop grid uses two large centered rows; narrow portrait uses three. Headers are gone and the plaza button remains icon-only with its localized accessible label.
+- Built-in ImageGen prompt for `assets/mode-cards/canyon.webp`: “Use case: stylized-concept. Asset type: full-bleed animated-menu backdrop base layer for Elemental Run, not a card, no UI. Scene: panoramic low-poly 3D canyon at violet-blue dusk, floating slate islands and serrated mountain silhouettes seen far away, subtle pale cyan vapor ribbons and soft warm magenta rim light in the sky. Slight arcade fantasy feel. The very large mode cards will cover nearly the entire scene; distribute the interesting haze and edges across the panorama, do not place a giant hero object in the middle. Restrained contrast, rich indigo, plum and blue, no neon grid. Wide landscape framing. No text, logos, icons, UI, borders or watermark. Opaque image.” The eight WebPs total 155,978 bytes. Two transform/opacity-only CSS layers stop with reduced motion or when the picker is closed.
+
+## 1.88.4 — Boot mode cards and Troll death burst
+
+- The seven playable modes are available at boot after loading. Troll Obby is first with a red NEW badge. First-time players choosing Levels still get the tutorial; Lobby is a separate action. The Poki bridge accepts only trusted clicks on these controls and doesn't count mode preparation.
+- Troll 3's CP2 deck and ring remain visible while locked. The ring changes color on release, with the existing invisible-lane timing and anti-bypass logic unchanged. No course version bump.
+- A single transparent WebP supplies the mirrored/unmirrored death stamps; a pooled 24/32 DOM nodes animate only when needed. The supplied laugh is trimmed to two seconds with a fade and uses the existing SFX bus.
+- Playwright entered all seven modes and the plaza with zero page/WebGL errors; the mobile portrait run used the full boot pipeline. The unchanged deterministic 711 m course still clears and rejects the two early CP2 bypasses.
+
+## 1.88.3 — Locked phase exit and longer Cyber rooms
+
+- Sector 2's deception now arms by position on either bank. The hidden lane remains solid, the brief other bank remains non-solid, and CP2 cannot be touched or awarded until a brief stand on the hidden lane completes the sequence. Holding W and airborne entry are explicitly tested.
+- Wind and ice rooms each gained 45 m; the full course is 711 m. The fan axis is fixed across the bridge, with nine/five softer streaks on desktop/mobile. The final ice gap remains 15.5 m; added three hazards in the ice extension and three hurdles in wind.
+- The deterministic full route and focused Playwright checks cover the escape/blocked checkpoint, fan orientation and new ice approach. See `output/troll-1883-course-test.cjs`, `output/qa-1883-troll3*` and [the guide](TROLL_OBBY_LEVEL_3.md). Next playtest: see whether the restored checkpoint and chime teach the wait without an instruction prompt.
+
+## 1.88.2 — Troll Obby sound design and Cyber phase rework
+
+- All three levels share one bounded Web Audio SFX bank (footsteps, jumps, landings, traps, hits, respawn, countdown, checkpoint, finish) and an optional filtered wind/ice/boulder bed. No new audio files; pause/exit release the bed.
+- Troll 3 now measures 621 m: red bars and columns, late fake GO, two alternating banks of 137 m rails with collision-safe invisibility, a following fan, richer ice models/effects, and four equal-looking platform pairs that reveal height at overhead entry.
+- The 120 Hz sim cleared all rooms without teleporting, dying or abilities. Browser checks cover grouped lane visibility vs solidity, fan tracking, ice, perspective, and audio in all three levels. See `output/troll-1882-course-test.cjs`, `output/qa-1882-troll3*` and [the guide](TROLL_OBBY_LEVEL_3.md). Next tune the mixer against actual phone speakers.
+
+## 1.88.1 — Troll 3: Long Cyber course
+
+- Doubled the course to 532 m: uninterrupted GO/STOP deck with six hurdles and left-only fist; six parallel neon runways; one narrow crosswind beam; 105.5 m of slick ice ending in a 15.5 m transfer; longer overhead route with movers, decoys and positional perspective shifts. No added external assets or new physics engine.
+- Ice accelerates to 23.5 m/s and carries speed across the gap. Only contact with the dry CP4 deck removes excess speed. A normal-speed takeoff fails; the full 120 Hz route succeeds without teleports, abilities, or deaths. Troll 1/2 and all nine Party layouts match 1.88.0.
+- Desktop and mobile Playwright capture GO/STOP, the left punch, the lane illusion, wind, ice flight/landing and the overhead camera. Migration preserves prior stages and Troll 1–2 times. See `output/qa-1881-troll3*` and [TROLL_OBBY_LEVEL_3.md](TROLL_OBBY_LEVEL_3.md). Next balance pass: observe how quickly new players read the launch chevrons and invisible-lane reveal.
+
+## 1.88.0 — Troll 3: Cyber Inspection
+
+- Replaced the old Cyber course with five authored sectors and six checkpoints over 266 m. Isolated the clock-driven stoplight/fist, deceptive sequence and crosswind in TrollRace. Glue alone opts into the existing 120 Hz solver's surface grip, and the overhead finale keeps screen-relative controls.
+- Added a shared ice texture, fading checkpoint holograms and one reusable wind instance batch. Troll 1/2 and all nine Party layouts match 1.87.4; CourseVersion 12 preserves progression and the first two current records, archiving only the old Troll 3 time on upgrade from 11.
+- The deterministic route completes without deaths, teleports or abilities. The Playwright game client captures all five sectors, verifies visible vs solid floors, retry, pause, and finish in desktop and mobile profiles. See `output/qa-1880-troll3*` and [the current guide](TROLL_OBBY_LEVEL_3.md). Next tuning pass: gather first-attempt completion rates per room on actual phones.
+
+## 1.87.4 — Simpler Cyber plaza walls and earlier Lava scenery
+
+- Replaced the Cyber wall's dense window pattern with broad metal panels and restrained cyan marks; the skyline, floor and interactions are unchanged.
+- In Levels, a Lava section warms two foreground volcanoes and its first tunnel together. Relaxed Lava fog, reduced the mid-level Lava seam offset and kept tunnel smoke inside the streamed footprint. Endless rules are unchanged.
+- Desktop and mobile Playwright crossed Level 3 → 4 and Level 11 City → Lava; both Volcano landmarks and the registered, visible tunnel were present within the expected ranges, the two-biome budget held, and no WebGL/script errors were captured. See `output/qa-1874-after*`. `TROLL_OBBY_LEVEL_2.md` documents the unchanged Troll 2 layout.
+
+## 1.87.3 — Distinct plaza decoration motifs in the five non-Nature biomes
+
+- Authored separate ground focal areas per biome and introduced distinct silhouettes for wall motifs, portal side accents and ground clusters. Nature's flowers and placement are unchanged; the three static instanced batches per biome are retained.
+- Playwright compares these six layouts against 1.87.2. It checks five changed non-Nature layouts, identical Nature placement, unchanged floor hashes and interaction areas, and at most one extra visible draw call across 30 measured views per device profile. Captures: `output/qa-1873-recipes*`. Local ZIP only.
+
+## 1.87.2 — Varied lobby decoration placement
+
+- Removed mirrored, evenly spaced ground decorations. Seeded beds vary in spacing, direction, size and contents and reserve the carpet, stair and pad footprints. Vines and wall accents vary between faces; corner displays vary as whole assemblies. No extra instancing batches.
+- Desktop/mobile Playwright verified asymmetric distribution, pad/stair clearance, all six unchanged floor hashes and identical draw-call counts across the 30 measured camera poses per profile. Screenshots: `output/qa-1872-layout*`. Local package only.
+
+## 1.87.1 — Nature plaza turf
+
+- Replaced only the Nature courtyard's stone material pattern with seamless mown grass. Existing carpet, stone walkway, planters, collision, jelly trail plane and Games hall are untouched.
+- Playwright desktop/mobile screenshots and checks are in `output/qa-1871-grass*`; the other five floor textures matched the v1.87.0 hashes, with no page or WebGL errors. Verified the existing local ZIP as v1.87.1; no live upload.
+
+## 1.87.0 — Themed set dressing for the main lobby
+
+- Reference: anchored scenery around the portal, along wall edges and beside the avenue. Removed the floating lobby companions, bunting, generic portal sculptures and roaming dust.
+- Added three instanced scenery batches per visible biome. Keep flowers, grass and crystals clear of pads/stairs; static decoration has no collider or input handler.
+- Playwright desktop and mobile checks covered the six portal views, upgrades, stairs/jelly trail, active biome visibility and Games/plaza round-trips with stable resource counts and no page/WebGL errors. Five measured poses per biome used 1–6 fewer draw calls than v1.86.0 on both profiles.
+- Reference screenshots: `output/qa-187-plaza-after` and `output/qa-187-plaza-after-mobile`. Preserve the existing three-batch budget when expanding these decorations. Local ZIP only.
+
+## 1.86.0 — Elemental lobby materials and architecture
+
+- Scope: main plaza visuals only. Keep the six existing death-biome IDs, spawn, controller, zones, Games hall and save format.
+- Implemented six opaque, periodic floor patterns (color/normal/roughness and selective emissive), matching wall textures, pooled reliefs, themed props and cladding for the Games portal, monitor and wheel. Plaza and Games lights restore independently.
+- QA captures and render-call measurements against the unmodified 1.85.0 build are kept under `output/qa-186-plaza-*`. Use the same views and preset when repeating the comparison.
+- Playwright measured all six themes on desktop and mobile with all eight hand models loaded (five camera poses per theme). The final run measured at most 4 added draw calls on either device profile, within 12 / 8. Verified opaque floors, unchanged zones, actual keyboard/joystick stair traversal and fading trail, and stable resources after 18 theme switches.
+- Verified the upgrades panel and Games portal round-trip, three repeated plaza/Games switches with unchanged resources, and the desktop Water death/return/reload path with Level 1 still selected. Both browser configurations reported no page or WebGL errors. Final local Poki package only; no live deployment.
+- For future art updates, keep plaza-only scenery outside `mode-concourse.js`'s interaction registration, leave tile tops below the jelly stamp plane, and measure with the hand catalogue fully streamed in.
+
+## 1.85.0 — Biome art in the main plaza and softer fog
+
+- Broadened the ground haze blend to 25 m with a gently varying height and thinner cloud veils. Shared gradient sky and haze code works in both areas.
+- Added six main-plaza looks: exterior scenery, themed planter models, distinct lighting presets, flush stone paving and lit trim. Main boundary walls are 8.6 m visual height; controls, pads, collisions and portal routing unchanged. Geometry is instanced and uses the existing three lights.
+- Official Playwright exercised six desktop and three mobile plaza palettes, upgrades open/close, Games wall-side fog views, movement and plaza/Games transitions. Art visibility and lighting/fog restore on return; root and resource counts stable after theme caches warm. No browser/shader errors. Local Poki v1.85.0 ZIP verified, no live upload.
+
+## 1.84.0 — Low Sky-style cloud layers and larger exterior landmarks
+
+- Referenced the running Sky floor's offset translucent planes. Games top veil now sits 14–17 m below the deck, with low opacity, reduced contrast and a deeper backing; foreground view stays clear. Two mobile/three desktop slices share one lower-resolution geometry.
+- Exterior landmarks use a common 1.65 scale around each assembly anchor and larger spacing; tall bases extend below cloud depth, with Nature banks set farther back and watercraft on the lower surface. Internal paths, portal layout, movement and map theme selection unchanged.
+- Official Playwright passed all six desktop themes and Cyber/Water mobile, including near-edge and downward views, layer height/opacity, model scale, collision guards, and re-entry with unchanged hall resources. No browser/shader errors. Local Poki ZIP verified; no live upload.
+
+## 1.83.0 — Floating Games platform and cloud sea
+
+- One opaque, depth-writing cloud surface around a tapered floating foundation. The profile sinks at the deck and rises around distant props; a height-based shading blend hides the transition at building and mountain bases. Six biome palettes/ceilings. Cyber podiums removed; local portal, avatar, collisions and camera unchanged.
+- Official Playwright: six desktop palettes and Cyber/Water landscape mobile; side, corner and downward views inspected. The fog writes depth, no collider/clickable was added, exterior towers, rock peaks and sanctuaries extend below the cloud layer, and plaza re-entry reuses the hall. No browser/shader errors; avatar, runtime and portal routing hashes unchanged. Same local Poki ZIP verified, no live upload.
+
+## 1.82.0 — Four-sided Games horizon
+
+- Four cardinal backdrop sectors, each with two-height cloud banks, distant ridges and its own biome landmarks. Nature woodland, Cyber towers, Sky sanctuaries, Lava crater/flow, Water lighthouses and sailboats, Snow alpine silhouettes. 96/60 shared cloud lobes desktop/mobile; islands limited to Nature and Sky. Instanced batches; exterior models do not cast static shadows or enter the lobby raycast/collision lists.
+- Official Playwright: all six desktop themes and Nature/Water landscape mobile, four directional Nature screenshots, move/jump action burst, perimeter and passage checks, actual plaza exit and re-entry. Same hall root and resource count after the main plaza first loads its new theme; no page/shader errors. Source hashes confirm portal routing, gameplay runtime and avatar code unchanged.
+- Local Poki v1.82.0 ZIP verified; no live upload.
+
+## 1.81.0 — Visible garden walls and last-death biome
+
+- Replaced low ledges with 2.22 m perimeter walls and aligned collision boxes, above the unchanged 1.64 m jump envelope. Nature hedge faces and shared palette-driven caps, edging, tile and sky. Instanced Cyber skyline, Sky spires, Lava basalt/molten pools, Water coral/tide pools and Snow pines/ice; existing portal layout/avatar untouched.
+- Local validated six-phase key follows actual run death (including alternate modes); no update on normal exit, success, prevented death or menu reset. Main plaza and Games read it independently of Level 1. Sunset Nature remains default; no network dependency.
+- Official Playwright client: six desktop themes and landscape touch viewport snapshots inspected. Four collision sides, actual jump envelope, forced Water result through the game-over handler, lobby return, retained Level 1 and reload persistence verified. Resource count stable across six theme switches. Local Poki package only; no publish.
+
+## 2026-11-08 — Games garden reference art (1.80.0)
+
+- User asks to implement the supplied sunset portal-garden reference, improving lights/models/graphics without changing the jelly avatar. Replaced concourse enclosing walls/beams with an open garden; same eight mode/return portal functions and placements. Shared instanced pavers, grass beds, mixed angular tree crowns, floating islands/clouds. Scoped light/fog rig and static desktop shadows; no new external assets or live publishing.
+- Official game Playwright client passed desktop and 844×390 mobile viewport checks. Full-page screenshots inspected (the official canvas picker selects the inactive 2D canvas after visiting 2D; `entry-final.png` is the actual returned page). Keyboard move/release/jump, boundaries, all seven actionable title raycasts, plaza cinematic, Games re-entry, real 2D entry/menu exit and return passed; no page/shader errors.
+- Four repeated area swaps retained 137 hall meshes / 1,177 tracked resources and cleared the pooled trail. Lighting and renderer flags restore on plaza return. Shared portal materials/static batching reduced the earlier entry view from 184 to 140 calls. Cached hall return skips recompiling hidden plaza assets. Software-rendered tests are not physical-device FPS benchmarks.
+- Existing continuous six-room Troll 2 route, staircase fade, all fake boulder shelters, both block shifts, all 64 spike cells/reset passed. ZIP hash comparison confirmed cube-avatar, course/physics, Troll, 2D, Surf and main runtime files unchanged. No CourseVersion/save migration. Same local Poki package only; no live publication. No pending implementation TODO.
+
+## 2026-11-07 — Troll 2 strict checkerboard, boulder collision and stair fade (1.79.4)
+
+- Strict 16×4 checkerboard parity (32 red plates); safe route varies independently with straight full-cell skips, diagonal jumps and optional safe landings. Bait tiles pair with neighboring plates in the same row; the visible slide lasts .16 s and its destination remains occupied long enough to punish a wrong landing.
+- Rounded boulder uses smooth analytic normals and a 3.85 m matching collision sphere, large enough to cover the fake cabin thresholds while preserving real shelters. Spiral treads fade in place around the original collision cutoff, using shared opacity levels and restoring on retry.
+- At 120 Hz, the safe finish, all 64 tiles, the three timed real shelters, all three fake shelters in both boulder directions, 96 stair supports, and fade timing/reset passed. CourseVersion 11 archives the prior Troll 2 time; no live publish.
+- Desktop and landscape-mobile Playwright scene checks confirmed visible slide, smooth boulder and fading treads. The local harness skips unrelated boot prewarm. Previous ZIP comparison confirmed all nine Party courses, Troll 1/3, all Troll 2 checkpoints and stages 1–5 platform geometry are unchanged.
+
+## 2026-11-07 — Troll 2 varied spike route and shelter roofs (1.79.3)
+
+- The spike board retains 16×4 cells but alternates straight stretches, lateral transfers and optional adjacent landings, with every bait cell still using a visible neighboring plate. The false maze exit reveals a red WRONG WAY sign at close range. Six opaque cabin roofs close the boulder shelters and block jumps.
+- The Troll 2 spiral smooths display height independently from physical support, and quiets grounded jelly motion; all 96 physical steps are unchanged. The tested maximum visual rise per simulation tick dropped from 19 cm to 4.04 cm.
+- Guided 120 Hz spike route reached the finish without deaths or abilities; all 64 cells and reset checked. Continuous stair contact, timed refuges, solid roofs and prior jelly/Troll regression checks passed. Browser scene checks use a focused local QA harness that skips unrelated boot warmups. Local Poki package only.
+
+## 2026-11-07 — Calmer jelly and Troll 2 maze/spiral/spike overhaul (1.79.2)
+
+- Jelly stride flexes vertically, with damped, reduced lateral lean reserved for sustained steering. Troll 2 is 381 m: flush red opening walls; closed 91-cell ice maze with lights, narrow bypasses and an unrendered exit blocker; 96 walkable steps; uphill rock road and three large three-sided refuge pairs. Shifting blocks retain their relative layout/timing at the higher elevation.
+- Final 16×4 board: 32 visible red spike plates; 16 bait squares use the descending ballistic endpoint to slide an adjacent plate; 16 protected squares form a passable route. Two instanced draw batches, shared rendered/collision slide pose.
+- Continuous six-room zero-death 120 Hz run, uninterrupted staircase contact, actual internal maze route, three timed refuges, 64 cell landings/retry, desktop and landscape-mobile Playwright checks passed. Previous ZIP comparison confirms other Troll/Party layouts and relative moving-block geometry unchanged. Old Troll 2 best archived; unlocks kept. Local ZIP only. No pending implementation TODO.
+
+## 2026-11-07 — Troll 2 walkable spiral, ramp and predictive board (1.79.1)
+
+- Restored opening dimensions; 25 m wide maze has opaque modeled walls and translucent inner floor, roof and partitions. 32 connected 19 cm risers and an elevated runway lead to a concealed reverse step. CP3 remains elevated. A single 77 m grade replaces the collision seams of the boulder road; six refuge pairs and 17/13 m/s boulder.
+- 2-5 local geometry and trigger timing match the prior ZIP. 2-6 is a flush 12×3 grid; descending ballistic endpoint arms one tile, instanced spikes rise in ~85 ms, actual unsafe touchdown is lethal. No trail tells safe tiles apart. Total length 327 m; course v8 archives only the previous Troll 2 best.
+- Continuous six-room zero-death run at 120 Hz, 32 stairs without jumps, both maze routes, six boulder bays, continuous ramp samples, 12 safe/24 lethal board cells and retry passed. Desktop and landscape-mobile Playwright stages and regressions passed; screenshots inspected. Other Troll and all Party layouts match the previous ZIP. Local Poki ZIP only; no upload. No pending implementation TODO.
+
+## 2026-11-07 — Six-stage Troll 2 Snow course (1.79.0)
+
+- Troll 2 is 240 m, with six ordered checkpoints and authored emissive kill walls, a 1%-opacity roofed dead-end, ascending crumble spiral/normal-looking reverse pad, timed boulder refuges, four linked Z-moving blocks, and parabolic spike rows. Real 120 Hz sweep, avatar height, jump and speed unchanged. Spike teeth are instanced; invisible cabin blockers have no draw calls. No new assets.
+- `output/troll-179-course-test.cjs` passed a continuous six-stage, zero-death route without abilities, both maze sides, boulder refuges, shifts/reset and lethal controls. Reverse pad's lateral push into the void also verified directly. Official desktop and landscape mobile browser screenshots and play states inspected; no page errors. Troll 1/3 and all nine Party layouts compare equal against the previous ZIP; existing physics checks passed. v6→v7 migration archives only the old Troll 2 best and keeps unlocks.
+- Updated level reference and same local Poki ZIP. No live upload or remaining implementation TODO; optional human difficulty playtest.
+
+## 2026-11-06 — Softer jelly and organic ground marks (1.78.1)
+
+- Crown now lags via an underdamped visual shear; face/hat stay attached to the same transform, rounded support remains anchored to the ground. Slower landing rebound, smoother jump stretch, and more rounded mint body; gameplay physics unchanged.
+- Pooled trail uses staggered, unequal puddles with lateral offset, varied silhouettes and occasional satellite drops instead of a continuous line. Same batch, surface checks, mobile limits, fade and reset rules.
+- CPU squash, rebound, flex, anchoring, stamp variety and surface guards passed. Official desktop and landscape mobile Playwright flows passed, including Lobby stairs, Troll trap isolation and Party/re-entry. Side-angle captures inspected. Local ZIP only; no live upload.
+
+## 2026-11-06 — Shared lobby/Troll jelly avatar (1.78.0)
+
+- Shared rounded mint avatar with clearcoat, spring squash/stretch anchored at the visual floor, idle/acceleration/turn/landing poses and unchanged face/hat attachments. Reduced motion disables idle wobble and droplets. No collision, camera, physics, route or CourseVersion changes.
+- One pooled ground stamp mesh per active scene; lobby/hall share their pool, Troll uses its own. 48/1.8s desktop and 24/1.4s mobile, geometry-edge checks and no reveal of hidden or trap surfaces. Clear on scene entry/exit, retry, respawn and player replacement.
+- `output/jelly-178-test.mjs`, Troll route/mechanics and Party regression passed. Official Playwright desktop + 844×390 touch viewport passed jelly motion, carpet/stair height, fade, pool reuse, restart/respawn, hidden support, traps, native pause, next level, Party isolation and re-entry. Screenshots inspected; no page errors. QA uses a local Poki SDK stub, not live publication or a physical-device FPS benchmark.
+
+## 2026-11-05 — Troll 1 checkerboard and finale corrections (1.77.1)
+
+- Flush 4.2m square checker tiles, red emissive edge mask, no final intermediate stone. Last three centre platforms opaque, first invisible wall and solid yellow detours remain; orange-line wall deleted, brown side platforms fake. Both translucent materials 0.01 opacity. v6 archives Troll 1 PB only, preserving Troll 2/3.
+- CPU tests passed flush edges, all 12 tile contacts, falling brown tiles, and 87 route links across Troll courses. Official desktop/mobile visual and lifecycle checks passed, screenshots inspected, local ZIP rebuilt and entries verified.
+
+## 2026-11-05 — Five-stage Troll 1 and mixed Nature trees (1.77.0)
+
+- Sketch-inspired JSON-compatible Troll 1 arrays over 160m, five 32m checkpoints. Existing 120Hz physics and avatar unchanged. Slide +4.2 X / .16s; ghost .1 opacity; inverted bridge; 12 checker cells; invisible-wall detours. Visual flags independent of collision; reset at stage checkpoint. Troll 2/3 layouts untouched and v4 bests retained. LEVELS_TROLL_PARTY.md updated.
+- Nature normal/intro/hidden staging uses accepted adjacent tree-family exclusion; Party/Troll static rows mix existing five families, Surf Nature samples extra variants instead of fixed left/right species. Same tree shapes, no new GLBs.
+- Physics tests passed 89 links across all Troll courses, all five new mechanics, 240 streamed tree slots, static row diversity and no overlap. Party/Cyber/horizon and canopy regression tests passed. Official desktop and mobile browser tests passed (Play gate, five stage snapshots, material/collider sync, restart, CP, all Troll finishes, Party switch and return). Same ZIP updated and verified.
+
+## 2026-11-03 — Angular tree silhouettes / straight pine tips1.76.1
+
+- User: short pine tip crooked; broadleaf crowns too round/same; brief web research. develop-web-game used. Primary Kenney Nature Kit and Kay Lousberg Forest Nature Pack visuals plus LMHPOLY stylized-tree tutorial consulted; no downloaded third-party assets/code. Design interpretation: distinct species silhouettes and broad flat facets, not overlapping spheres.
+- Pine top3layers now centred/upright; tip overlaps final cone. Angular canopy module has6profiles (oak/young/birch/twin/autumn/apple),12segments/7rings/168triangles, polygonal cross-section and coherent asymmetric shoulders. Radius/height/species branches adjusted. Same cached vertex-colour/batching/ownership; Snow/Lava special trees unchanged. Model counts286–1232triangles, less than previous revision.
+- Actual8builder CPU test: 6styles, exactly1crown, finite positions/normals, deterministic seam, preserved baked colours, centred attached pine tips and triangle budget passed. Official-client gallery opened/inspected after branch adjustment; actual full-game desktop/mobile lifecycle passed without page errors; screenshots opened. Nature flat face normals now survive the shared Party/Troll decor-material conversion; CPU test verifies all168crown triangles retain face normals. Other biomes untouched. Final desktop rerun after that conversion fix and same ZIP hash verification completed. Existing source/ZIP only, no publication or real-device FPS guarantee.
+
+## 2026-11-03 — Authored Troll paranoia / Cyber cleanup1.76.0
+
+- User requested difficult authored3Troll levels using only existing traps, explicit array/coordinates and guaranteed safe alternatives; Cyber too empty with useless ground cubes. develop-web-game used, canonical source/same ZIP only; no external publication. Kept120Hz swept-AABB/skin/physics, hub avatar/orbit, Party routes and other modes.
+- trollCourse now distinct4/5/6room arrays: false-security wall and narrow bypass, centre gifts/shoves, Snow paired-gift slots and7crumble landings +reverse decoy, checkpoint approachFake; Cyber3upper fakes over Y4/W1 lower shelf +1.4m risers, solid S-maze hiddenKill deck and left X=-6/W3 CP6. safePath is authoritative QA path with intra-deck maze turns, not route arrows. Updated CP supports/finish visuals and valid lower-route fall camera threshold. No new mechanics/external physics. Hazards[] intentionally empty because trap contacts already live on platforms.
+- CourseVersion4 exported/host-linked archives incompatible PBs while preserving completed access. Authored traps have purpose comments. Cyber random small ground-infill boxes removed (shared Cyber art only); Troll source buildings resized25–46m/38m footprint, legacy115m landmark offset removed, closer window-lit skyline/fog80–260. Existing source textures/instancing and budgets retained.
+- CPU test initially caught one kill volume cutting the safe jump; moved it to decoy side. Coplanar inventory caught3CP/landing overlaps; adjusted seam geometry and verified none remain. 88physically simulated links incl. Y4 return, continuous S-maze walking, all7trap behaviours, crumble retry, CP ordering and hidden-death reveal pass. Party162 and horizon176 pass. Official desktop/mobile full lifecycle pass with no page errors; screenshots opened (dense Cyber, lower shelf, maze, left finish). Final1.76.0 desktop/mobile lifecycle repeated after seam fixes; screenshots opened. Cyber environment test verifies zero ground-infill cubes and grounded nearer instanced skyline. Same ZIP updated;111managed source-entry SHA-256 hashes verified, QA/output excluded. No real-phone60FPS claim.
+
+## 2026-11-03 — Restore classic families / cohesive crowns1.75.1
+
+- User rejected study: restore old style but more detailed, without intersecting bubble clusters. develop-web-game used. Original8oak/pine/birch/autumn/apple factories restored by default; rejected study only explicit ?trees=study. No website upload or shutdown.
+- New cohesive-tree-canopy builds one closed deterministic432triangle crown per broadleaf, coherent scalloped outline/colour gradient/facets; old leaning trunks/roots/branches/birch bands/apple fruit retained. Old layered pine unchanged. Nature extra Party leaf balloons disabled; Snow/Lava untouched. Source groups baked into existing cache/batching, no per-frame generation/new lights/shadows.
+- Actual-game screenshot caught white crowns: cbMergeByMaterial discarded vertex colours. Now coloured-material groups preserve authored colours via existing mergeColoredGeos before bake. Node tests cover all8actual builders, exactly1crown, finite geometry/normals, seam/determinism and final baked colour survival. Official gallery and full real-game lifecycle screenshots inspected; final desktop/mobile lifecycle tests passed without page errors, both gameplay screenshots opened with green crowns. Horizon176 and surface168 regressions also pass. Existing release ZIP refreshed with managed-entry SHA-256 verification. Same source/ZIP in place; no real-phone performance guarantee.
+
+## 2026-11-03 — Sparse user-reference tree family1.75.0
+
+- User supplied standalone Three r160 tree reference and requested replacement test with fewer proportional leaf clusters and varied forms/colors. develop-web-game used; no new renderer/OrbitControls/UI or4096shadow map. Nature trees only across shared factories; Snow/Lava special families retained (scope announced). No website/Poki upload.
+- procedural-tree-study.js bakes8seeded variants into wood/foliage parts using existing vertex-color materials/cache/resource ownership.3stem sections,5roots,4–6side groups;5–7clusters;960–1288triangles. Position-derived coherent deformation avoids duplicated-leaf-vertex cracks. All temporary geometries disposed, no live-frame random generation/growth/LOD switching. Old builders retained under ?trees=classic. Legacy createDetailedTree warm path uses same new cache. Party extra independent Nature leaf crowns disabled only during study to avoid floating/double leaves; Snow unchanged.
+- Real Three Node test passed8variants/determinism/finite vertices+normals+colors/proportions/two-part/budget/opt-out. Official client gallery opened/inspected8variants. Official real-game desktop full portal/three-biome/CP/finish/Party/Troll lifecycle pass without page errors; mobile final run also passed without page errors. Classic opt-out official full flow passed. Final sparse-canopy gallery and in-game screenshots opened; final desktop after canopy-size tuning passed. Tree gallery and actual game Nature screenshot inspected. Horizon176/tutorial173/surface168 regression pass. New module and handoff included in same source/ZIP, output QA excluded. No actual-device FPS guarantee.
+
 ## 2026-11-03 — Finish horizon / level reference / website1.74.1
 
 - User: environment ends abruptly near finish in Troll and Party; create levels MD; update existing website. develop-web-game + Sites skill read. Sites account has no hosted Site; existing address is GitHub Pages Shephhh/elemental-run-browser-v1.3, preserved (no new Site created).
 - Shared ground center was offset+280, length depth+650, ending45m beyond finish. Now centered-depth/2 and length depth+800, opaque400m buffer on both ends. Source decor planning/backdrop extends240m beyond finish within existing instancing/model budgets. Sky-line respects fog; no transparent overlay or change to playable bounds/finish/chase rules.
 - LEVELS_TROLL_PARTY.md generated from actual registry: all3Troll module layouts/checkpoints/platform coords/traps, Party9actual order/theme/type/counts/checkpoints. CPU horizon176 all9races, Party162 regressions and official desktop portal/CP/finish/isolation run passed; end-of-course screenshots opened. Real-device FPS not certified.
-- Existing public repo at63570f6 cloned read-only initially into output/site-publish; old Pages workflow omitted modular scripts/BUILD, updated to copy all runtime JS/CSS/JSON/webmanifest. Canonical source/ZIP stay primary. Publication result recorded after deployment below.
+- Existing public repo at63570f6 cloned read-only initially into output/site-publish; old Pages workflow omitted modular scripts/BUILD, updated to copy all runtime JS/CSS/JSON/webmanifest. Canonical source/ZIP stay primary. First push rejected workflow-scope; unpublished commit amended to restore original workflow. Supported existing-copy layout used: root index base assets/current/, same complete package nested under existing assets deployment path, no credential/workflow permission change. Push a01f2094d9864ff96d38725cb041a9ca54f613fd succeeded; Actions41617653405 completed success. Live index200/base correct, assets/current/BUILD1.74.1, environment horizon constants match, real car glTF2,091,296bytes (not LFS pointer). Official client against real public code without response interception passed trusted PLAY/lobby/no page errors; live screenshot opened. Stage-layout full local mode regression passed. Local final ZIP hashes verified; website remains original GitHub Pages address.
 
 ## 2026-11-03 — Troll hub avatar/camera, trap and render polish1.74.0
 

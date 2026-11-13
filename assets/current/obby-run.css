@@ -58,3 +58,14 @@ body.mode-concourse-active #hub-first-glove{display:none!important}
 .party-round-tools.in-pause select{max-width:none;width:100%;font-size:16px;padding:12px}
 @media(max-height:500px){.party-round-tools{top:auto;bottom:12px;left:50%;transform:translateX(-50%);max-width:190px}.party-round-tools select{font-size:11px;padding:6px}.obby-bhop{bottom:22%}}
 @media(max-width:540px){.party-round-tools{top:148px;bottom:auto;left:50%;transform:translateX(-50%);max-width:220px}}
+#troll-hud .troll-maze-warning:not([hidden]){position:absolute;left:50%;bottom:max(26px,env(safe-area-inset-bottom));z-index:3;transform:translateX(-50%);pointer-events:none;white-space:nowrap;padding:9px 18px;border:1px solid #ff766a;border-radius:8px;background:#32151f;color:#fff3ed;font-size:clamp(13px,2.6vw,19px);font-weight:800;letter-spacing:.09em}
+#troll-hud .troll-cyber-status:not([hidden]){position:absolute;z-index:3;top:max(105px,16%);left:50%;translate:-50% 0;pointer-events:none;max-width:min(88%,460px);box-sizing:border-box;padding:.49em .85em .49em 1em;border:1px solid currentColor;border-left-width:5px;border-radius:5px;background:#101525ed;color:#7cffc2;font:800 clamp(12px,2.2vw,21px) Rajdhani,Arial,sans-serif;letter-spacing:.07em;text-align:center;box-shadow:0 5px 15px #0d111abd}
+#troll-hud .troll-cyber-status:is([data-phase="go"],[data-phase="stop"]){border:0;padding:0;background:none;box-shadow:none;font:1000 clamp(43px,8vw,92px)/.98 Rajdhani,Arial,sans-serif;letter-spacing:.105em;white-space:nowrap;-webkit-text-stroke:.55px currentColor}
+#troll-hud .troll-cyber-status[data-phase="go"]{color:#a1ff43;text-shadow:0 4px #305815,0 0 20px #69ff41ae,0 7px 22px #040e08}
+#troll-hud .troll-death-burst{position:absolute;inset:0;z-index:2;overflow:hidden;pointer-events:none;contain:strict}
+#troll-hud .troll-death-burst img{position:absolute;opacity:0;width:calc(clamp(52px,8.2vw,122px) * var(--stamp-size,1));height:auto;user-select:none;pointer-events:none}
+@media(max-height:500px){#troll-hud .troll-death-burst img{width:calc(clamp(44px,14vh,78px) * var(--stamp-size,1))}}
+#troll-hud .troll-cyber-status[data-phase="stop"]{color:#ff456b;text-shadow:0 4px #721b38,0 0 20px #ff2b65b0,0 7px 22px #19040b}
+#troll-hud .troll-cyber-status[data-phase="overhead"]{color:#b6bfff}
+@media(max-height:500px) and (min-width:541px){#troll-hud .troll-cyber-status:not([hidden]){top:62px}}
+@media(max-width:540px){#troll-hud .troll-cyber-status:not([hidden]){top:153px}}

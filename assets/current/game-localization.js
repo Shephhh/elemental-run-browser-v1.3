@@ -1115,7 +1115,43 @@
   const SLALOM_COPY={en:'Slalom',tr:'Slalom',it:'Slalom','es-ES':'Eslalon',fr:'Slalom',de:'Slalom',ar:'تعرّج','pt-BR':'Slalom',da:'Slalom',nl:'Slalom','zh-Hant':'迴轉路線',ko:'지그재그',pl:'Slalom',no:'Slalåm',ro:'Slalom',th:'สลาลอม',uk:'Слалом',el:'Σλάλομ',sv:'Slalom','zh-Hans':'回转路线',bg:'Слалом',id:'Slalom',fi:'Pujottelu',ja:'スラローム','es-419':'Eslalon',hu:'Szlalom','pt-PT':'Slalom',ru:'Слалом',vi:'Dích dắc',cs:'Slalom'};
   SUPPORTED_LANGUAGES.forEach(({code})=>{UI_TRANSLATIONS[code].courseSlalom=SLALOM_COPY[code];});
 
-  SUPPORTED_LANGUAGES.forEach(({code})=>{UI_TRANSLATIONS[code].trollObby='TROLL OBBY';});
+  const TROLL_MAZE_COPY={en:'MAZE',it:'LABIRINTO','es-ES':'LABERINTO','es-419':'LABERINTO',fr:'LABYRINTHE',de:'LABYRINTH',ar:'متاهة','pt-BR':'LABIRINTO','pt-PT':'LABIRINTO',da:'LABYRINT',nl:'LABYRINT','zh-Hant':'迷宮','zh-Hans':'迷宫',ko:'미로',pl:'LABIRYNT',no:'LABYRINT',ro:'LABIRINT',th:'เขาวงกต',uk:'ЛАБІРИНТ',el:'ΛΑΒΥΡΙΝΘΟΣ',sv:'LABYRINT',bg:'ЛАБИРИНТ',id:'LABIRIN',fi:'LABYRINTTI',ja:'迷路',hu:'LABIRINTUS',ru:'ЛАБИРИНТ',tr:'LABİRENT',vi:'MÊ CUNG',cs:'BLUDIŠTĚ'};
+  SUPPORTED_LANGUAGES.forEach(({code})=>{UI_TRANSLATIONS[code].trollObby='TROLL OBBY';UI_TRANSLATIONS[code].trollMaze=TROLL_MAZE_COPY[code]||TROLL_MAZE_COPY.en;});
+  const TROLL_SIGNAL_COPY={
+    en:'GREEN LIGHT · GO|AMBER · BRAKE|RED LIGHT · STOP|MOTION DETECTED|OVERHEAD VIEW',
+    tr:'YEŞİL IŞIK · İLERLE|SARI IŞIK · YAVAŞLA|KIRMIZI IŞIK · DUR|HAREKET ALGILANDI|KUŞBAKIŞI',
+    de:'GRÜN · LOS|GELB · BREMSEN|ROT · STOPP|BEWEGUNG ERKANNT|VOGELPERSPEKTIVE',
+    'es-ES':'LUZ VERDE · AVANZA|AMARILLO · FRENA|LUZ ROJA · ALTO|MOVIMIENTO DETECTADO|VISTA CENITAL',
+    'es-419':'LUZ VERDE · AVANZA|AMARILLO · FRENA|LUZ ROJA · ALTO|MOVIMIENTO DETECTADO|VISTA DESDE ARRIBA',
+    fr:'FEU VERT · AVANCE|FEU JAUNE · RALENTIS|FEU ROUGE · STOP|MOUVEMENT DÉTECTÉ|VUE DU DESSUS',
+    'pt-BR':'LUZ VERDE · SIGA|AMARELO · FREIE|LUZ VERMELHA · PARE|MOVIMENTO DETECTADO|VISTA SUPERIOR',
+    'pt-PT':'LUZ VERDE · AVANÇA|AMARELO · TRAVA|LUZ VERMELHA · PARA|MOVIMENTO DETETADO|VISTA SUPERIOR',
+    it:'LUCE VERDE · VAI|GIALLO · FRENA|LUCE ROSSA · STOP|MOVIMENTO RILEVATO|VISTA DALL’ALTO',
+    ja:'青信号 · 進め|黄信号 · 減速|赤信号 · 止まれ|動きを検知|真上からの視点',
+    ko:'초록불 · 이동|노란불 · 감속|빨간불 · 정지|움직임 감지|위에서 보기',
+    'zh-Hans':'绿灯 · 前进|黄灯 · 减速|红灯 · 停止|检测到移动|俯视视角',
+    'zh-Hant':'綠燈 · 前進|黃燈 · 減速|紅燈 · 停止|偵測到移動|俯視視角',
+    ru:'ЗЕЛЁНЫЙ · ВПЕРЁД|ЖЁЛТЫЙ · ТОРМОЗИ|КРАСНЫЙ · СТОП|ДВИЖЕНИЕ ОБНАРУЖЕНО|ВИД СВЕРХУ',
+    ar:'ضوء أخضر · تحرّك|ضوء أصفر · تمهّل|ضوء أحمر · توقّف|تم رصد حركة|منظور علوي',
+    da:'GRØNT LYS · GÅ|GULT LYS · BREMS|RØDT LYS · STOP|BEVÆGELSE REGISTRERET|SET OVENFRA',
+    nl:'GROEN LICHT · GA|GEEL LICHT · REM|ROOD LICHT · STOP|BEWEGING GEDETECTEERD|BOVENAANZICHT',
+    pl:'ZIELONE · IDŹ|ŻÓŁTE · ZWOLNIJ|CZERWONE · STÓJ|WYKRYTO RUCH|WIDOK Z GÓRY',
+    no:'GRØNT LYS · GÅ|GULT LYS · BREMS|RØDT LYS · STOPP|BEVEGELSE OPPDAGET|OVENFRA',
+    ro:'VERDE · MERGI|GALBEN · FRÂNEAZĂ|ROȘU · OPREȘTE-TE|MIȘCARE DETECTATĂ|VEDERE DE SUS',
+    th:'ไฟเขียว · ไป|ไฟเหลือง · ชะลอ|ไฟแดง · หยุด|ตรวจพบการเคลื่อนไหว|มุมมองจากด้านบน',
+    uk:'ЗЕЛЕНЕ · ВПЕРЕД|ЖОВТЕ · ГАЛЬМУЙ|ЧЕРВОНЕ · СТІЙ|ВИЯВЛЕНО РУХ|ВИГЛЯД ЗГОРИ',
+    el:'ΠΡΑΣΙΝΟ · ΠΡΟΧΩΡΑ|ΚΙΤΡΙΝΟ · ΦΡΕΝΑΡΕ|ΚΟΚΚΙΝΟ · ΣΤΟΠ|ΕΝΤΟΠΙΣΤΗΚΕ ΚΙΝΗΣΗ|ΚΑΤΟΨΗ',
+    sv:'GRÖNT LJUS · GÅ|GULT LJUS · BROMSA|RÖTT LJUS · STOPP|RÖRELSE UPPTÄCKT|VY OVANIFRÅN',
+    bg:'ЗЕЛЕНО · НАПРЕД|ЖЪЛТО · НАМАЛИ|ЧЕРВЕНО · СПРИ|ЗАСЕЧЕНО ДВИЖЕНИЕ|ИЗГЛЕД ОТГОРЕ',
+    id:'HIJAU · JALAN|KUNING · PELANKAN|MERAH · BERHENTI|GERAKAN TERDETEKSI|TAMPAK ATAS',
+    fi:'VIHREÄ · MENE|KELTAINEN · JARRUTA|PUNAINEN · PYSÄHDY|LIIKE HAVAITTU|NÄKYMÄ YLHÄÄLTÄ',
+    hu:'ZÖLD · INDULJ|SÁRGA · FÉKEZZ|PIROS · ÁLLJ|MOZGÁS ÉSZLELVE|FELÜLNÉZET',
+    vi:'ĐÈN XANH · ĐI|ĐÈN VÀNG · GIẢM TỐC|ĐÈN ĐỎ · DỪNG|PHÁT HIỆN CHUYỂN ĐỘNG|GÓC NHÌN TỪ TRÊN',
+    cs:'ZELENÁ · JDI|ŽLUTÁ · ZPOMAL|ČERVENÁ · STŮJ|ZJIŠTĚN POHYB|POHLED SHORA'
+  };
+  SUPPORTED_LANGUAGES.forEach(({code})=>(TROLL_SIGNAL_COPY[code]||TROLL_SIGNAL_COPY.en).split('|').forEach((value,i)=>{
+    UI_TRANSLATIONS[code][['trollGreenLight','trollAmberLight','trollRedLight','trollSignalFoul','trollTopView'][i]]=value;
+  }));
   global.ElementalLocalization = Object.freeze({
     SUPPORTED_LANGUAGES,
     LATIN_AMERICAN_SPANISH_COUNTRIES,

@@ -296,6 +296,7 @@ class ElementalSurfRun{
  die(completed=false,fatalGround=false){if(this.state!=='playing')return;if(!completed&&!fatalGround&&this.skillName==='revive'&&!this.reviveUsed){
  const chunk=this.chunks.find(c=>c.data.level===this.level),point=chunk?.respawn||chunk?.data.spawn;
  if(point){this.reviveUsed=true;this.placeWorkshop(chunk,point);Object.assign(this.player,{phase:2,dash:0,slow:0,slideCooldown:0,bufferImpulse:0});Object.assign(this.previous,this.player);this.hotTime=0;this.recoil=this.recoilV=0;this.effects?.clear();this.sound('pickup');return;}}
+ if(!completed)this.api.onDeathBiome?.(this.chunks.find(c=>c.data.level===this.level)?.data.phase);
  this.completedRun=completed;this.effects.clear();this.state='dying';this.deadTimer=.3;this.keys.clear();this.touchLook=null;this.sound('hit');this.bank(true);this.audioState('dead');try{document.exitPointerLock?.();}catch(_){} }
  audioState(next){window.ElementalAudio?.setSurfState?.(next==='idle'?'inactive':next);this.api.stateChanged?.(next);}
  pause(){if(!this.active||this.state!=='playing')return;this.keys.clear();this.touchLook=null;this.effects.clear();this.acc=0;this.showModal('paused');this.audioState('paused');try{document.exitPointerLock?.();}catch(_){} }

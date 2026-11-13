@@ -9,12 +9,12 @@
     <meta name="google-site-verification" content="COTiiA_3UexTN09oOE64Drk1NRgvieoduXjFf7jWGvE">
     <meta name="application-name" content="ELEMENTAL RUN">
     <meta name="apple-mobile-web-app-title" content="ELEMENTAL RUN">
-<meta name="elemental-run-build" content="1.74.1-continuous-finish-horizon">
+<meta name="elemental-run-build" content="1.89.3-gameplay-guides">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <script>
-      // 1.74.1 is a hard cache boundary. Remove stale workers/caches left by
+      // 1.89.3 is a hard cache boundary. Remove stale workers/caches left by
       // older local/browser builds before their runtime can serve mixed files.
       if ('serviceWorker' in navigator && location.protocol !== 'file:') {
         navigator.serviceWorker.getRegistrations().then(function (registrations) {
@@ -32,9 +32,9 @@
     <link rel="icon" href="assets/elemental-run-icon.png" type="image/png">
     <link rel="apple-touch-icon" href="assets/elemental-run-icon.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="preload" href="game-runtime.js?v=1.74.1" as="script" fetchpriority="high">
-    <link rel="preload" href="assets/textures/lava-world-floor-v3.webp?v=1.74.1" as="image" type="image/webp" fetchpriority="low">
-    <link rel="preload" href="assets/textures/water-world-floor-v3.webp?v=1.74.1" as="image" type="image/webp" fetchpriority="low">
+    <link rel="preload" href="game-runtime.js?v=1.89.3" as="script" fetchpriority="high">
+    <link rel="preload" href="assets/textures/lava-world-floor-v3.webp?v=1.89.3" as="image" type="image/webp" fetchpriority="low">
+    <link rel="preload" href="assets/textures/water-world-floor-v3.webp?v=1.89.3" as="image" type="image/webp" fetchpriority="low">
     <!-- Hands and run music are the only large assets needed immediately after PLAY. -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://shephhh.github.io/elemental-run-browser-v1.3/">
@@ -64,9 +64,13 @@
             "operatingSystem": "Web Browser"
         }
     </script>
-    <link rel="stylesheet" href="browser-platform.css?v=1.74.1">
-    <link rel="stylesheet" href="loading-minigame.css?v=1.74.1">
-<script src="poki-config.js?v=1.74.1"></script>
+    <link rel="stylesheet" href="browser-platform.css?v=1.89.3">
+    <link rel="stylesheet" href="boot-mode-gallery.css?v=1.89.3">
+    <link rel="stylesheet" href="boot-poster-layers.css?v=1.89.3">
+    <script src="boot-poster-layers.js?v=1.89.3" defer></script>
+    <script src="boot-mode-gallery.js?v=1.89.3" defer></script>
+    <link rel="stylesheet" href="loading-minigame.css?v=1.89.3">
+<script src="poki-config.js?v=1.89.3"></script>
     <script>
       // The shared website/Poki package must stay fully offline-capable on the
       // public site. Only inject Poki's SDK when poki-config detected its host.
@@ -78,50 +82,53 @@
         document.head.appendChild(pokiScript);
       }
     </script>
-    <script src="preparation-recovery.js?v=1.74.1"></script>
-    <script src="play-session.js?v=1.74.1"></script>
-    <script src="poki-bridge.js?v=1.74.1"></script>
-    <script src="poki-platform.js?v=1.74.1"></script>
+    <script src="preparation-recovery.js?v=1.89.3"></script>
+    <script src="play-session.js?v=1.89.3"></script>
+    <script src="poki-bridge.js?v=1.89.3"></script>
+    <script src="poki-platform.js?v=1.89.3"></script>
 
-<script src="platform-adapter.js?v=1.74.1"></script>
-<script src="game-config.js?v=1.74.1"></script>
-<script src="game-localization.js?v=1.74.1"></script>
-<script src="map-environments.js?v=1.74.1"></script>
-<script src="graphics-engine.js?v=1.74.1"></script>
-<script src="audio-system.js?v=1.74.1"></script>
-<script src="level-system.js?v=1.74.1"></script>
-<script src="campaign-run.js?v=1.74.1"></script>
-<link rel="stylesheet" href="campaign-run.css?v=1.74.1">
-<script src="level-ghost-system.js?v=1.74.1"></script>
-<script src="fortune-wheel.js?v=1.74.1"></script>
-<script src="tutorial-director.js?v=1.74.1"></script>
-<script src="loading-minigame.js?v=1.74.1"></script>
-<script src="lobby-onboarding.js?v=1.74.1"></script>
-<script src="lobby-rewards.js?v=1.74.1"></script>
-<script src="cube-avatar.js?v=1.74.1"></script>
-<script src="mode-concourse.js?v=1.74.1"></script>
-<script src="lobby-hub.js?v=1.74.1"></script>
-<link rel="stylesheet" href="lobby-hub.css?v=1.74.1">
-<script src="runner-2d.js?v=1.74.1"></script>
-<link rel="stylesheet" href="runner-2d.css?v=1.74.1">
-<script src="surf-architecture.js?v=1.74.1"></script>
-<script src="surf-biomes.js?v=1.74.1"></script>
-<script src="surf-stages.js?v=1.74.1"></script>
-<script src="surf-maps.js?v=1.74.1"></script>
-<script src="surf-shelters.js?v=1.74.1"></script>
-<script src="surf-course-polish.js?v=1.74.1"></script>
-<script src="surf-physics.js?v=1.74.1"></script>
-<script src="surf-effects.js?v=1.74.1"></script>
-<script src="surf-run.js?v=1.74.1"></script>
-<script src="obby-course.js?v=1.74.1"></script>
-<script src="party-race.js?v=1.74.1"></script>
-<script src="obby-art.js?v=1.74.1"></script>
-<script src="obby-interface.js?v=1.74.1"></script>
-<script src="party-environment.js?v=1.74.1"></script>
-<script src="obby-run.js?v=1.74.1"></script>
-<script src="troll-obby.js?v=1.74.1"></script>
-<link rel="stylesheet" href="obby-run.css?v=1.74.1">
-<link rel="stylesheet" href="surf-run.css?v=1.74.1">
+<script src="platform-adapter.js?v=1.89.3"></script>
+<script src="game-config.js?v=1.89.3"></script>
+<script src="game-localization.js?v=1.89.3"></script>
+<script src="map-environments.js?v=1.89.3"></script>
+<script src="graphics-engine.js?v=1.89.3"></script>
+<script src="audio-system.js?v=1.89.3"></script>
+<script src="level-system.js?v=1.89.3"></script>
+<script src="campaign-run.js?v=1.89.3"></script>
+<link rel="stylesheet" href="campaign-run.css?v=1.89.3">
+<script src="level-ghost-system.js?v=1.89.3"></script>
+<script src="fortune-wheel.js?v=1.89.3"></script>
+<script src="tutorial-director.js?v=1.89.3"></script>
+<script src="loading-minigame.js?v=1.89.3"></script>
+<script src="lobby-onboarding.js?v=1.89.3"></script>
+<script src="lobby-rewards.js?v=1.89.3"></script>
+<script src="cube-avatar.js?v=1.89.3"></script>
+<script src="concourse-art.js?v=1.89.3"></script>
+<script src="mode-concourse.js?v=1.89.3"></script>
+<script src="lobby-hub.js?v=1.89.3"></script>
+<link rel="stylesheet" href="lobby-hub.css?v=1.89.3">
+<script src="runner-2d.js?v=1.89.3"></script>
+<link rel="stylesheet" href="runner-2d.css?v=1.89.3">
+<script src="surf-architecture.js?v=1.89.3"></script>
+<script src="cohesive-tree-canopy.js?v=1.89.3"></script>
+<script src="procedural-tree-study.js?v=1.89.3"></script>
+<script src="surf-biomes.js?v=1.89.3"></script>
+<script src="surf-stages.js?v=1.89.3"></script>
+<script src="surf-maps.js?v=1.89.3"></script>
+<script src="surf-shelters.js?v=1.89.3"></script>
+<script src="surf-course-polish.js?v=1.89.3"></script>
+<script src="surf-physics.js?v=1.89.3"></script>
+<script src="surf-effects.js?v=1.89.3"></script>
+<script src="surf-run.js?v=1.89.3"></script>
+<script src="obby-course.js?v=1.89.3"></script>
+<script src="party-race.js?v=1.89.3"></script>
+<script src="obby-art.js?v=1.89.3"></script>
+<script src="obby-interface.js?v=1.89.3"></script>
+<script src="party-environment.js?v=1.89.3"></script>
+<script src="obby-run.js?v=1.89.3"></script>
+<script src="troll-obby.js?v=1.89.3"></script>
+<link rel="stylesheet" href="obby-run.css?v=1.89.3">
+<link rel="stylesheet" href="surf-run.css?v=1.89.3">
     <!-- Three.js r185.1 uses its official ESM build/addons. The module bridge at
          the end of body restores the existing global THREE/IIFE contract without
          introducing a bundler or allowing runtime execution before Three is ready. -->
@@ -5287,8 +5294,20 @@
         <div id="loading-bar-container">
             <div id="loading-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="3" style="width:3%"></div>
         </div>
-        <button id="boot-play-btn" type="button" hidden><span aria-hidden="true">▶</span><span class="boot-play-label">PLAY</span></button>
-</div>
+    </div>
+    <div class="boot-mode-scenery" aria-hidden="true"></div>
+    <section id="boot-mode-picker" hidden>
+        <div class="boot-mode-window">
+            <div id="boot-mode-grid"></div>
+            <button class="boot-gallery-nav boot-gallery-prev" type="button" aria-label="Previous" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+            <button class="boot-gallery-nav boot-gallery-next" type="button" aria-label="Next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></button>
+        </div>
+        <div class="boot-mode-footer">
+            <button id="boot-play-btn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v11h5v-6h4v6h5V9"/></svg></button>
+            <p id="boot-mode-status" role="status" hidden></p>
+            <div class="boot-gallery-dots" aria-hidden="true"></div>
+        </div>
+    </section>
 </div><script>
 /*
  * This tiny bootstrap deliberately lives before the separately streamed game
@@ -5998,7 +6017,7 @@
                 <div id="menu-settings-root" class="menu-settings settings-hub" aria-live="polite"></div>
             </section>
         </div>
-        <div class="menu-version-tag" aria-hidden="true">v1.74.1</div>
+        <div class="menu-version-tag" aria-hidden="true">v1.89.3</div>
     </div>
 </div>
 <div id="pause-screen">
@@ -6152,7 +6171,7 @@
 </div>
 
 <script type="module" id="elemental-three-runtime-bootstrap">
-    import './vendor/three-r185-bridge.js?v=1.74.1';
+    import './vendor/three-r185-bridge.js?v=1.89.3';
 
     const loadOrderedClassicScript = (src, id) => new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -6165,9 +6184,9 @@
     });
 
     try {
-        await loadOrderedClassicScript('curved-path-system.js?v=1.74.1', 'elemental-curved-path-runtime');
+        await loadOrderedClassicScript('curved-path-system.js?v=1.89.3', 'elemental-curved-path-runtime');
         if (!window.ElementalCurvedPathSystem) throw new Error('Curved path system did not initialize.');
-        await loadOrderedClassicScript('game-runtime.js?v=1.74.1', 'elemental-game-runtime');
+        await loadOrderedClassicScript('game-runtime.js?v=1.89.3', 'elemental-game-runtime');
         if (window.__elementalEarlyBoot) window.__elementalEarlyBoot.runtimeLoaded = true;
     } catch (error) {
         console.error('[ELEMENTAL RUN] Three.js r185.1 bootstrap failed.', error);

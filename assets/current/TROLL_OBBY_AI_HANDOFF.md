@@ -1,6 +1,138 @@
-# Troll Obby — v1.74.0
+# Troll Obby — v1.89.3
 
-## 2026-11-03: hub avatar, decoupled orbit, bounded render cost
+v1.89.3 removes side-mode tutorial cards and help buttons. Troll no longer awards landing/bhop speed bonuses and holding Jump does not repeat jumps; release and press again. Base speed7.0, jump9.5, gravity24, ice launch23.5, reverse pads, geometry, CourseVersion15 and records remain intact. Party/Surf/2D bhop rules unchanged. Full Troll1/2/3 safe route tests pass without bhop.
+
+Camera collision now starts at avatar center instead of a look-ahead target that could enter the maze before the avatar. Maze roof blocks the camera from outside too; final interpolated position is checked against the same authoritative boxes. No hidden route markers, new colliders, or player-physics changes.
+
+## v1.89.1 movement and guide update
+
+Normal Troll walking now targets 7.0 m/s (Party remains 7.5); historical speed values below describe their old builds. Gravity/jump/collision, CourseVersion 15, all geometry/trap timing and the special 23.5 m/s ice launch remain unchanged. Troll 1 safe links, full six-stage Troll 2 and full 711m Troll 3 simulation pass at the new base. Small in-world 3D guide cards and current HUD/gallery ownership are documented in MODE_TUTORIAL_AI_HANDOFF.md.
+
+## 2026-11-10: CourseVersion 15 — phase exit fix and longer sectors
+
+711 m. Sector 2 arms by position on either color and keeps the checkpoint
+non-solid/unclaimable until the player waits on the hidden support. The fan
+faces across the beam, with 9/5 streaks on desktop/mobile. The bridge and ice
+rooms each gain 45 m; the ice launch gap is still 15.5 m. Troll 3 v14 PB is
+archived in `legacyTroll3V14Best`. See [layout](TROLL_OBBY_LEVEL_3.md).
+
+## 2026-11-10: CourseVersion 14 — grouped phase lanes and Troll audio
+
+621 m. The traffic sector has lethal full-width bars and paired choke points,
+with a single late STOP→GO→STOP feint. Long blue/pink banks alternate together;
+the late trap only hides the current collider and briefly draws the incoming
+bank without collision. The 3D fan follows the player and switches underneath the
+beam. Ice visuals are refreshed without changing the launch physics. Four pairs
+share an apparent height before the overhead trigger, then display real heights.
+Troll 1–3 use synthesized event sounds through the existing SFX bus. Only the
+previous Troll 3 best is archived on upgrade from v13. See [level layout](TROLL_OBBY_LEVEL_3.md).
+
+## 2026-11-09: CourseVersion 13 — Long Cyber course
+
+532 m across five rooms. Section 1 only displays GO/STOP and punches from world left.
+Section 2 uses six 70 m parallel runways; section 3 is one narrow hurdle beam.
+Section 4 replaces glue with opt-in icy acceleration and low lateral grip. The
+15.5 m leap preserves launch momentum, then the dry CP4 deck catches it.
+Section 5 uses moving/fake pads and local overhead height illusions without rotating
+controls. See [the current layout and tests](TROLL_OBBY_LEVEL_3.md).
+
+## 2026-11-09: CourseVersion 12 — Cyber room redesign
+
+Only Troll 3 changes. Five rooms over 266 m: stoplight and cyber fist, cycling
+tiles with invisible solid support, crosswind, sticky ice with a service bypass,
+and overhead precision jumps. See [the current room guide](TROLL_OBBY_LEVEL_3.md).
+The version 11 migration preserves Troll 1–2 bests and progression, while
+archiving the old Troll 3 time in `legacyTroll3Best`.
+
+## 2026-11-07: CourseVersion 11 — Strict checkerboard, boulder coverage, stair fade
+
+Troll 2 has 32 red plates on strict checkerboard parity. On the opposite
+parity 16 cells are safe and 16 are bait. Pairs slide laterally, and the safe
+route mixes diagonal jumps with straight skips over a full square. The rolling
+sphere has smoothed normals and a 3.85 m hit radius; closed cabin mouths are
+inside its sweep, while valid shelters are outside. Stair treads fade in
+place using shared materials; support and restore timing are unchanged.
+
+## 2026-11-07: CourseVersion 10 — Varied board, smooth stair display and roofs
+
+The 64-cell board mixes straight lanes, two-wide options and a same-row
+transfer; 27 visible plates and 14 bait cells remain. The staircase uses a
+continuous presentation height for avatar and camera only. Physical risers
+and crumble timing are unchanged. The fake exit shows a proximity-triggered
+WRONG WAY sign. Six cabins have solid roofs and an interior camera boom.
+
+## 2026-11-07: CourseVersion 9 — Enclosed maze, higher spiral and sliding red plates
+
+Troll 2 is now 381 m. The maze has 91 connected cells and a collidable but
+unrendered exit. The 96 sector steps have a single authoritative ground snap
+when walking; airborne landings still use the sweep. CP3 is elevated and the
+77 m ramp rises another 8 m. Three refuge pairs have three modeled walls each.
+The 16×4 checkerboard uses permanent visible red spike plates that slide into
+predicted bait landings. Lethality follows the plate position, and the authored
+safe route is outside their movement. The four shifting blocks keep their
+relative coordinates/timing at the new elevation.
+
+## 2026-11-07: CourseVersion 8 — Walkable spiral and predictive spike board
+
+Troll 2 is 327 m with old opening dimensions, opaque shell/translucent maze
+interior, 32 contiguous low risers, and an elevated CP3. The single 77 m ramp
+shares its grade with six refuge pairs and the 17/13 m/s boulder path.
+The four-block room is unchanged in local coordinates. In the 12×3 flush grid,
+the descending ballistic endpoint activates only the expected wrong tile,
+and lethality checks the actual landing tile. Correct tiles remain flat.
+
+## 2026-11-07: CourseVersion 7 — Troll 2 rebuilt in six rooms
+
+Snow course is now 240 m with CP0–6. Lethal emissive panels; closed-roof 1%
+glass dead end (walk outside the two side walls); an ascending crumble spiral
+ending in a plain-looking reverse pad; a slope of ice terraces with three
+opposite refuge pairs and one blocked mouth per pair; four synchronized
+Z-shifting stones; and five offset spike rows. The boulder shares the existing
+ball vs player AABB test, with separate uphill/downhill speeds. Geometry data
+is in `obby-course.js`; `troll-obby.js` owns state, trigger and rendering;
+`obby-run.js` owns sign/material helpers and migration. Hidden cabin blockers
+need no meshes; all spike teeth share one instanced batch. No new assets.
+Troll 1/3 records and unlocks persist; old Troll 2 best is archived.
+
+## 2026-11-05: CourseVersion 5 — Troll 1 sketch rebuild
+
+Troll 1 uses five 32 m rooms: slide, invisible bridge, reversed bridge, deadly
+checkerboard, and invisible-wall maze. Source `TROLL_ONE_LAYOUT` is JSON-compatible;
+`LEVELS_TROLL_PARTY.md` has actual world coordinates and validated safe path. Troll
+render/trigger logic remains isolated in `troll-obby.js`; shared physics pose and
+save migration remain in `obby-course.js` / `obby-run.js`. Slider syncs collision
+and mesh at fixed time, ghosts use 0.1 opacity without depth write, and checker
+kill tiles hide their gift decoration. v4→v5 archives only the changed level's
+best; Troll 2/3 layouts and bests are retained. Nature trees mix by family.
+
+## 2026-11-03: CourseVersion 4 — authored paranoia rooms
+
+Current route inventory and full JSON arrays: LEVELS_TROLL_PARTY.md. This section
+supersedes historical CourseVersion3 coordinates below. Same160/200/240m lengths,
+4/5/6ordered checkpoints,120Hz physics and limbless independent-orbit avatar.
+
+- Nature: easy jump into invisible wall, always-present1.8m bypass, broad centre
+  shove/gift traps and reverse-pad decoys. Snow: five paired-gift corridors,
+  seven contact-timed collapsing landings, reverse pad throwing+19Z/+7Y and
+  approachFake at the final CP. Cyber: all3obvious upper stones fake, real
+  Y4/W1 lower shelf with1.4m ascent risers, single solid maze deck,3revealing
+  hiddenKill walls, left X=-6/W3 finish with central lethal gift.
+- safePath lists actual waypoints; repeated platform IDs encode maze corners.
+  safeRoute true means route traverses the solid, not that every point is safe.
+  Traps remain in platforms[].trap; hazards=[] prevents duplicate collisions.
+  Stage retry resets contact/crumble/approach consumption, reveal helps learning.
+- TROLL_COURSE_VERSION exported and used by host. Old PBs archived, completed
+  accesses preserved. CP support/finish rendering follows actual x/w/d instead
+  of fixed centre positions. Y4 grounded shelf does not trigger death-camera mode.
+- Cyber ground cube infill removed; true normal-game textured buildings remain,
+  resized to25–46m and38m footprint, no115m distant-only landmark offset. Nearer
+  window skyline and80–260fog. Triangle budgets/cache/instancing unchanged.
+- output/troll-176-test.cjs:88real physics links, continuous hiddenKill maze,
+  all7traps, crumble reset, no CP skip, left finish and zero coplanar overlap.
+  Official desktop/mobile lifecycle and screenshots checked. Party162 and
+  horizon176 regressions pass. No real-phone FPS guarantee or live publication.
+
+## Historical 1.74.0: hub avatar, decoupled orbit, bounded render cost
 
 - Actual hub avatar hierarchy is cloned with cloneHub; geometry/material/texture
   ownership is isolated. Same1.7x2x1.7 rounded body, face, owned hat, no limbs.
@@ -102,7 +234,7 @@ Research inspired the mechanics, not a claim of identical Roblox physics.
 
 ### obby-course.js
 
-`trollCourse(level)` builds three authored courses with 4/5/6 modules, 160/200/240m.
+`trollCourse(level)` builds three authored courses with 5/6/6 modules, 160/381/240m.
 `fake_stones`, `invisible_wall`, `troll_bounce`, `gift_bricks` are stage data.
 Platform fields `trap`, `stage`, `consumed`, `revealUntil` hold deterministic state.
 

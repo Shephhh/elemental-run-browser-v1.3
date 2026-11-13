@@ -2687,10 +2687,10 @@ const arrowEffectPool = [];
             : lobbyHub?.active ? (lobbyHub.inConcourse ? 'games' : 'lobby')
             : tutorialDirector?.active ? 'tutorial' : currentRunMode === 'level' ? 'levels' : 'endless';
         let active = false, reason = 'ready';
-        if (!loadingFinalized || !bootPlayAccepted || bootPlayPending) { mode = 'boot'; reason = 'play-gate'; }
+        if (!loadingFinalized || !bootPlayAccepted || bootPlayPending || bootModeStarting) { mode = 'boot'; reason = 'play-gate'; }
         else if (graphicsContextLost) reason = 'context-lost';
         else if (rewardedAdBusy || browserAdPauseApplied) reason = 'ad';
-        else if (runPreparationPromise || campaignRestorePending || tutorialLobbyTransition) reason = 'preparing';
+        else if (bootModeRevealPending || runPreparationPromise || campaignRestorePending || tutorialLobbyTransition) reason = 'preparing';
         else if (obbyRun?.active || surfRun?.active || runner2D?.active) {
             const owner = obbyRun?.active ? obbyRun : surfRun?.active ? surfRun : runner2D;
             active = owner.state === 'playing';
@@ -7439,7 +7439,7 @@ const arrowEffectPool = [];
         const roadHalf = getRoadHalfWidth();
         let madeCount = 0;
         const stage = (relativeX, z, type) => {
-            const object = spawnNatureObjectHidden(relativeX, z, type);
+            const object = spawnNatureObjectHidden(relativeX, z, type, natureIntroPreparedObjects);
             if (!object) return;
             object.userData.natureIntroRelativeX = relativeX;
             natureIntroPreparedObjects.push(object);
@@ -7642,15 +7642,16 @@ const arrowEffectPool = [];
         return overlay;
     }
 
-    function showCampaignPrepareOverlay(levelNumber, phase) {
+    function showCampaignPrepareOverlay(levelNumber, phase, kind='level') {
         const overlay = ensureCampaignPrepareOverlay();
+        overlay.dataset.kind=kind;
         campaignPrepareLevel = Math.max(1, Math.floor(Number(levelNumber) || 1));
         campaignPreparePhase = Math.max(0, Math.min(5, Math.floor(Number(phase) || 0)));
         campaignPrepareStartedAt = performance.now();
         const title = overlay.querySelector('strong');
         const detail = overlay.querySelector('span');
         if (title) title.textContent = tr('loadingWorld').toLocaleUpperCase();
-        if (detail) detail.textContent = `${tr('level')} ${campaignPrepareLevel} · ${getPhaseName(campaignPreparePhase).toLocaleUpperCase()} · ${tr('preparing')}`;
+        if (detail) detail.textContent = `${kind==='tutorial'?tr('hubTutorial'):tr('level')+' '+campaignPrepareLevel} · ${getPhaseName(campaignPreparePhase).toLocaleUpperCase()} · ${tr('preparing')}`;
         overlay.classList.add('is-visible');
         overlay.setAttribute('aria-hidden', 'false');
     }
@@ -7893,6 +7894,16 @@ const arrowEffectPool = [];
             const horizon = MOBILE_RUNTIME ? 1800 : 2200;
             let x = 30, row = 0;
             if (phase === 0) await buildCampaignCitySection(stage);
+            if (phase === 3) {
+                // Anchor the first volcanic silhouette on both sides of the
+                // entry. Random background rows remain behind this composition.
+                for (const [offset,side,clearance,scale] of [[162,-1,96,.87],[252,1,110,.80]]) {
+                    if (!valid()) return null;
+                    const volcano=spawnLavaDecorAt(offset,'mountain',side,stage,{clearance,scale});
+                    volcano.userData.campaignEntryLandmark=true;
+                    await yieldCampaignPreparation();
+                }
+            }
             while (phase !== 0 && x < horizon) {
                 if (!valid()) return null;
                 if (phase === 1) {
@@ -7935,9 +7946,13 @@ const arrowEffectPool = [];
             updateCurvedTerrainGroundingList(stage.late, groundEmbed);
             const tunnelFactory = {1:createDetailedNatureTunnel,3:createDetailedLavaTunnel,4:createDetailedWaterTunnel,5:createDetailedSnowTunnel}[phase];
             if (tunnelFactory) {
-                const tunnel = tunnelFactory(0,220);
-                tunnel.position.x = 640;
-                tunnel.userData.campaignTunnel = {length:220};
+                // Lava's heavy ground fog used to hide the only prepared
+                // tunnel at +640. Put the opening in the same warm stage as
+                // the first volcanoes, clear of the entrance and finish seam.
+                const length=phase===3?252:220;
+                const tunnel = phase===3 ? tunnelFactory(0,length,{boundedSmoke:true}) : tunnelFactory(0,length);
+                tunnel.position.x = phase===3?290:640;
+                tunnel.userData.campaignTunnel = {length};
                 // The raw factory still shares snowCap/rock/lava materials
                 // with scenery. Isolate BEFORE installing the tunnel shader.
                 cloneTunnelMaterialsForSpline(tunnel);
@@ -8367,7 +8382,7 @@ const arrowEffectPool = [];
     function promoteCampaignThemeSection(phase, stage) {
         if (!stage?.ready || !campaignSpatialActive) return false;
         const number = activeLevelConfig.number;
-        const boundary = player.position.x + worldScrollX + (phase===2&&onSkyLayer ? 0 : 240);
+        const boundary = player.position.x + worldScrollX + (phase===2&&onSkyLayer ? 0 : phase===3 ? 64 : 240);
         const outgoing = campaignSpatialSegments.findLast(segment=>segment.number===number&&!segment.preview);
         if (outgoing?.phase === phase) return true;
         if (outgoing) outgoing.end = boundary;
@@ -9134,12 +9149,24 @@ const arrowEffectPool = [];
             panelOpen:()=>!!ui.menuDialogLayer?.classList.contains('is-open')
         });return lobbyOnboarding;
     }
+    const lobbyDeathBiomeKey = 'elemental-run-last-death-biome-v1';
+    let lobbyDeathBiome = null;
+    try {
+        const saved = localStorage.getItem(lobbyDeathBiomeKey);
+        if (saved !== null && /^[0-5]$/.test(saved)) lobbyDeathBiome = Number(saved);
+    } catch (_) {}
+    function rememberLobbyDeathBiome(phase) {
+        if (!Number.isInteger(phase) || phase < 0 || phase > 5 || phase === lobbyDeathBiome) return;
+        lobbyDeathBiome = phase;
+        try { localStorage.setItem(lobbyDeathBiomeKey, String(phase)); } catch (_) {}
+    }
     function ensureLobbyHub() {
         if (lobbyHub || !window.ElementalLobbyHub || !renderer) return lobbyHub;
         const handStatus = (skin) => menuState.selectedHandSkin === skin.id ? tr('selected')
             : getOwnedHandSkinIds().includes(skin.id) ? tr('select')
             : `${tr('buy')} · ${skin.cost.toLocaleString()} ${tr('gold')}`;
         lobbyHub = new window.ElementalLobbyHub(THREE, {
+            openModeCards:()=>openLobbyModeCards(),
             renderer: () => renderer, mobile: MOBILE_RUNTIME,
             fullscreenAvailable: canTogglePokiFullscreen,
             toggleFullscreen: togglePokiFullscreen,
@@ -9160,10 +9187,11 @@ const arrowEffectPool = [];
             wheelRotation: () => fortuneWheelSystem?.rotation || 0,
             arcadeActive: () => !!window.ElementalFlappyArcade?.getState?.().active,
             flappyBest: () => window.ElementalFlappyArcade?.getState?.().best || 0,
-            openFlappy: () => {
+            openFlappy: async (options={}) => {
                 lobbyHub?.clearMovement();
                 try { if (document.pointerLockElement) document.exitPointerLock(); } catch (_) {}
                 window.ElementalFlappyArcade?.begin({ language: normalizeLanguage(menuState.language), onClose: () => lobbyHub?.clearMovement() });
+                return true;
             },
             onInteraction: (event) => {
                 if (!bootPlayAccepted) return;
@@ -9176,7 +9204,7 @@ const arrowEffectPool = [];
                 unlockMenuMusicFromUserGesture();
             },
             refreshRewards: hud => { lobbyRewards?.attach(hud); lobbyRewards?.refresh(); },
-            blocked: () => lobbyRewards?.isOpen() || lobbyRewards?.hatOpen() || rewardedAdBusy || fortuneWheelSystem?.overlayOpen || ui.menuDialogLayer?.classList.contains('is-open') || window.ElementalFlappyArcade?.getState?.().active,
+            blocked: () => bootPlayPending || bootModeStarting || lobbyRewards?.isOpen() || lobbyRewards?.hatOpen() || rewardedAdBusy || fortuneWheelSystem?.overlayOpen || ui.menuDialogLayer?.classList.contains('is-open') || window.ElementalFlappyArcade?.getState?.().active,
             hatOwned: () => menuState.tutorialHat.claimed,
             onEnter: () => {
                 hideMainMenu();
@@ -9253,32 +9281,49 @@ const arrowEffectPool = [];
             prepare: async (mode) => {
                 if (mode === 'games') return;
                 if (mode === 'surf') {const manager=ensureSurfRun();await manager.prepare();if(!manager.prepared)throw new Error('Surf preparation did not complete');return;}
-                if (mode === 'obby'||mode==='troll') {const run=ensureObbyRun(mode);for(const other of obbyModes.values())if(other!==run&&!other.active)other.clearScene();obbyRun=run;await run.prepare();return;}
+                if (mode === 'obby'||mode==='troll') {
+                    // First-time boot prepares the tutorial, not the hub.
+                    // Troll clones the real hub avatar, so initialize its source
+                    // before building the run without entering/rendering the hub.
+                    if(mode==='troll'){
+                        const hub=ensureLobbyHub();
+                        if(!hub.avatar){
+                            hub.build();
+                            if(hub.api.hatOwned?.())try{await hub.loadTutorialHat();}catch(_){}
+                        }
+                    }
+                    const run=ensureObbyRun(mode);
+                    for(const other of obbyModes.values())if(other!==run&&!other.active)other.clearScene();
+                    obbyRun=run;await run.prepare();return;
+                }
                 if (mode === 'runner2d') { ensureRunner2D(); return; }
                 if (mode === 'endless') {await prepareCommonRunEntry();await ensureCampaignPhaseWarm(0);}
+                // Only prepare shared assets while the hub transition owns its
+                // scene. Staging the tutorial resets/exits the hub, so that
+                // work belongs in start() after the portal handoff, not here.
                 else if (shouldRunFirstTutorial()) {await prepareCommonRunEntry();prewarmTutorialOpeningAssets();}
                 else {await prepareGamesEntry();await prepareCampaignLevelStart(1,{showOverlay:false});await preloadCampaignEntryLevels(1);}
             },
-            theme: () => {
-                if (shouldRunFirstTutorial()) return 0;
-                const level = levelSystem?.getLevelDefinition?.(1);
-                return Math.max(0, Math.min(5, Math.floor(Number(level?.themePhase) || 0)));
-            },
+            theme: () => lobbyDeathBiome ?? 1,
             warmKey: () => shouldRunFirstTutorial() ? 'tutorial' : 'level-1',
             warmTheme: async () => {
                 if (!shouldRunFirstTutorial()) await prepareCampaignLevelStart(1, { showOverlay: false });
             },
-            start: (mode) => {
+            start: async (mode,options={}) => {
                 unlockGameplayAudioFromUserGesture();
                 if (mode === 'surf') { startSurfRun(); return; }
                 if (mode === 'obby'||mode==='troll') { startObbyRun(mode); return; }
                 if (mode === 'runner2d') { startRunner2D(); return; }
                 if (mode === 'endless') startPreparedRun({ endless: true, source: 'lobby-endless' });
                 else if (shouldRunFirstTutorial()) {
-                    const director = initializeTutorialDirector();
-                    // An unfinished lesson can be restarted after returning to the hub.
-                    if (!director.active && director.state === 'idle') director.gateConsumed = false;
-                    director.start();
+                    showCampaignPrepareOverlay(1,0,'tutorial');const shown=performance.now();await waitForCampaignLoadingPaint();
+                    await prepareBootTutorialEntry();
+                    const remaining=180-(performance.now()-shown);if(remaining>0)await new Promise(r=>setTimeout(r,remaining));
+                    try{const director = initializeTutorialDirector();
+                        // An unfinished lesson can be restarted after returning to the hub.
+                        if (!director.active && director.state === 'idle') director.gateConsumed = false;
+                        director.start();
+                    }finally{hideCampaignPrepareOverlay();}
                 }
                 else startPreparedRun({ level: 1, source: `lobby-${mode}` });
             }
@@ -9474,7 +9519,8 @@ const arrowEffectPool = [];
                 return {geometry:part.geo.clone(),material,textures};
             });
         } else if (phase === 1) {
-            root = createNatureObjectByType(['tree','tree','rock','mountain'][variant]).obj;
+            const treeIndex=[0,1,null,null,2,4,6,7][variant];
+            root = createNatureObjectByType(variant===2?'rock':variant===3?'mountain':'tree',treeIndex).obj;
         } else if (phase === 2) {
             if (!geoms.cloudPuff) initSkyResources();
             root = [createSkySkyscraper, createSkyBalloon, createSkyBlimp, createSkyMountain][variant]();
@@ -9495,7 +9541,14 @@ const arrowEffectPool = [];
             for (let n = 0; n < (mesh.isInstancedMesh ? mesh.count : 1); n++) {
                 matrix.copy(mesh.matrixWorld);
                 if (mesh.isInstancedMesh) { mesh.getMatrixAt(n, instance); matrix.multiply(instance); }
-                const geometry = mesh.geometry.clone(); geometry.applyMatrix4(matrix);
+                const sourceGeometry=mesh.geometry.clone();
+                const flatNature=phase===1&&mat.flatShading;
+                const geometry=flatNature&&sourceGeometry.index?sourceGeometry.toNonIndexed():sourceGeometry;
+                if(geometry!==sourceGeometry)sourceGeometry.dispose();
+                geometry.applyMatrix4(matrix);
+                // The shared decor material cannot preserve per-source flatShading.
+                // Bake face normals so angular crowns stay faceted in Party/Troll too.
+                if(flatNature)geometry.computeVertexNormals();
                 const positions = geometry.attributes.position, color = geometry.attributes.color;
                 const values = new Float32Array(positions.count * 3), tint = mat.color || new THREE.Color(0xffffff);
                 for (let i = 0; i < positions.count; i++) {
@@ -9800,9 +9853,10 @@ const arrowEffectPool = [];
         if(obbyModes.has(mode))return obbyModes.get(mode);
         const Run=mode==='troll'?window.ElementalTrollRun:window.ElementalObbyRun;
         const run=new Run(THREE,{
-            mode,courseVersion:mode==='troll'?3:window.ElementalObbyCourse.COURSE_VERSION,storageKey:mode==='troll'?'elemental-run-troll-v1':'elemental-run-party-v1',
+            mode,courseVersion:mode==='troll'?window.ElementalObbyCourse.TROLL_COURSE_VERSION:window.ElementalObbyCourse.COURSE_VERSION,storageKey:mode==='troll'?'elemental-run-troll-v1':'elemental-run-party-v1',
             tr,renderer:()=>renderer,mobile:MOBILE_RUNTIME,language:()=>normalizeLanguage(menuState.language),decor:(phase,variant)=>createSurfDecorGeometry(phase,variant,{lite:MOBILE_RUNTIME}),floorMaterial:createSurfFloorMaterial,
             wallet:()=>Math.max(0,Math.floor(menuState.walletCoins)||0),sky:createSurfRunnerSky,
+            onDeathBiome:rememberLobbyDeathBiome,
             hubAvatar:own=>window.ElementalCubeAvatar.cloneHub(THREE,ensureLobbyHub(),own),
             renderWorld:(world,cam,dt,phase)=>renderSurfWorld(world,cam,dt,null,phase),
             renderHands:(cam,p,time,motion)=>renderSurfHands(cam,p,time,null,motion),
@@ -9814,7 +9868,8 @@ const arrowEffectPool = [];
             notice:text=>showBrowserToast(text),
             interaction:()=>unlockGameplayAudioFromUserGesture(),
             lock:()=>{if(!MOBILE_RUNTIME){const p=renderer.domElement.requestPointerLock?.();p?.catch?.(()=>{});}},
-            sound:kind=>{if(kind==='jump')playJumpSound();else if(kind==='coin')playCoinSound();else if(kind==='hit')playCrashSound();else if(kind==='pad')playJumpPadSound();},
+            sound:(kind,strength,pan)=>{if(mode==='troll'){window.ElementalAudio?.playTrollSound(kind==='coin'?'checkpoint':kind,strength,pan);return;}if(kind==='jump')playJumpSound();else if(kind==='coin')playCoinSound();else if(kind==='hit')playCrashSound();else if(kind==='pad')playJumpPadSound();},
+            soundBed:(kind,strength,pan)=>{if(mode==='troll')window.ElementalAudio?.setTrollBed(kind,strength,pan);},
             // Only Obby finish pays. Same attempt cannot credit the wallet twice.
             bank: result => {
                 if (!result || typeof result.id !== 'string' || result.id.length > 160 || obbyRewardReceipts.has(result.id)) return 0;
@@ -9829,16 +9884,18 @@ const arrowEffectPool = [];
                 if (!obbyRun?.active) { updateMainMenuStats(); lobbyRewards?.refresh(); }
                 return result.coins;
             },
-            stateChanged:state=>{if(state==='playing'){unlockGameplayAudioFromUserGesture();crazyGamesPlatform()?.gameplayStart();}else crazyGamesPlatform()?.gameplayStop();syncHtmlAudioWithSettings();},
+            stateChanged:state=>{if(mode==='troll')window.ElementalAudio?.setTrollAudioState(state);if(state==='playing'){unlockGameplayAudioFromUserGesture();crazyGamesPlatform()?.gameplayStart();}else crazyGamesPlatform()?.gameplayStop();syncHtmlAudioWithSettings();},
             exit:()=>{stopGameplayMusicNow();returnToLobby(false,{lockPointer:true});}
         });obbyModes.set(mode,run);return run;
     }
+    // Keep simulation paused until the initial loading fade has completed.
+    let bootModeRevealPending=false;
     function startObbyRun(mode='obby'){
         hideMainMenu();closeMenuDialogs();resetControlActionState();forceEndAllHandSkills(true);
         isGamePaused=true;isGameOver=false;runStartedFromMenu=false;pointerLockRecoveryPending=false;pointerLockRecoveryReason='';
         if(ui.pauseScreen)ui.pauseScreen.style.display='none';if(ui.gameOver)ui.gameOver.style.display='none';
         if(MOBILE_RUNTIME)setMobileControlsVisible(false);
-        if(viewmodelRig)viewmodelRig.visible=false;levelGhostSystem?.stop();lobbyHub?.clearHandoff();obbyRun=ensureObbyRun(mode);obbyRun.enter();
+        if(viewmodelRig)viewmodelRig.visible=false;levelGhostSystem?.stop();lobbyHub?.clearHandoff();obbyRun=ensureObbyRun(mode);obbyRun.enter();if(bootModeRevealPending)obbyRun.clock.pause();
     }
     function ensureSurfRun() {
         if (surfRun) return surfRun;
@@ -9860,6 +9917,7 @@ const arrowEffectPool = [];
             pauseUI: setSurfPauseUI,
             sound: kind => { if(kind==='jump')playJumpSound();else if(kind==='coin')playCoinSound();else if(kind==='land')playLandSound();else if(kind==='hit')playCrashSound();else if(kind==='pad')playJumpPadSound();else playPickupSound(); },
             skillUsed: () => noteDailyMissionEvent('useAbility'),
+            onDeathBiome: rememberLobbyDeathBiome,
             stateChanged: state => {
                 if(state==='playing'){unlockGameplayAudioFromUserGesture();crazyGamesPlatform()?.gameplayStart();}
                 else crazyGamesPlatform()?.gameplayStop();
@@ -9900,6 +9958,7 @@ const arrowEffectPool = [];
             tr, mobile: MOBILE_RUNTIME, language: () => normalizeLanguage(menuState.language),
             skin: () => HAND_SKIN_BY_ID[menuState.selectedHandSkin],
             hatOwned: () => !!menuState.tutorialHat?.claimed,
+            onDeathBiome: rememberLobbyDeathBiome,
             coinMultiplier: getCoinMultiplier, scoreMultiplier: getScoreMultiplier,
             controlHint: action => formatControlBinding(getControlBinding(action)),
             binding: code => code === getControlBinding('jump') ? 'jump' : code === getControlBinding('slide') ? 'slide' : code === getControlBinding('timeSlow') ? 'skill' : null,
@@ -9941,7 +10000,7 @@ const arrowEffectPool = [];
         if (ui.gameOver) ui.gameOver.style.display = 'none';
         if (MOBILE_RUNTIME) setMobileControlsVisible(false);
         if (viewmodelRig) viewmodelRig.visible = false;
-        levelGhostSystem?.stop(); lobbyHub?.clearHandoff(); mode.enter();
+        levelGhostSystem?.stop(); lobbyHub?.clearHandoff(); mode.enter();mode.begin();
         try { if (document.pointerLockElement) document.exitPointerLock(); } catch (_) {}
     }
 
@@ -11773,7 +11832,7 @@ const arrowEffectPool = [];
         if (lobbyRewards?.hatOpen() && !menuState.tutorialHat.claimed) return Promise.resolve(false);
         const number = Number(options.level) || levelSystem?.getSelectedLevel() || 1;
         const phase = options.endless ? 0 : levelSystem?.getLevelDefinition?.(number)?.themePhase || 0;
-        showCampaignPrepareOverlay(number, phase);
+        showCampaignPrepareOverlay(number, phase, options.endless?'endless':'level');
         // Keep the black portal handoff until real geometry, shadows and the
         // post-processing buffers have been exercised at the final run quality.
         runPreparationPromise = window.ElementalPreparation.run(`run-entry-${options.endless ? 'endless' : number}`, async () => {
@@ -11889,6 +11948,8 @@ const arrowEffectPool = [];
             // Preparation must not consume the attempt timer or active-play rewards.
             if (!options.endless && activeLevelConfig) startPlayerFitLevelAttempt(activeLevelConfig, options.source || 'campaign');
             lobbyHub?.clearHandoff();
+            // Brief feedback when cached; never add a long fake wait or affect continuous boundaries.
+            if(!options.endless){const remaining=180-(performance.now()-started);if(remaining>0)await new Promise(r=>setTimeout(r,remaining));}
             clock?.getDelta();
             commit();
             return true;
@@ -12800,6 +12861,8 @@ const arrowEffectPool = [];
     }
 
     function finalizeGameOver(msg, options = {}) {
+        // Sample the live biome, not the level selection or an upcoming biome.
+        rememberLobbyDeathBiome(gamePhase);
         lobbyRewards?.flush();
         hideHowToPlayOverlay(true);
         isGameOver = true;
@@ -13649,7 +13712,14 @@ nextSnowballX = 0;
     }
 
     function stepGameFrame(delta) {
-        if (!bootPlayAccepted || bootPlayPending) return;
+
+        if(bootModeRevealPending){
+            if(obbyRun?.active)obbyRun.render(0);
+            else if(surfRun?.active)surfRun.render(0);
+            else if(runner2D?.active)runner2D.draw();
+            return;
+        }
+        if (!bootPlayAccepted || bootPlayPending || bootModeStarting) return;
         if (!lobbyOnboarding?.state.playedAnyMode && !document.hidden && document.hasFocus()) {
             const playing = getPokiGameplayState();
             if (playing.active) ensureLobbyOnboarding()?.modePlayed(playing.mode);
@@ -14002,6 +14072,10 @@ nextSnowballX = 0;
             visual: window.ElementalPixelArt?.inspect() || { style: 'classic' },
             coordinateSystem: "world units; x is forward, y is up, z is lateral",
             mode: textMode,
+            menuArt: bootPlayPending ? {
+                preparation: window.ElementalBootPosterLayers?.preparationSnapshot(),
+                queue: window.ElementalBootGallery?.snapshot()
+            } : null,
             tutorial: Object.assign({ version: TUTORIAL_VERSION }, tutorialDirector ? tutorialDirector.snapshot() : {
                 active: false,
                 state: 'uninitialized',
@@ -16992,7 +17066,9 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         c1 = cache.skyHigh;
         c2 = cache.skyLava;
         fog1 = 0.0016;
-        fog2 = 0.0085;
+        // A campaign has a fixed seam and pre-warmed landmarks; Endless
+        // still uses its stronger volcanic haze to conceal rolling spawns.
+        fog2 = campaignSpatialActive ? 0.0038 : 0.0085;
 
         if (cyberFloor) {
             cyberFloor.visible = false;
@@ -17514,6 +17590,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
     let loadingFinalized = false;
     let bootPlayPending = false;
     let bootPlayAccepted = false;
+    let bootModeStarting = false;
     const loadingTaskTimings = [];
 
     function startAnimationLoop() {
@@ -17905,6 +17982,9 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         window.spawnTimer = 0;
 
         const tasks = [
+            // Fetch only first-viewport menu art while the existing world tasks
+            // run. This starts downloads but does not stall the core pipeline.
+            { id: 'gallery-art-requests', func: () => { void window.ElementalBootPosterLayers?.prepareInitial(); }, text: () => tr('preparing') },
             { id: 'core-resources', func: () => initResources(), text: () => tr('loading') },
             // Eller varsayılan açık. Seçili GLB isteğini yükleme hattının başında
             // başlat; dünya hazırlanırken ağ indirme/GLTF ayrıştırma paralel ilerlesin.
@@ -17928,7 +18008,6 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             { id: 'sky-scene', func: () => createSky(), text: () => tr('preparing') },
             { id: 'map-cache-slices', func: () => prewarmMapCachesDuringLoading(), text: () => tr('loadingWorld') },
             // Heavy tasks run between flights, including the GPU drain.
-            { id: 'tutorial-prewarm', func: () => prewarmTutorialOpeningAssets(), text: () => tr('loadingWorld') },
             { id: 'texture-prewarm', func: () => prewarmAssets(), text: () => tr('loadingShaders') },
             // Nature is the only biome needed immediately after the tutorial.
             // Later phases are warmed on their level loading cards, not while
@@ -17943,50 +18022,9 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                 await yieldLoadingSlice();
                 // Gameplay Nature draw moves to the first Games entry.
             }, text: () => tr('loadingShaders') },
-            { id: 'lobby-entry-prewarm', func: async () => {
-                // Build, parse and upload the entire initial hub before PLAY.
-                // Remain inactive: no controls or SDK gameplayStart during loading.
-                if (!shouldRunFirstTutorial()) {
-                    showMainMenu(true);
-                    await ensureLobbyHub()?.prepareForEntry();
-                }
-            }, text: () => tr('loadingWorld') },
-            { id: 'first-tutorial-entry', func: async () => {
-                if(!shouldRunFirstTutorial())return;
-                // Stage the tutorial before warming its actual meshes. Joining
-                // the adjacent level here keeps parse/upload out of first play.
-                showFirstRunTutorialGate();
-                // The boot PLAY is the only gate; stage the corridor now.
-                tutorialDirector.hideGate();
-                document.body.classList.remove('tutorial-start-screen');
-                // No hub enter/exit or desktop lock-resize on this route.
-                // Restore the runner viewport/DPR while still behind loading.
-                onWindowResize();
-                renderer.setRenderTarget(null);renderer.setScissorTest(false);
-                // Countdown deliberately skips updatePlayer(0), whose legacy
-                // zero-scale fallback advances the simulation. Seed only view.
-                camera.position.set(player.position.x,player.position.y-normalHeight/2+currentCameraHeight-.3,player.position.z);
-                camera.rotation.set(pitch,yaw,0,'YXZ');camera.fov=Math.min(110,currentFov);camera.updateProjectionMatrix();
-                curvedPathSystem?.update?.(score,0,player.position.x);
-                updateLanesProgress();updateCity(0,true);updateCyberFloor();syncMapPhaseGraphics();
-                const generation=graphicsContextGeneration;
-                // compileAsync alone does not upload off-camera buffers. Warm
-                // the exact staged corridor, including its distant drills and
-                // coins, one real mesh at a time before exposing PLAY.
-                await warmContinuousScenery({phase:0,normalized:true,group:{children:[
-                    ...getAllTutorialHazards(),...coins.filter(coin=>coin.userData?.tutorialCoin)
-                ]}},()=>generation===graphicsContextGeneration&&!graphicsContextLost);
-                await prepareTutorialLevelOne();
-                if(!isTutorialLevelOneReady())throw tutorialLevelOneWarm?.error||new Error('Initial tutorial route preparation failed');
-                // Exercise the exact tutorial display + shadow variants while
-                // loading still covers the canvas, rather than on first jump.
-                await compileSceneForR185(scene,camera,'tutorial-entry',true);
-                for (let frame=0;frame<2;frame++) {
-                    if (!frame && renderer.shadowMap.enabled) renderer.shadowMap.needsUpdate=true;
-                    renderRunningWorld(0);
-                    await yieldLoadingSlice();
-                }
-            }, text: () => tr('loadingWorld') }
+            // Joining has a small upper bound: failed/slow card artwork must
+            // never prevent the real game from reaching its trusted PLAY gate.
+            { id: 'gallery-art-ready', func: () => window.ElementalBootPosterLayers?.readyForMenu(), text: () => tr('preparing') }
         ];
 
         if (shouldUseProceduralAuxVehicleModels()) {
@@ -19106,7 +19144,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             );
             // A poor connection must not block the player forever. The hand
             // loader keeps retrying in the background after this bounded wait.
-            const maxCriticalWait = shouldRunFirstTutorial() ? 5000 : 10000;
+            const maxCriticalWait = 0; // Hand loading continues; the mode gallery has no hands.
             if ((!handsSettled && elapsed < maxCriticalWait) || bootElapsed < minimumBootTime) {
                 setTimeout(tick, 100);
                 return;
@@ -19185,45 +19223,152 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         if (!lobbyHub?.entryPrepared) try { applyGraphicsQuality(); } catch (e) { console.warn('applyGraphicsQuality (post-load) failed', e); }
         scheduleBrowserDeferredModelCacheWarmup();
         beginShadowStabilization(MOBILE_RUNTIME ? 4 : 6, 'loading-finish');
-        {
-            bootPlayPending = true;
-            const button = document.getElementById('boot-play-btn');
-            ui.loadingScreen?.classList.add('boot-play-ready');
-            button.querySelector('.boot-play-label').textContent = tr('play').toLocaleUpperCase();
-            button.hidden = false;
-            button.addEventListener('click', (event) => {
-                if (!event.isTrusted || !bootPlayPending) return;
-                if (isPokiBuild() && !window.ElementalPoki?.confirmPlayInteraction(event)) return;
-                button.disabled = true;
-                bootPlayAccepted = true;
-                if (!playerFitFirstInputSent) {
-                    playerFitFirstInputSent = true;
-                    measurePlayerFit('onboarding', 'first-input', 'play');
+        showBootModePicker();
+    }
+
+    let bootTutorialEntryJob=null;
+    function prepareBootTutorialEntry(){
+        if(tutorialGateWorldPrepared&&isTutorialLevelOneReady())return Promise.resolve();
+        if(bootTutorialEntryJob)return bootTutorialEntryJob;
+        bootTutorialEntryJob=(async()=>{
+            prewarmTutorialOpeningAssets();
+                // Stage the tutorial before warming its actual meshes. Joining
+                // the adjacent level here keeps parse/upload out of first play.
+                showFirstRunTutorialGate();
+                // The boot PLAY is the only gate; stage the corridor now.
+                tutorialDirector.hideGate();
+                document.body.classList.remove('tutorial-start-screen');
+                // No hub enter/exit or desktop lock-resize on this route.
+                // Restore the runner viewport/DPR while still behind loading.
+                onWindowResize();
+                renderer.setRenderTarget(null);renderer.setScissorTest(false);
+                // Countdown deliberately skips updatePlayer(0), whose legacy
+                // zero-scale fallback advances the simulation. Seed only view.
+                camera.position.set(player.position.x,player.position.y-normalHeight/2+currentCameraHeight-.3,player.position.z);
+                camera.rotation.set(pitch,yaw,0,'YXZ');camera.fov=Math.min(110,currentFov);camera.updateProjectionMatrix();
+                curvedPathSystem?.update?.(score,0,player.position.x);
+                updateLanesProgress();updateCity(0,true);updateCyberFloor();syncMapPhaseGraphics();
+                const generation=graphicsContextGeneration;
+                // compileAsync alone does not upload off-camera buffers. Warm
+                // the exact staged corridor, including its distant drills and
+                // coins, one real mesh at a time before exposing PLAY.
+                await warmContinuousScenery({phase:0,normalized:true,group:{children:[
+                    ...getAllTutorialHazards(),...coins.filter(coin=>coin.userData?.tutorialCoin)
+                ]}},()=>generation===graphicsContextGeneration&&!graphicsContextLost);
+                await prepareTutorialLevelOne();
+                if(!isTutorialLevelOneReady())throw tutorialLevelOneWarm?.error||new Error('Initial tutorial route preparation failed');
+                // Exercise the exact tutorial display + shadow variants while
+                // loading still covers the canvas, rather than on first jump.
+                await compileSceneForR185(scene,camera,'tutorial-entry',true);
+                for (let frame=0;frame<2;frame++) {
+                    if (!frame && renderer.shadowMap.enabled) renderer.shadowMap.needsUpdate=true;
+                    renderRunningWorld(0);
+                    await yieldLoadingSlice();
                 }
-                bootPlayPending = false;
-                lobbyGameplayInteracted = true;
-                unlockMenuMusicFromUserGesture();
-                focusGameplaySurface();
-                // Pointer lock must be requested inside this trusted click.
-                // The prepared hub enters synchronously, but the SDK sees the
-                // bubbled click before the deferred gameplayStart below.
-                lobbyGameplayInteracted = false;
-                const firstTutorial=shouldRunFirstTutorial();
-                if(!firstTutorial)returnToLobby(true);
-                if (!MOBILE_RUNTIME) requestPointerLockFromUi?.({ force: true, allowDisabled: true, lobby: !firstTutorial });
-                setTimeout(() => {
-                    lobbyGameplayInteracted = true;
-                    if(firstTutorial){
-                        unlockGameplayAudioFromUserGesture();
-                        initializeTutorialDirector().start(event,{countdown:true});
+        })().finally(()=>{bootTutorialEntryJob=null;});
+        return bootTutorialEntryJob;
+    }
+
+    let bootModePickerAbort=null;
+    function openLobbyModeCards(){
+        const h=lobbyHub;if(!h?.active||h.blocked())return;
+        h.returnPose={hall:!!h.inConcourse,x:h.avatar.position.x,z:h.avatar.position.z,yaw:h.yaw,pitch:h.pitch,facing:h.avatar.rotation.y};h.clearMovement();
+        bootPlayPending=true;try{document.exitPointerLock?.();}catch(_){}
+        const screen=ui.loadingScreen;screen.style.display='flex';screen.style.opacity='1';showBootModePicker();window.ElementalPoki?.refreshGameplayState?.();
+    }
+    function showBootModePicker() {
+        document.body.classList.add('mode-gallery-open');
+        bootModePickerAbort?.abort();bootModePickerAbort=new AbortController();window.ElementalBootGallery?.destroy();
+        const picker=document.getElementById('boot-mode-picker'),grid=document.getElementById('boot-mode-grid');
+        const lobbyButton=document.getElementById('boot-play-btn'),status=document.getElementById('boot-mode-status');
+        grid.replaceChildren();picker.removeAttribute('aria-busy');picker.classList.remove('has-error');lobbyButton.disabled=false;status.hidden=true;status.textContent='';
+        const cards=[
+            ['level',tr('levelsLabel')],['troll',tr('trollObby')],['endless',tr('hubEndless')],
+            ['surf','Surf & Bhop'],['obby','Party Run'],['runner2d','2D Run'],['flappy','Flappy']
+        ];
+        const initialArt=new Set(window.ElementalBootPosterLayers?.initialModes()||cards.map(([mode])=>mode));
+        const buttons=cards.map(([mode,label])=>{
+            const button=document.createElement('button');
+            button.type='button';button.className='boot-mode';button.dataset.mode=mode;
+            button.innerHTML=`<img class="boot-mode-photo" alt="" decoding="async" draggable="false"><span class="boot-mode-caption"><svg class="boot-mode-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5a1 1 0 0 1 1.5-.86l14 8.5a1 1 0 0 1 0 1.72l-14 8.5A1 1 0 0 1 6 20.5z"/></svg><span class="boot-mode-name"></span></span>${mode==='troll'?'<span class="boot-mode-new">NEW</span>':''}`;
+            const art=button.firstElementChild,url=`assets/mode-cards/${mode}-art.webp`;
+            art.fetchPriority=initialArt.has(mode)?'high':'low';
+            if(initialArt.has(mode))art.src=url;else art.dataset.src=url;
+            button.querySelector('.boot-mode-name').textContent=label;
+            grid.appendChild(button);return button;
+        });
+        const controls=[...buttons,lobbyButton];
+        const gallery=window.ElementalBootGallery?.mount({picker,grid,buttons,tr});
+        const accept=(event,mode)=>{
+            if(!event.isTrusted||!bootPlayPending)return;
+            if(isPokiBuild()&&!window.ElementalPoki?.confirmPlayInteraction(event))return;
+            const clicked=event.currentTarget;
+            bootPlayPending=false;bootPlayAccepted=true;bootModeStarting=true;lobbyGameplayInteracted=false;
+            bootModeRevealPending=['troll','obby','surf','runner2d'].includes(mode);
+            gallery?.suspend();
+            if(!playerFitFirstInputSent){playerFitFirstInputSent=true;measurePlayerFit('onboarding','first-input','play');}
+            measurePlayerFit('boot-choice',mode,'select');
+            picker.setAttribute('aria-busy','true');picker.classList.remove('has-error');
+            controls.forEach(button=>{button.disabled=true;});
+            status.textContent=tr('loadingWorld');status.hidden=false;
+            unlockMenuMusicFromUserGesture();unlockGameplayAudioFromUserGesture();
+            const wantsLobby=mode==='lobby'||mode==='flappy';
+            const firstTutorial=mode==='level'&&shouldRunFirstTutorial();
+            if(mode!=='level'&&tutorialDirector?.state==='start-gate'){
+                tutorialDirector.cancel();
+                tutorialGateWorldPrepared=false;
+            }
+            // Capture within the trusted gesture; 2D and Flappy use pointer/touch.
+            if(!MOBILE_RUNTIME&&mode!=='runner2d'&&mode!=='flappy'){
+                if(!wantsLobby)hideMainMenu();
+                requestPointerLockFromUi?.({force:true,allowDisabled:true,lobby:wantsLobby,preparingRun:!wantsLobby});
+            }else if(mode!=='flappy')focusGameplaySurface();
+            // Let the click reach Poki and paint the status before GPU preparation.
+            setTimeout(async()=>{
+                try {
+                    const hub=ensureLobbyHub();
+                    if(wantsLobby){
+                        if(await returnToLobby(true)===false)throw Error('Lobby preparation failed');
+                        if(mode==='flappy'&&await hub.api.openFlappy()===false)throw Object.assign(Error('Mode tutorial cancelled'),{guideCancelled:true});
+                    }else if(firstTutorial){
+                        showCampaignPrepareOverlay(1,0,'tutorial');const shown=performance.now();await waitForCampaignLoadingPaint();
+                        await prepareBootTutorialEntry();
+                        const remaining=180-(performance.now()-shown);if(remaining>0)await new Promise(r=>setTimeout(r,remaining));
+                        if(!initializeTutorialDirector().start(event,{countdown:true}))throw Error('Tutorial did not start');
+                        hideCampaignPrepareOverlay();
+                    }else{
+                        await hub.api.prepare(mode);
+                        if(hub.active){hub.captureHandoff();hub.exit({deferModels:true});}
+                        if(mode==='level'||mode==='endless'){
+                            const options=mode==='level'?{level:1}:{endless:true};
+                            if(!await startPreparedRun({...options,source:'boot-mode',recoverToLobby:false}))throw Error('Run did not start');
+                        }else if(await hub.api.start(mode,{source:'boot'})===false)throw Object.assign(Error('Mode tutorial cancelled'),{guideCancelled:true});
                     }
+                    if(!wantsLobby){hub.api.guideEntered?.(mode);window.ElementalModeConcourse.markPlayed(mode);}
+                    if(mode==='flappy')window.ElementalModeConcourse.markPlayed(mode);
+                    lobbyGameplayInteracted=true;bootModeStarting=false;
                     completeBootLobbyTransition(true);
-                    crazyGamesPlatform()?.gameplayStart();
-                }, 0);
-            });
-            try { button.focus({ preventScroll: true }); } catch (_) {}
-            return;
-        }
+                    if(mode!=='flappy')crazyGamesPlatform()?.gameplayStart();
+                }catch(error){
+                    if(!error.guideCancelled)console.warn('[Boot mode entry]',error);
+                    hideCampaignPrepareOverlay();
+                    try{if(document.pointerLockElement)document.exitPointerLock();}catch(_){}
+                    crazyGamesPlatform()?.gameplayStop();
+                    bootPlayAccepted=false;bootPlayPending=true;bootModeStarting=false;
+                    bootModeRevealPending=false;
+                    controls.forEach(button=>{button.disabled=false;});picker.removeAttribute('aria-busy');picker.classList.add('has-error');
+                    status.textContent=error.guideCancelled?'':tr('loadingRecovery');status.hidden=!!error.guideCancelled;clicked.focus({preventScroll:true});
+                    gallery?.resume();
+                }
+            },0);
+        };
+        bootPlayPending=true;
+        picker.dir=normalizeLanguage(menuState.language)==='ar'?'rtl':'ltr';
+        picker.setAttribute('aria-label',tr('hubGames'));
+        lobbyButton.setAttribute('aria-label',tr('hubPlaza'));
+        controls.forEach(button=>button.addEventListener('click',event=>accept(event,button.dataset.mode||'lobby'),{signal:bootModePickerAbort.signal}));
+        picker.hidden=false;ui.loadingScreen?.classList.add('boot-play-ready');
+        // Don't steal focus from Poki's iframe until the user interacts.
     }
 
     function completeBootLobbyTransition(alreadyEntered = false) {
@@ -19233,12 +19378,16 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         }
         const loadingScreen = ui.loadingScreen;
         startAnimationLoop();
+        window.ElementalBootGallery?.destroy();
         if (loadingScreen) {
             loadingScreen.style.opacity = '0';
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
+                document.body.classList.remove('mode-gallery-open');
+                bootModeRevealPending=false;
+                if(obbyRun?.active&&obbyRun.state==='playing')obbyRun.clock.resume();
             }, 280);
-        }
+        }else bootModeRevealPending=false;
     }
 
     function isMobilePortraitLayout() {
@@ -19948,6 +20097,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
 
         document.addEventListener('pointerlockchange', () => {
             pointerLockRequestInFlight = false;
+            if (bootModeStarting) { pointerJustLocked = document.pointerLockElement === renderer.domElement; return; }
             // A capture requested on lobby return can complete after a dialog
             // opened. Never let that late promise trap the cursor in settings.
             if (document.pointerLockElement === renderer.domElement && (ui.menuDialogLayer?.classList.contains('is-open') || ui.pauseSettingsPanel?.classList.contains('is-open'))) {
@@ -20059,6 +20209,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
 
         document.addEventListener('pointerlockerror', () => {
             pointerLockRequestInFlight = false;
+            if (bootModeStarting) return;
             if (lobbyHub?.active) return;
             if(obbyRun?.active){obbyRun.pause();syncHtmlAudioWithSettings();return;}
             if (tutorialDirector?.state === 'start-gate') {
@@ -20158,7 +20309,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                 // into the existing tap-to-resume state and let the next real
                 // click retry from a trusted gesture.
                 setTimeout(() => {
-                    if (!pointerLockRequestInFlight || MOBILE_RUNTIME
+                    if (!pointerLockRequestInFlight || MOBILE_RUNTIME || bootModeStarting
                         || document.pointerLockElement === renderer.domElement) return;
                     if (options.lobby && lobbyHub?.active) { pointerLockRequestInFlight = false; return; }
                     if (isGameOver || mainMenuVisible || lobbyHub?.active) return;
@@ -22763,7 +22914,12 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             if(!g.attributes.uv){ const c=g.attributes.position.count; g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(c*2),2)); }
             if(!byMat.has(o.material)) byMat.set(o.material,[]); byMat.get(o.material).push(g); } });
         const parts=[];
-        byMat.forEach((geos,mat)=>{ parts.push({ geo: cbMergeGeos(geos), mat }); geos.forEach(g=>g.dispose()); });
+        byMat.forEach((geos,mat)=>{
+            // Preserve authored crown gradients when baking vertex-colour materials.
+            const coloured = mat.vertexColors && geos.every(g => !!g.attributes.color);
+            parts.push({ geo: coloured ? mergeColoredGeos(geos) : cbMergeGeos(geos), mat });
+            geos.forEach(g=>g.dispose());
+        });
         return parts;
     }
 
@@ -23739,30 +23895,18 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         baseMoss.position.set(Math.cos(rnd() * 6) * 1.0, 0.35, Math.sin(rnd() * 6) * 1.0);
         baseMoss.scale.set(0.9, 0.3, 0.9);
         g.add(baseMoss);
-        // İki seviyeli dallar: ana dal + ucunda kısa alt-dal, her uçta yaprak kütlesi
-        const canopyY = trunkH + 0.4;
-        const branchCount = 4;
-        for (let i = 0; i < branchCount; i++) {
-            const yaw = (i / branchCount) * Math.PI * 2 + rnd() * 1.0;
-            const by = trunkH * (0.52 + rnd() * 0.26);
-            const bx = Math.cos(yaw) * 1.15, bz = Math.sin(yaw) * 1.15;
-            const tip = natBranch(g, bx, by, bz, 3.6 + rnd() * 1.6, 0.3, yaw, 1.05 + rnd() * 0.25);
-            const subYaw = yaw + (rnd() - 0.5) * 1.2;
-            const subTip = natBranch(g, tip.x, tip.y, tip.z, 1.9 + rnd() * 0.8, 0.16, subYaw, 0.75 + rnd() * 0.4);
-            natLeafBlob(g, (i % 2 === 0) ? leafMatB : leafMatA, tip.x, tip.y + 0.8, tip.z, 1.8 + rnd() * 0.5, rnd);
-            natLeafBlob(g, (i % 2 === 0) ? leafMatA : core, subTip.x, subTip.y + 0.5, subTip.z, 1.2 + rnd() * 0.4, rnd);
+        // Retain the original oak trunk/roots, but form one connected crown.
+        const canopyY = trunkH + .4;
+        for(let i=0;i<5;i++){
+            const yaw=i*Math.PI*2/5+rnd()*.35,by=trunkH*(.58+rnd()*.15);
+            const tip=natBranch(g,Math.cos(yaw)*.7,by,Math.sin(yaw)*.7,(trunkH<14?2.7:3.6)+rnd()*.6,.3,yaw,.85+rnd()*.2);
+            natBranch(g,tip.x,tip.y,tip.z,(trunkH<14?1.2:2)+rnd()*.4,.13,yaw+.25,.5);
         }
-        // Üç tonlu dolgun taç: koyu iç çekirdek + orta katman + açık tepe vurguları
-        natLeafBlob(g, core, 0, canopyY - 0.6, 0, 3.1 + rnd() * 0.5, rnd);
-        for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * Math.PI * 2 + rnd();
-            const r = 2.3 + rnd() * 1.1;
-            natLeafBlob(g, (i % 2 === 0) ? leafMatA : leafMatB, Math.cos(a) * r, canopyY - 0.7 + rnd() * 2.6, Math.sin(a) * r, 1.8 + rnd() * 0.7, rnd);
-        }
-        for (let i = 0; i < 3; i++) { // üst kubbe
-            const a = rnd() * Math.PI * 2;
-            natLeafBlob(g, (i === 0) ? leafMatA : leafMatB, Math.cos(a) * (0.7 + rnd() * 0.9), canopyY + 1.7 + rnd() * 1.1, Math.sin(a) * (0.7 + rnd() * 0.9), 1.6 + rnd() * 0.5, rnd);
-        }
+        const crown=new THREE.Mesh(window.ElementalTreeCanopy.geometry(THREE,{
+            seed,style:coreMat?'autumn':trunkH<14?'young':'oak',radius:trunkH<14?4.7:6.3,height:trunkH<14?8.7:8.8,aspect:.9,
+            palette:[core.color,leafMatA.color,leafMatB.color]
+        }),mats.natVCFoliage);
+        crown.position.set(-Math.sin(lean)*trunkH,canopyY,0);g.add(crown);
         if (withApples) { // taç yüzeyine serpilmiş elmalar
             const appleGeo = new THREE.SphereGeometry(0.22, 6, 5);
             for (let i = 0; i < 8; i++) {
@@ -23791,16 +23935,18 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             root.rotation.set(Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5);
             g.add(root);
         }
-        // 7 katman: her katman hafif kaçık merkezli + dönük — düz koni kulesi görünmesin
+        // Alt katmanlarda küçük çeşitlilik; üst üç katman ve tepe aynı dik eksende.
         const layers = 7;
         for (let i = 0; i < layers; i++) {
             const t = i / (layers - 1);
             const radius = 4.6 - t * 3.4;
             const h = 3.0 - t * 0.8;
             const cone = new THREE.Mesh(new THREE.ConeGeometry(radius, h, 9), mats.pineLeaves);
-            cone.position.set((rnd() - 0.5) * 0.5, trunkH * 0.3 + t * trunkH * 0.76, (rnd() - 0.5) * 0.5);
+            const offset=t>=.66?0:.5*(1-t)*(1-t);
+            cone.position.set((rnd() - 0.5) * offset, trunkH * 0.3 + t * trunkH * 0.76, (rnd() - 0.5) * offset);
+            cone.name='pine-layer-'+i;
             cone.rotation.y = rnd() * Math.PI;
-            cone.rotation.x = (rnd() - 0.5) * 0.06;
+            const tilt=(rnd() - 0.5)*.06;cone.rotation.x=t>=.66?0:tilt*(1-t);
             g.add(cone);
             if (i % 2 === 1) { // ara katmanlarda açık-yeşil kenar vurgusu (ikinci ton)
                 const rim = new THREE.Mesh(new THREE.ConeGeometry(radius * 0.72, h * 0.7, 9), mats.leafLight);
@@ -23811,7 +23957,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         }
         const tipY = trunkH * 0.3 + trunkH * 0.76 + 1.6;
         const tip = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.6, 7), mats.pineLeaves);
-        tip.position.y = tipY;
+        tip.position.y = tipY;tip.name='pine-tip';
         g.add(tip);
         return g;
     }
@@ -23833,18 +23979,17 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
                 band.rotation.z = t.lean;
                 g.add(band);
             }
-            const topX = t.x - Math.sin(t.lean) * t.h;
-            const canopyY = t.h + 0.3;
-            natLeafBlob(g, mats.leafLight, topX, canopyY, 0, 2.2 + rnd() * 0.5, rnd);
-            for (let i = 0; i < 4; i++) {
-                const a = (i / 4) * Math.PI * 2 + rnd();
-                natLeafBlob(g, (i % 2 === 0) ? mats.leafLight : mats.treeLeaves, topX + Math.cos(a) * 1.6, canopyY - 0.5 + rnd() * 1.7, Math.sin(a) * 1.6, 1.3 + rnd() * 0.5, rnd);
-            }
+            // Both birch stems enter the same elongated crown, not nested balls.
         }
-        // ana gövdeden sarkan iki ince dal + uç yaprakları
+        const crown=new THREE.Mesh(window.ElementalTreeCanopy.geometry(THREE,{
+            seed,style:twin?'twin':'birch',radius:twin?4.7:3.5,height:twin?9.4:10,aspect:.8,
+            palette:[mats.leafDark.color,mats.treeLeaves.color,mats.leafLight.color]
+        }),mats.natVCFoliage);
+        crown.position.set(0,trunkH+.2,0);g.add(crown);
+        // Ana gövdeden taç içine uzanan iki ince dal.
         for (const dir of [1, -1]) {
-            const tip = natBranch(g, trunks[0].x, trunkH * (0.6 + rnd() * 0.15), 0, 2.6 + rnd(), 0.14, dir > 0 ? 0.4 : Math.PI - 0.4, 1.15, mats.birchTrunk);
-            natLeafBlob(g, mats.leafLight, tip.x, tip.y + 0.4, tip.z, 1.0 + rnd() * 0.35, rnd);
+            const tip = natBranch(g, trunks[0].x, trunkH * (0.6 + rnd() * 0.15), 0, 2 + rnd()*.5, 0.14, dir > 0 ? 0.4 : Math.PI - 0.4, .8, mats.birchTrunk);
+            natBranch(g,tip.x,tip.y,tip.z,1.1,.08,dir>0?.5:2.7,.4,mats.birchTrunk);
         }
         return g;
     }
@@ -23871,20 +24016,18 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
             natBranch(g, Math.cos(yaw) * 0.9, trunkH * (0.58 + rnd() * 0.2), Math.sin(yaw) * 0.9, 2.6 + rnd(), 0.24, yaw, 0.95 + rnd() * 0.3);
         }
         const cY = trunkH + 0.8;
-        natLeafBlob(g, mats.leafDark, 0, cY - 0.5, 0, 2.9 + rnd() * 0.4, rnd);
-        for (let i = 0; i < 7; i++) {
-            const a = (i / 7) * Math.PI * 2 + rnd() * 0.5;
-            const r = 2.4 + rnd() * 0.9;
-            natLeafBlob(g, (i % 2 === 0) ? mats.treeLeaves : mats.leafLight, Math.cos(a) * r, cY - 0.5 + rnd() * 1.6, Math.sin(a) * r, 1.9 + rnd() * 0.5, rnd);
-        }
-        natLeafBlob(g, mats.leafLight, 0, cY + 1.9, 0, 2.0 + rnd() * 0.4, rnd);
+        const crown=new THREE.Mesh(window.ElementalTreeCanopy.geometry(THREE,{
+            seed,style:'apple',radius:5.7,height:6.2,aspect:1,
+            palette:[mats.leafDark.color,mats.treeLeaves.color,mats.leafLight.color]
+        }),mats.natVCFoliage);
+        crown.position.y=cY;g.add(crown);
         // elmalar taç KABUĞUNA serpilir (içine gömülü değil — görünür kalsın)
         const appleGeo = new THREE.SphereGeometry(0.3, 6, 5);
         for (let i = 0; i < 16; i++) {
             const a = rnd() * Math.PI * 2;
-            const r = 3.3 + rnd() * 1.6;
+            const r = 3.5 + rnd() * .8;
             const apple = new THREE.Mesh(appleGeo, mats.appleRed);
-            apple.position.set(Math.cos(a) * r, cY - 1.4 + rnd() * 3.4, Math.sin(a) * r);
+            apple.position.set(Math.cos(a) * r, cY - 1.05 + Math.sin(a*3+seed)*.35, Math.sin(a) * r);
             g.add(apple);
         }
         for (let i = 0; i < 3; i++) { // yere düşmüş elmalar
@@ -24242,6 +24385,9 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
 
     function ensureNatureModelTypes() {
         if (natureTypeCache.tree.length) return;
+        // Test family is baked once into the SAME two-part cache used by every mode.
+        if(window.ElementalTreeStudy?.enabled){for(let i=0;i<8;i++){const model=window.ElementalTreeStudy.createParts(THREE,i,{wood:mats.natVCWood,foliage:mats.natVCFoliage});natureTypeCache.tree.push(model.parts);for(const part of model.parts)natureModelGeoms.push(part.geo);}}
+        else {
         // SIRA ÖNEMLİ: index → NATURE_TREE_CLASSES eşlemesi (ayrışma renk-sınıfı buradan)
         natCacheParts(natureTypeCache.tree, buildOakTree(11, 15, mats.treeLeaves, mats.leafLight, false));
         natCacheParts(natureTypeCache.tree, buildOakTree(29, 12, mats.treeLeaves, mats.leafLight, false));
@@ -24251,6 +24397,7 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         natCacheParts(natureTypeCache.tree, buildBirchTree(89, 14, false));
         natCacheParts(natureTypeCache.tree, buildOakTree(97, 14, mats.leafAutumn, mats.leafAutumnDark, false, mats.leafAutumnDark)); // sonbahar — SAF turuncu aile
         natCacheParts(natureTypeCache.tree, buildAppleTree(109)); // elma ağacı
+        }
         natCacheParts(natureTypeCache.bush, buildNatureBush(113, false));
         natCacheParts(natureTypeCache.bush, buildNatureBush(131, true));
         natCacheParts(natureTypeCache.rock, buildRockCluster(151));
@@ -24294,85 +24441,21 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
     }
 
     // Ağaç cache index → görünüm sınıfı (ayrışma: farklı sınıflar birbirinden daha uzak durur)
-    const NATURE_TREE_CLASSES = ['oak', 'oak', 'pine', 'pine', 'birch', 'birch', 'autumn', 'apple'];
+    const NATURE_TREE_CLASSES = window.ElementalTreeCanopy.families;
 
     function createDetailedTree() {
-        const group = new THREE.Group();
-        const type = Math.floor(Math.random() * 3);
-        
-        let trunkHeight;
-        if (type === 0) {
-            trunkHeight = 16;
-        } else if (type === 1) {
-            trunkHeight = 9;
-        } else {
-            trunkHeight = 11;
-        }
-
-        const trunk = new THREE.Mesh(geoms.treeTrunk, mats.treeTrunk);
-        trunk.scale.y = trunkHeight / 14;
-        trunk.position.y = trunkHeight / 2;
-        trunk.castShadow = true;
-        trunk.receiveShadow = false;
-        trunk.matrixAutoUpdate = false;
-        trunk.updateMatrix();
-        group.add(trunk);
-        
-        const leafPositions = [];
-        
-        if (type === 0) {
-            const layers = 3;
-            for(let i=0; i<layers; i++) {
-                const y = 8 + i * 3.5;
-                const radius = 3.0 - i * 0.8;
-                const count = 3;
-                for(let j=0; j<count; j++) {
-                    const angle = (j / count) * Math.PI * 2 + (i * 0.5);
-                    leafPositions.push({
-                        x: Math.cos(angle) * radius,
-                        y: y,
-                        z: Math.sin(angle) * radius,
-                        s: 2.2 - i * 0.2
-                    });
-                }
-            }
-            leafPositions.push({x:0, y: trunkHeight + 1, z:0, s: 2.0});
-        } else if (type === 1) {
-            leafPositions.push({x:0, y:9, z:0, s:3.0});
-            leafPositions.push({x:2.0, y:7, z:0, s:2.2});
-            leafPositions.push({x:-2.0, y:7.5, z:0, s:2.2});
-            leafPositions.push({x:0, y:7, z:2.0, s:2.2});
-            leafPositions.push({x:0, y:8, z:-2.0, s:2.2});
-        } else {
-            leafPositions.push({x:0, y:10, z:0, s:2.5});
-            leafPositions.push({x:1.2, y:8, z:0.8, s:1.8});
-            leafPositions.push({x:-1.2, y:8.5, z:-0.8, s:1.8});
-            leafPositions.push({x:0, y:12, z:0, s:1.8});
-        }
-
-        leafPositions.forEach(pos => {
-            const leaf = new THREE.Mesh(geoms.treeLeafUnit, mats.treeLeaves);
-            leaf.position.set(pos.x, pos.y, pos.z);
-            leaf.scale.setScalar(pos.s);
-            leaf.rotation.set(Math.random(), Math.random(), Math.random());
-            leaf.castShadow = false;
-            leaf.receiveShadow = false;
-            leaf.matrixAutoUpdate = false;
-            leaf.updateMatrix();
-            group.add(leaf);
-        });
-        
-        return group;
+        ensureNatureModelTypes();
+        return instantiatePartsSet(natureTypeCache.tree[0]);
     }
 
     // Tip → model klonu + zemin ofseti + yol-temizlik payı. Hem normal spawn hem preload
     // (hidden) yolu bunu kullanır; yeni bir doğa tipi eklerken TEK yer burası.
-    function createNatureObjectByType(type) {
+    function createNatureObjectByType(type, treeIndex = null) {
         ensureNatureModelTypes();
         let obj = null, yPos = 0, margin = 6;
         if (type === 'tree') {
             const list = natureTypeCache.tree;
-            const idx = Math.floor(Math.random() * list.length);
+            const idx = treeIndex ?? Math.floor(Math.random() * list.length);
             obj = instantiatePartsSet(list[idx]);
             obj.userData.treeClass = NATURE_TREE_CLASSES[idx] || 'oak';
             // Tür bazlı taban ölçek: çamlar uzun boylu, elma bahçe boyu, geri kalanı geniş aralık.
@@ -24502,7 +24585,8 @@ group.userData.armSegmentEnd = armHalfLength + (visualArmRadius * 0.95);
         const neighbors = staging ? staging.nature : natureObjects;
         const dist = Math.abs(z);
         const isFar = dist > 90;
-        const made = createNatureObjectByType(type);
+        const side = z < getRoadCenterZ() ? -1 : 1;
+        const made = createNatureObjectByType(type, type === 'tree' ? window.ElementalTreeCanopy.pickRoadTree(x,side,neighbors,undefined,staging?natureObjects:undefined) : null);
         const obj = made.obj, yPos = made.yPos;
 
         if (!obj) return;
@@ -25630,8 +25714,9 @@ function createWindFan(spawnX, side) {
     return trigger;
 }
 
-function spawnNatureObjectHidden(x, z, type) {
-        const made = createNatureObjectByType(type);
+function spawnNatureObjectHidden(x, z, type, neighbors = natureObjects) {
+        const side = z < getRoadCenterZ() ? -1 : 1;
+        const made = createNatureObjectByType(type, type === 'tree' ? window.ElementalTreeCanopy.pickRoadTree(x,side,neighbors) : null);
         const obj = made.obj;
         if (!obj) return null;
         // Zeminin çok altına göm, geçiş olunca yükselecek
@@ -31484,7 +31569,7 @@ function cancelLaneAnimationForLavaDrop() {
         if (!campaignSpatialActive) updateSkyObjects(delta);
     }
 
-    function createDetailedLavaTunnel(startX, length) {
+    function createDetailedLavaTunnel(startX, length, {boundedSmoke=false} = {}) {
         const tunnelGroup = new THREE.Group();
         tunnelGroup.userData = { lavaTunnel: true };
 
@@ -31583,9 +31668,13 @@ function cancelLaneAnimationForLavaDrop() {
             tunnelGroup.add(ember);
         }
 
-        for (let i = 0; i < Math.max(4, Math.floor(length / 120)); i++) {
+        const smokeCount=Math.max(4, Math.floor(length / 120));
+        for (let i = 0; i < smokeCount; i++) {
             const smoke = new THREE.Mesh(geoms.lavaSmokePuff, mats.lavaSmoke);
-            smoke.position.set(startX + 70 + i * 115, 20 + Math.random() * 6, centerZ + (Math.random() - 0.5) * tunnelWidth * 0.45);
+            // On a short campaign tunnel, an out-of-bounds smoke mesh was
+            // included in its section bounds and could cull the whole tunnel.
+            const offset=boundedSmoke ? 24+(i+.5)*Math.max(1,length-48)/smokeCount : 70+i*115;
+            smoke.position.set(startX + offset, 20 + Math.random() * 6, centerZ + (Math.random() - 0.5) * tunnelWidth * 0.45);
             smoke.scale.setScalar(3.0 + Math.random() * 2.2);
             smoke.rotation.set(Math.random(), Math.random(), Math.random());
             tunnelGroup.add(smoke);
@@ -36368,7 +36457,7 @@ function freezeStaticDecorMatrices(obj) {
     });
 }
 
-function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null, staging = null) {
+function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null, staging = null, placement = null) {
     const decorPhase = staging ? staging.phase : gamePhase;
     let type = forcedType;
     if (!type) {
@@ -36420,7 +36509,9 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null, staging 
     const side = (forcedSide === -1 || forcedSide === 1) ? forcedSide : (Math.random() > 0.5 ? 1 : -1);
     const roadCenterZ = getRoadCenterZ();
     const roadHalfWidth = getRoadHalfWidth();
-    const z = type === 'snow_mountain'
+    const z = placement
+        ? roadCenterZ + side * (roadHalfWidth + placement.clearance)
+        : type === 'snow_mountain'
         ? roadCenterZ + side * (roadHalfWidth + 82 + Math.random() * 128)
         : type === 'snow_pine'
         ? roadCenterZ + side * (roadHalfWidth + 108 + Math.random() * 150)
@@ -36497,7 +36588,7 @@ function spawnLavaDecorAt(spawnX, forcedType = null, forcedSide = null, staging 
     else obj = createLavaRockFormation();
     if (decorPhase >= 5 && !isSnowOnlyDecorType(type) && !obj.userData?.snowThemed) applySnowThemeToLavaDecorObject(obj);
     else if (decorPhase >= 4 && !isWaterOnlyDecorType(type) && !obj.userData?.waterThemed) applyWaterThemeToLavaDecorObject(obj);
-    const scale = type === 'pirate_ship'
+    const scale = placement ? placement.scale : type === 'pirate_ship'
         ? (2.1 + Math.random() * 0.7)
         : type === 'snow_mountain'
         ? (0.62 + Math.random() * 0.16)

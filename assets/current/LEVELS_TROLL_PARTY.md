@@ -1,181 +1,174 @@
 # Troll Obby ve Party Run — Seviye Referansı
 
-Sürüm: **1.74.1**, 3 Kasım 2026. Bu belge çalışan obby-course.js verilerinden hazırlanmıştır; eski Obby belgelerinin yerine güncel parkur başvurusudur. Normal Level/Endless/2D/Surf haritaları kapsam dışıdır.
+Sürüm: **1.88.3**, 10 Kasım 2026. Troll **CourseVersion 15**, Party **CourseVersion 14**.
+Bu belge çalışan obby-course.js dizilerinden hazırlanmıştır. Troll v4 envanterinin
+yerine geçer. Party oynanabilir koordinatları, normal Level/Endless/2D/Surf değişmez.
 
 ## Ortak koordinatlar ve fizik
 
-+X sağ, +Y yukarı, ilerleme -Z. Platform y üst yüzeydir; altı y-h. w X genişliği, d Z uzunluğu.120Hz swept-AABB, yerçekimi24, zıplama9.5, temel hız7.5; oyuncu R=.43/H=1.8. Kamera/model değişimi fizik AABB'sini değiştirmez. Destek skin'i2mm.
++X sağ, +Y yukarı; ilerleme -Z. Platform Y **üst yüzey**, altı Y-H; W X genişliği,
+D Z uzunluğudur. 120Hz swept-AABB / G=24 / JUMP=9.5 / temel hız Party=7.5, Troll=7.0 (v1.89.1);
+oyuncu R=.43,H=1.8, destek skin2mm. Zıplama tepe farkı 1.88m.
+Eldiven/dash gerektiren atlama yok. Uzuvsuz lobi avatarı ve bağımsız orbit kamera
+korunur; Troll 3 finali bölgeye bağlı kuşbakışıdır.
 
-## Troll Obby
+## Troll — veri sözleşmesi ve mekanikler
 
-Lobideki gerçek uzuvsuz model ve60°/10.5m üçüncü şahıs kamera. Kamera orbit yaparken avatar dönmez; hareket girdisi yön verir. WASD/oklar, Space, R checkpoint, Esc. Üç kayıtlı level; tamamlanmadan ilerisi açılmaz. CourseVersion3; bağımsız elemental-run-troll-v1 kaydı.
+Troll 1 odaları 32 m, Troll 2 ve 3 odaları değişken uzunluktadır. Checkpoint'ler sırayla kazanılır, son checkpoint'e atlamak kazanma
+sayılmaz. Ölümden sonra son CP'ye dönüş ve o odadaki tüketilmiş tuzakların reseti.
+v11–14 → v15 geçişinde yalnız eski Troll 3 süresi arşivlenir; Troll 1/2 süreleri korunur.
+Kazanılmış level erişimleri/satın almalar silinmez.
 
-### Mekanikler
+- fake: inişte collision kaybı.
+- approachFake: X/W ve Z/D yakınlığında .16s titreşim, sonra collision kaybı.
+- wall: görünmez katı duvar; Troll 1 duvarları temas sonrası da görünmez.
+- slideFake: yakınlıkta X yönünde kayan, katı kalan, retry'da yerine dönen taş.
+- shoveWall: duvar çözülür, -12Y/+6Z ile aşağı/geriye darbe.
+- reversePad: +19Z/+7Y, .7s tekrar kilidi.
+- gift: her yüz ölümcül, anında CP.
+- hiddenKill: görünmez ölüm hacmi; temas sonrası görünmesi sonraki denemeye ipucu.
+- crumble: ilk temastan .8 s sonra kaybolur (Troll 2 yürünebilir sarmal: 2.45 s); checkpoint retry'a kadar geri gelmez.
 
-- fake: üst temasta anında collision kaybı.
-- approachFake: yakınlıkta tetiklenir, .16s titreşim sonrası kaybolur.
-- wall: görünmez gerçek duvar, çarpınca2s belirir.
-- shoveWall: temasla duvar devreden çıkar, -12Y ve +6Z recoil uygular.
-- reversePad: +19Z/+7Y geriye atış, .7s tekrar kilidi.
-- gift: her yüzü ölümcül, anında checkpoint.
-- hiddenKill: görünmez ölüm hacmi; temas sonrası görünerek sonraki denemeye ipucu verir.
-- crumble: inişten .8s sonra destek kaybı; yerel retry sıfırlar.
+Troll 1/3 tuzakları `platforms[].trap` üzerinden okunur. Troll 2'nin kayası tek
+bir hareketli hazard; dama taşları ve diken tetikleri ayrı spike-board tablosudur.
+Normal Party yerleşimleri değiştirilmedi.
+Aşağıdaki diziler doğrudan
+gerçek veridir, önizleme veya rastgele üretim değildir.
 
-Her odanın gerçek geçiş rotası vardır. Yanıltıcı hacimler güvenli bağlantıları kapatmaz. Checkpoint'ler sırayla kazanılır; son bölüme uçmak tamamlanma sayılmaz. Düşüş .65s izlendikten sonra checkpoint dönüşü; süre devam eder. Finish bir defa süre/ödül kaydeder.
+Array sütunları: **[ID, X, Y üst, Z, W, D, H, rol, güvenli rota parçası]**.
+Son true değeri bütün platformun tehlikesiz olduğu anlamına gelmez: üzerinde
+ayrı bir hediye/hacim bulunabilir. Asıl güvenli geçiş safePath koordinatlarıdır.
 
-### Troll 1 — Doğa, 160m
+### Troll 1 — Doğa / 160 m — Çizime dayalı beş aşama
 
-| Oda | Başlangıç Z | Düzen |
-| --- | ---: | --- |
-| 1 | 0 | fake_stones |
-| 2 | -40 | invisible_wall |
-| 3 | -80 | troll_bounce |
-| 4 | -120 | gift_bricks |
+1. **Sürpriz Kayma** (0 → -32 Z): Aynı 3,6 × 3,6 m boyut ve malzemeye sahip son taş, oyuncu yaklaşınca 0,16 saniyede sağa 4,2 m kayar. Katı yüzeyi ve çizilen model birlikte hareket eder.
+2. **Görünmez Köprü** (-32 → -64 Z): İki normal görünümlü yan yol temasla kaybolur. Ortadaki %1 opak sarı köprü sağlamdır.
+3. **Ters Psikoloji** (-64 → -96 Z): Önceki aşamayla aynı düzen tersine döner: saydam orta yol sahte, iki yan yol sağlamdır.
+4. **Ölümcül Renk Körlüğü** (-96 → -128 Z): 3 × 4 bitişik dama tahtası: parlayan kırmızı kareler sağlam, sıradan görünen kareler anında öldürür. Son karelerden doğrudan kontrol noktasına atlanır.
+5. **Görünmez Duvar Labirenti** (-128 → -160 Z): Ortadaki yeşil yüzeyler normal ve sağlamdır. İlk görünmez duvarın yanındaki sarı taşlar %99 şeffaf ama sağlamdır. Turuncu çizginin olduğu ikinci geçişte engel yoktur; kahverengi yan taşlar %99 şeffaftır ve temasla düşürür.
 
-Checkpoint'ler: 0: (0, 8.004, 0); 1: (0, 8.004, -40); 2: (0, 8.004, -80); 3: (0, 8.004, -120); 4: (0, 8.004, -160).
+Kontrol noktaları: 0, -32, -64, -96, -128, -160 Z. Hepsinde ayak yüksekliği 8,004 m.
+Kaynak `TROLL_ONE_LAYOUT` dizisindeki Z değerleri oda başlangıcına göredir;
+aşağıdaki değerler dünya koordinatlarıdır. `slideFake` satırı başlangıç
+konumunu gösterir; güvenli rota kayma sonundaki X = 4,2 konumuna gider.
 
-#### Platform ve tuzak envanteri
+```json
+{
+  "platforms": [
+    [0,0,8,0,12,7,1.25,"CP 0",true],
+    [1,0,8,-6.8,3.6,3.6,1.25,"platform",true],
+    [2,0,8,-12.6,3.6,3.6,1.25,"platform",true],
+    [3,0,8,-18.4,3.6,3.6,1.25,"platform",true],
+    [4,0,8,-24,3.6,3.6,1.25,"slideFake",true],
+    [5,0,8,-32,12,7,1.25,"CP 1",true],
+    [6,0,8,-45,3,14,1.25,"platform/ghost",true],
+    [7,-3.45,8,-45,3,14,1.25,"fake",false],
+    [8,3.45,8,-45,3,14,1.25,"fake",false],
+    [9,0,8,-57,8,4.6,1.25,"platform",true],
+    [10,0,8,-64,12,7,1.25,"CP 2",true],
+    [11,0,8,-77,3,14,1.25,"fake/ghost",false],
+    [12,-3.45,8,-77,3,14,1.25,"platform",true],
+    [13,3.45,8,-77,3,14,1.25,"platform",false],
+    [14,0,8,-89,8,4.6,1.25,"platform",true],
+    [15,0,8,-96,12,7,1.25,"CP 3",true],
+    [16,-4.2,8,-105.9,4.2,4.2,1.25,"gift/plain",false],
+    [17,0,8,-105.9,4.2,4.2,1.25,"platform/danger",true],
+    [18,4.2,8,-105.9,4.2,4.2,1.25,"gift/plain",false],
+    [19,-4.2,8,-110.1,4.2,4.2,1.25,"platform/danger",true],
+    [20,0,8,-110.1,4.2,4.2,1.25,"gift/plain",false],
+    [21,4.2,8,-110.1,4.2,4.2,1.25,"platform/danger",false],
+    [22,-4.2,8,-114.3,4.2,4.2,1.25,"gift/plain",false],
+    [23,0,8,-114.3,4.2,4.2,1.25,"platform/danger",true],
+    [24,4.2,8,-114.3,4.2,4.2,1.25,"gift/plain",false],
+    [25,-4.2,8,-118.5,4.2,4.2,1.25,"platform/danger",true],
+    [26,0,8,-118.5,4.2,4.2,1.25,"gift/plain",false],
+    [27,4.2,8,-118.5,4.2,4.2,1.25,"platform/danger",false],
+    [28,0,8,-128,12,7,1.25,"CP 4",true],
+    [29,0,8,-136,4.2,4,1.25,"platform",true],
+    [30,0,14.5,-141,4.4,0.45,11,"wall",false],
+    [31,4,8,-141,2.8,4,1.25,"platform/ghost",true],
+    [32,-4,8,-141,2.8,4,1.25,"platform/ghost",false],
+    [33,0,8,-145.5,4.2,4.8,1.25,"platform",true],
+    [34,-4,8,-150,2.8,4,1.25,"fake/ghostBrown",false],
+    [35,4,8,-150,2.8,4,1.25,"fake/ghostBrown",false],
+    [36,0,8,-154,4.4,4,1.25,"platform",true],
+    [37,0,8,-160,12,7,1.25,"CP 5",true]
+  ],
+  "hazards": []
+}
+```
 
-| ID | X | Y üst | Z | W × D × H | Rol | Güvenli rota |
-| --- | ---: | ---: | ---: | --- | --- | --- |
-| 0 | 0.00 | 8 | 0 | 16 × 8 × 1.25 | CP 0 | evet |
-| 1 | 5.00 | 8 | -11 | 5 × 12 × 1.25 | platform | evet |
-| 2 | 5.00 | 8 | -27 | 5 × 14 × 1.25 | platform | evet |
-| 3 | -2.00 | 8 | -9 | 5 × 5 × 1.25 | fake | — |
-| 4 | -2.00 | 8 | -16 | 5 × 5 × 1.25 | fake | — |
-| 5 | -2.00 | 8 | -23 | 5 × 5 × 1.25 | approachFake | — |
-| 6 | -2.00 | 8 | -30 | 5 × 5 × 1.25 | fake | — |
-| 7 | 0.00 | 8 | -40 | 16 × 8 × 1.25 | CP 1 | evet |
-| 8 | 0.00 | 8 | -50 | 14 × 9 × 1.25 | platform | evet |
-| 9 | -6.00 | 8 | -61 | 4 × 10 × 1.25 | platform | evet |
-| 10 | 0.00 | 8 | -71 | 14 × 9 × 1.25 | platform | evet |
-| 11 | 0.00 | 13 | -56 | 8 × 0.45 × 5 | wall | — |
-| 12 | 5.50 | 12 | -63 | 3 × 0.45 × 4 | shoveWall | — |
-| 13 | 0.00 | 8 | -80 | 16 × 8 × 1.25 | CP 2 | evet |
-| 14 | 0.00 | 8 | -89 | 13 × 10 × 1.25 | platform | evet |
-| 15 | 5.50 | 8 | -100 | 4.5 × 12 × 1.25 | platform | evet |
-| 16 | 0.00 | 8 | -111 | 13 × 10 × 1.25 | platform | evet |
-| 17 | -2.00 | 8 | -100 | 5 × 7 × 1.25 | reversePad | — |
-| 18 | 0.00 | 8 | -120 | 16 × 8 × 1.25 | CP 3 | evet |
-| 19 | 2.00 | 8 | -130 | 6 × 5 × 1.25 | platform | evet |
-| 20 | -0.10 | 9.6 | -130 | 1.3 × 1.6 × 1.6 | gift | — |
-| 21 | -2.00 | 8 | -137 | 6 × 5 × 1.25 | platform | evet |
-| 22 | -4.10 | 9.6 | -137 | 1.3 × 1.6 × 1.6 | gift | — |
-| 23 | 2.00 | 8 | -144 | 6 × 5 × 1.25 | platform | evet |
-| 24 | -0.10 | 9.6 | -144 | 1.3 × 1.6 × 1.6 | gift | — |
-| 25 | 0.00 | 8 | -151 | 6 × 5 × 1.25 | platform | evet |
-| 26 | -2.10 | 9.6 | -151 | 1.3 × 1.6 × 1.6 | gift | — |
-| 27 | 0.00 | 8 | -160 | 16 × 8 × 1.25 | CP 4 | evet |
+Güvenli yol `[platformID,X,Y,Z]`:
 
-### Troll 2 — Kar, 200m
+```json
+[
+  [0,0,8.002,0],
+  [1,0,8.002,-6.8],
+  [2,0,8.002,-12.6],
+  [3,0,8.002,-18.4],
+  [4,4.2,8.002,-24],
+  [5,0,8.002,-32],
+  [6,0,8.002,-45],
+  [9,0,8.002,-57],
+  [10,0,8.002,-64],
+  [12,-3.45,8.002,-77],
+  [14,0,8.002,-89],
+  [15,0,8.002,-96],
+  [17,0,8.002,-105.9],
+  [19,-4.2,8.002,-110.1],
+  [23,0,8.002,-114.3],
+  [25,-4.2,8.002,-118.5],
+  [28,0,8.002,-128],
+  [29,0,8.002,-136],
+  [31,4,8.002,-141],
+  [33,0,8.002,-145.5],
+  [36,0,8.002,-154],
+  [37,0,8.002,-160]
+]
+```
 
-| Oda | Başlangıç Z | Düzen |
-| --- | ---: | --- |
-| 1 | 0 | gift_bricks |
-| 2 | -40 | crumble_steps |
-| 3 | -80 | fake_stones |
-| 4 | -120 | troll_bounce |
-| 5 | -160 | invisible_wall |
+### Troll 2 — Kar / 381 m — Altı aşamalı parkur
 
-Checkpoint'ler: 0: (0, 8.004, 0); 1: (0, 8.004, -40); 2: (0, 8.004, -80); 3: (0, 8.004, -120); 4: (0, 8.004, -160); 5: (0, 8.004, -200).
+[Ayrıntılı Troll 2 parkur belgesi](TROLL_OBBY_LEVEL_2.md).
 
-#### Platform ve tuzak envanteri
+Başlangıç ve CP1–CP6 X=0; Z=0/-40/-136/-184/-268/-308/-381. CP3 Y=26.244, CP4–CP6 Y=34.244, önceki noktalar Y=8.004. CP6 bitiştir.
 
-| ID | X | Y üst | Z | W × D × H | Rol | Güvenli rota |
-| --- | ---: | ---: | ---: | --- | --- | --- |
-| 0 | 0.00 | 8 | 0 | 16 × 8 × 1.25 | CP 0 | evet |
-| 1 | 2.00 | 8 | -10 | 6 × 5 × 1.25 | platform | evet |
-| 2 | -0.10 | 9.6 | -10 | 1.3 × 1.6 × 1.6 | gift | — |
-| 3 | -2.00 | 8 | -17 | 6 × 5 × 1.25 | platform | evet |
-| 4 | -4.10 | 9.6 | -17 | 1.3 × 1.6 × 1.6 | gift | — |
-| 5 | 2.00 | 8 | -24 | 6 × 5 × 1.25 | platform | evet |
-| 6 | -0.10 | 9.6 | -24 | 1.3 × 1.6 × 1.6 | gift | — |
-| 7 | 0.00 | 8 | -31 | 6 × 5 × 1.25 | platform | evet |
-| 8 | -2.10 | 9.6 | -31 | 1.3 × 1.6 × 1.6 | gift | — |
-| 9 | 0.00 | 8 | -40 | 16 × 8 × 1.25 | CP 1 | evet |
-| 10 | 0.00 | 8 | -50 | 5.5 × 5 × 1.25 | crumble | evet |
-| 11 | 1.86 | 8 | -57 | 5.5 × 5 × 1.25 | crumble | evet |
-| 12 | 1.35 | 8 | -64 | 5.5 × 5 × 1.25 | crumble | evet |
-| 13 | -0.89 | 8 | -71 | 5.5 × 5 × 1.25 | crumble | evet |
-| 14 | -5.00 | 8 | -59 | 4.5 × 8 × 1.25 | fake | — |
-| 15 | 0.00 | 8 | -80 | 16 × 8 × 1.25 | CP 2 | evet |
-| 16 | -5.00 | 8 | -91 | 5 × 12 × 1.25 | platform | evet |
-| 17 | -5.00 | 8 | -107 | 5 × 14 × 1.25 | platform | evet |
-| 18 | 2.00 | 8 | -89 | 5 × 5 × 1.25 | fake | — |
-| 19 | 2.00 | 8 | -96 | 5 × 5 × 1.25 | fake | — |
-| 20 | 2.00 | 8 | -103 | 5 × 5 × 1.25 | approachFake | — |
-| 21 | 2.00 | 8 | -110 | 5 × 5 × 1.25 | fake | — |
-| 22 | 0.00 | 8 | -120 | 16 × 8 × 1.25 | CP 3 | evet |
-| 23 | 0.00 | 8 | -129 | 13 × 10 × 1.25 | platform | evet |
-| 24 | 5.50 | 8 | -140 | 4.5 × 12 × 1.25 | platform | evet |
-| 25 | 0.00 | 8 | -151 | 13 × 10 × 1.25 | platform | evet |
-| 26 | -2.00 | 8 | -140 | 5 × 7 × 1.25 | reversePad | — |
-| 27 | 0.00 | 8 | -160 | 16 × 8 × 1.25 | CP 4 | evet |
-| 28 | 0.00 | 8 | -170 | 14 × 9 × 1.25 | platform | evet |
-| 29 | -6.00 | 8 | -181 | 4 × 10 × 1.25 | platform | evet |
-| 30 | 0.00 | 8 | -191 | 14 × 9 × 1.25 | platform | evet |
-| 31 | 0.00 | 13 | -176 | 8 × 0.45 × 5 | wall | — |
-| 32 | 5.50 | 12 | -183 | 3 × 0.45 × 4 | shoveWall | — |
-| 33 | 0.00 | 8 | -200 | 16 × 8 × 1.25 | CP 5 | evet |
+| Aşama | Dünya Z aralığı | Düzen ve tuzak |
+|---|---|---|
+| Ölümcül Parlak Duvarlar | 0 → −40 | Neon duvarlar 4.8×3.6 m adaların dış kenarına kadar uzanır; arkasında yan geçiş kalmaz. |
+| Çıkışı Olmayan Şeffaf Labirent | −40 → −136 | 38.8×76 m iç hacim; 7×13 bağlantılı hücre, kapalı taban/çatı, aydınlatma. Görünmez çıkış duvarına yaklaşınca WRONG WAY tabelası görünür. İki 1.65 m dış kenar açık. |
+| Sarmal Çöken Zemin ve Tuzak Pad | −136 → −184 | Üç tam tur, 96 adet 19 cm yürünebilir basamak. Çöken basamak yerinde saydamlaşır; fiziksel destek aynı anda kesilir. Karakter ve kamera yüksekliği yumuşatılır. CP3 Y=26.24. |
+| Yuvarlanan Taş ve Sahte Kabinler | −184 → −268 | Tek parça 77×7.8 m rampa oyuncu yönünde 8 m yükselir. Üç çift çatılı kabin. Kaya 3.85 m yarıçaplı; aşağı 22, yukarı 17 m/sn. Kapalı kabin eşiği koruma sağlamaz. |
+| Kaçan Bloklar | −268 → −308 | Ölçü, göreli boşluk ve zamanlama aynı. Rampa sonunda Y=34.24'e taşındı. Dört blok birlikte −1.90Z, sonra +3.45Z kayar. |
+| Matematiksel Diken Tahtası | −308 → −381 | 16×4 bitişik kare. Satranç düzeninde 32 görünür kırmızı plaka, 16 yem ve 16 güvenli kare. Güvenli rota düz tam-kare atlamaları ve çaprazları karıştırır. Yanlış boş kareye komşu plaka 0.16 s'de kayar. |
 
-### Troll 3 — Cyber, 240m
+Kaynak: `obby-course.js#trollCourse` içindeki Level 2 dizileri; `troll-obby.js` tetik, kontrol noktası ve görüntü güncellemesini yürütür. Hareketli taşların izi yüzey konumunu ele vermez. Aşama geçişleri ve ödüller mevcut sistemle aynıdır.
 
-| Oda | Başlangıç Z | Düzen |
-| --- | ---: | --- |
-| 1 | 0 | invisible_wall |
-| 2 | -40 | troll_bounce |
-| 3 | -80 | crumble_steps |
-| 4 | -120 | gift_bricks |
-| 5 | -160 | fake_stones |
-| 6 | -200 | finale |
+### Troll 3 — Cyber / 711 m — Siber Denetim
 
-Checkpoint'ler: 0: (0, 8.004, 0); 1: (0, 8.004, -40); 2: (0, 8.004, -80); 3: (0, 8.004, -120); 4: (0, 8.004, -160); 5: (0, 8.004, -200); 6: (0, 8.004, -240).
+| Aşama | Dünya Z aralığı | Mekanik |
+|---|---|---|
+| 1 | 0 → −145 | Dört parlak bar, üç sütun, büyük GO/STOP ve sahte yeşil |
+| 2 | −145 → −289 | Mavi/pembe üçlüler; görünmez şeritte durmadan açılmayan kontrol noktası |
+| 3 | −289 → −434 | Yana üfleyen takipçi vantilatör ve dokuz engel |
+| 4 | −434 → −607 | 150,5 m buz ve 15,5 m final atlayışı |
+| 5 | −607 → −711 | Dört yükseklik çifti, çizgili ölüm yüzeyleri ve kuşbakışı |
 
-#### Platform ve tuzak envanteri
+CP0–CP5 X=0, Y=8,004 ve 12×7 m. [Troll 3 ayrıntılı parkur belgesi](TROLL_OBBY_LEVEL_3.md).
 
-| ID | X | Y üst | Z | W × D × H | Rol | Güvenli rota |
-| --- | ---: | ---: | ---: | --- | --- | --- |
-| 0 | 0.00 | 8 | 0 | 16 × 8 × 1.25 | CP 0 | evet |
-| 1 | 0.00 | 8 | -10 | 14 × 9 × 1.25 | platform | evet |
-| 2 | 6.00 | 8 | -21 | 4 × 10 × 1.25 | platform | evet |
-| 3 | 0.00 | 8 | -31 | 14 × 9 × 1.25 | platform | evet |
-| 4 | 0.00 | 13 | -16 | 8 × 0.45 × 5 | wall | — |
-| 5 | -5.50 | 12 | -23 | 3 × 0.45 × 4 | shoveWall | — |
-| 6 | 0.00 | 8 | -40 | 16 × 8 × 1.25 | CP 1 | evet |
-| 7 | 0.00 | 8 | -49 | 13 × 10 × 1.25 | platform | evet |
-| 8 | -5.50 | 8 | -60 | 4.5 × 12 × 1.25 | platform | evet |
-| 9 | 0.00 | 8 | -71 | 13 × 10 × 1.25 | platform | evet |
-| 10 | 2.00 | 8 | -60 | 5 × 7 × 1.25 | reversePad | — |
-| 11 | 0.00 | 8 | -80 | 16 × 8 × 1.25 | CP 2 | evet |
-| 12 | 0.00 | 8 | -90 | 5.5 × 5 × 1.25 | crumble | evet |
-| 13 | 1.86 | 8 | -97 | 5.5 × 5 × 1.25 | crumble | evet |
-| 14 | 1.35 | 8 | -104 | 5.5 × 5 × 1.25 | crumble | evet |
-| 15 | -0.89 | 8 | -111 | 5.5 × 5 × 1.25 | crumble | evet |
-| 16 | -5.00 | 8 | -99 | 4.5 × 8 × 1.25 | fake | — |
-| 17 | 0.00 | 8 | -120 | 16 × 8 × 1.25 | CP 3 | evet |
-| 18 | 2.00 | 8 | -130 | 6 × 5 × 1.25 | platform | evet |
-| 19 | -0.10 | 9.6 | -130 | 1.3 × 1.6 × 1.6 | gift | — |
-| 20 | -2.00 | 8 | -137 | 6 × 5 × 1.25 | platform | evet |
-| 21 | -4.10 | 9.6 | -137 | 1.3 × 1.6 × 1.6 | gift | — |
-| 22 | 2.00 | 8 | -144 | 6 × 5 × 1.25 | platform | evet |
-| 23 | -0.10 | 9.6 | -144 | 1.3 × 1.6 × 1.6 | gift | — |
-| 24 | 0.00 | 8 | -151 | 6 × 5 × 1.25 | platform | evet |
-| 25 | -2.10 | 9.6 | -151 | 1.3 × 1.6 × 1.6 | gift | — |
-| 26 | 0.00 | 8 | -160 | 16 × 8 × 1.25 | CP 4 | evet |
-| 27 | 5.00 | 8 | -171 | 5 × 12 × 1.25 | platform | evet |
-| 28 | 5.00 | 8 | -187 | 5 × 14 × 1.25 | platform | evet |
-| 29 | -2.00 | 8 | -169 | 5 × 5 × 1.25 | fake | — |
-| 30 | -2.00 | 8 | -176 | 5 × 5 × 1.25 | fake | — |
-| 31 | -2.00 | 8 | -183 | 5 × 5 × 1.25 | approachFake | — |
-| 32 | -2.00 | 8 | -190 | 5 × 5 × 1.25 | fake | — |
-| 33 | 0.00 | 8 | -200 | 16 × 8 × 1.25 | CP 5 | evet |
-| 34 | -4.00 | 8 | -210 | 6 × 10 × 1.25 | platform | evet |
-| 35 | 0.00 | 8 | -222 | 8 × 8 × 1.25 | platform | evet |
-| 36 | 4.00 | 8 | -232 | 6 × 6 × 1.25 | platform | evet |
-| 37 | 4.00 | 8 | -210 | 5 × 10 × 1.25 | approachFake | — |
-| 38 | -6.00 | 10 | -231 | 1 × 1 × 2 | hiddenKill | — |
-| 39 | -3.00 | 9.6 | -222 | 1.4 × 1.4 × 1.6 | gift | — |
-| 40 | 0.00 | 8 | -240 | 16 × 8 × 1.25 | CP 6 | evet |
+## Cyber çevre düzeni / test
+
+Troll Cyber'de gerçek oyunun dokulu bina modelleri korunur; boyları25–46m, en
+büyük yatay ölçü38m olacak şekilde dengelenir. Görünmez uzaklara konan115m
+landmark ofseti bu sahnede yoktur. Kaynak modeller çember rezervasyonuyla
+paketlenir; katmanlar üst üste gelmez. Skyline72m'den başlar,80–260m sisle
+bağlanır. İnfill adıyla yerde duran küçük rastgele Cyber küpleri kaldırıldı
+(ortak Cyber dekorunda da yok). Parkurun kendisi ve sahte gerçek tuzaklar silinmez.
+Tüm binalar mevcut materyal/texture/instancing yolunu kullanır; yeni GLB yok.
+
+`output/troll-1883-course-test.cjs` gerçek 120 Hz adımlarla beş odayı, tuzakları
+ve tam güvenli rotayı sınar. `output/run-troll-1883-official.mjs` masaüstü/mobil
+Playwright ile lobi girişini, sahne görünümünü, checkpoint dönüşünü, HUD'u ve sonucu kontrol eder.
 
 ## Party Run — gerçek oynanış sırası
 
@@ -263,5 +256,5 @@ Oynanabilir platformlar uzatılmaz; çevre ileride görünse bile finish aynı n
 - obby-interface.js: ortak native pause/sonuç ekranları.
 - game-runtime.js: mod kaydı/portal/preparation, cüzdan ve SDK.
 
-QA: output/horizon-176-test.cjs, output/troll-175-test.cjs, output/party-162-test.cjs ve resmi develop-web-game wrapper. Son9yarışta finish sonrası model konumu, taban400m tamponu, üst üste gelmeme, gerçek fizik bağlantıları ve tarayıcı finish görüntüleri kontrol edilir. Gerçek telefon60FPS veya canlıPoki onayı değildir.
+QA: output/horizon-176-test.cjs, output/troll-176-test.cjs, output/party-162-test.cjs ve resmi develop-web-game wrapper. Son9yarışta finish sonrası model konumu, taban400m tamponu, üst üste gelmeme, gerçek fizik bağlantıları ve tarayıcı finish görüntüleri kontrol edilir. Gerçek telefon60FPS veya canlıPoki onayı değildir.
 

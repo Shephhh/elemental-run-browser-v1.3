@@ -100,6 +100,10 @@
       });
       window.addEventListener('keydown', (event) => {
         if (this.state !== STATES.GATE || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+        // The prepared tutorial gate can exist behind the boot mode gallery.
+        // Gallery keyboard navigation must not silently start that hidden run.
+        const boot=document.getElementById('loading-screen');
+        if(boot&&getComputedStyle(boot).display!=='none')return;
         // Escape is reserved for releasing pointer lock / browser chrome. It
         // must never consume the entry gate and leave a prepared run paused
         // behind it when the browser rejects capture on that same key.

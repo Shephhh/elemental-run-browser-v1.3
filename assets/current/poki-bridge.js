@@ -187,9 +187,9 @@
       sdkGapSeconds: Math.max(0, session.activeSeconds() - reportedActiveSeconds),
       initialized: state.initialized, reportedPlaying: state.reportedPlaying, interacted: state.interacted, lastServiceError }),
     confirmPlayInteraction: (event) => {
-      // Only an actual ready-screen PLAY click unlocks first gameplay.
+      // The ready-screen mode cards and Lobby button are explicit play gestures.
       if (!state.loadingFinishedRequested || !event?.isTrusted || event.type !== 'click') return false;
-      if (!event.target?.closest?.('#boot-play-btn')) return false;
+      if (!event.target?.closest?.('#boot-mode-picker button[data-mode], #boot-play-btn')) return false;
       state.interacted = true;
       state.playing = false;
       return true;

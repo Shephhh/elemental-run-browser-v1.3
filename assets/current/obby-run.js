@@ -19,7 +19,7 @@ function finishReward(level,seconds,previousBest){
 let attemptSequence=0;
 
 class ElementalObbyRun{
- constructor(T,api){this.T=T;this.api=api;this.active=false;this.state='idle';this.keys=new Set();this.owned=new Set();this.serial=0;this.level=1;this.saved={best:{},clockVersion:2};try{const s=JSON.parse(localStorage.getItem(api.storageKey||'elemental-run-party-v1')||'{}');if(s&&s.best&&typeof s.best==='object'){this.saved=s;if(s.clockVersion!==2){this.saved.legacySimulationBest={...s.best};this.saved.best={};this.saved.clockVersion=2;}for(const [key,value]of Object.entries(this.saved.best))if(!Number.isFinite(value)||value<=0)delete this.saved.best[key];}}catch(_){}this.level=Math.max(1,Math.min(C.ROUND_COUNT,Math.floor(Number(this.saved.level)||1)));if(this.saved.courseVersion!==(api.courseVersion||C.COURSE_VERSION)){this.saved.previousCourseBest={...this.saved.best};this.saved.best=[6,7,8,9,10,11,12,13].includes(this.saved.courseVersion)&&C.COURSE_VERSION===14?Object.fromEntries(Object.entries(this.saved.best).filter(([key])=>Number(key)===8||this.saved.courseVersion===13&&Number(key)===7)):{};this.saved.previousCourseLevel=this.saved.level;this.saved.level=this.level=[6,7,8,9,10,11,12,13].includes(this.saved.courseVersion)&&C.COURSE_VERSION===14&&(this.level===8||this.saved.courseVersion===13&&this.level===7)?this.level:1;this.saved.courseVersion=api.courseVersion||C.COURSE_VERSION;}this.yaw=0;this.pitch=.12;this.handMotion={initialized:false};this.handPlayer={};this.cameraKick=0;this.tint=new T.Color();this.clock=new ActivePlayClock(api.now);this.solids=[];this.save();this.createUI();}
+ constructor(T,api){this.T=T;this.api=api;this.active=false;this.state='idle';this.keys=new Set();this.owned=new Set();this.serial=0;this.level=1;this.saved={best:{},clockVersion:2};try{const s=JSON.parse(localStorage.getItem(api.storageKey||'elemental-run-party-v1')||'{}');if(s&&s.best&&typeof s.best==='object'){this.saved=s;if(s.clockVersion!==2){this.saved.legacySimulationBest={...s.best};this.saved.best={};this.saved.clockVersion=2;}for(const [key,value]of Object.entries(this.saved.best))if(!Number.isFinite(value)||value<=0)delete this.saved.best[key];}}catch(_){}this.level=Math.max(1,Math.min(C.ROUND_COUNT,Math.floor(Number(this.saved.level)||1)));if(this.saved.courseVersion!==(api.courseVersion||C.COURSE_VERSION)){this.saved.previousCourseBest={...this.saved.best};this.saved.best=[6,7,8,9,10,11,12,13].includes(this.saved.courseVersion)&&C.COURSE_VERSION===14?Object.fromEntries(Object.entries(this.saved.best).filter(([key])=>Number(key)===8||this.saved.courseVersion===13&&Number(key)===7)):{};this.saved.previousCourseLevel=this.saved.level;this.saved.level=this.level=[6,7,8,9,10,11,12,13].includes(this.saved.courseVersion)&&C.COURSE_VERSION===14&&(this.level===8||this.saved.courseVersion===13&&this.level===7)?this.level:1;if(api.mode==='troll'&&[4,5,6,7,8,9,10,11,12,13,14].includes(this.saved.courseVersion)){const old=this.saved.previousCourseBest,from=this.saved.courseVersion;this.saved.best=Object.fromEntries(Object.entries(old).filter(([id])=>id==='1'&&from>=6||id==='2'&&from>=11));if(old[2]&&from<11)this.saved.legacyTroll2Best=old[2];if(old[3]){if(from>=12)this.saved['legacyTroll3V'+from+'Best']=old[3];else this.saved.legacyTroll3Best=old[3];}this.saved.level=this.level=this.saved.previousCourseLevel||1;}this.saved.courseVersion=api.courseVersion||C.COURSE_VERSION;}this.yaw=0;this.pitch=.12;this.handMotion={initialized:false};this.handPlayer={};this.cameraKick=0;this.tint=new T.Color();this.clock=new ActivePlayClock(api.now);this.solids=[];this.save();this.createUI();}
  own(r){this.owned.add(r);return r;}tr(k){return this.api.tr(k);}save(){try{localStorage.setItem(this.api.storageKey||'elemental-run-party-v1',JSON.stringify(this.saved));}catch(_){}}
  migrateSequence(){
   if(this.saved.sequenceVersion!==1){const old=this.saved.best;this.level=C.roundOrder.indexOf(this.level)+1;this.saved.best={};this.saved.completed={};for(let i=0;i<C.roundOrder.length;i++){const time=old[C.roundOrder[i]];if(Number.isFinite(time)&&time>0){this.saved.best[i+1]=time;this.saved.completed[i+1]=true;}}this.saved.sequenceVersion=1;}
@@ -75,6 +75,7 @@ class ElementalObbyRun{
  // split compound snow/tree/rock models into independently moving pieces.
  this.sceneryCells=[];this.decorStats=[];this.sceneryPlacements=[];
  for(const variant of [3,0,1,2]){
+  if(theme.phase===1&&variant<2){if(variant===0)window.ElementalPartyEnvironment.plantNatureTrees(T,d,this.api,own,this.sceneryPlacements,this.scene,this.sceneryCells,this.decorStats);continue;}
   const raw=this.api.decor(theme.phase,variant),parts=Array.isArray(raw)?raw:[{geometry:raw,material:new T.MeshStandardMaterial({vertexColors:true,roughness:.85})}];
   const bounds=new T.Box3();let triangles=0;for(const part of parts){if(!part.geometry)continue;part.geometry.computeBoundingBox();bounds.union(part.geometry.boundingBox);triangles+=(part.geometry.index?.count||part.geometry.attributes.position.count)/3;}
   const height=(theme.phase===0?[52,64,46,72]:theme.phase===4?[30,22,40,62]:[40,36,24,70])[variant],size=bounds.getSize(new T.Vector3()),scale=Math.min(height/Math.max(1,size.y),66/Math.max(1,size.x,size.z));
@@ -102,6 +103,35 @@ class ElementalObbyRun{
  this.confetti=own(new T.InstancedMesh(own(new T.BoxGeometry(.15,.15,.15)),light,32));this.confetti.frustumCulled=false;this.scene.add(this.confetti);this.confetti.visible=false;this.restart();this.render(0,false,true);const r=this.api.renderer();if(r.compileAsync)await window.ElementalGraphicsEngine.compileAsyncSafe(r,this.scene,this.camera);if(serial!==this.serial)return;this.warmTarget=own(new T.WebGLRenderTarget(64,64));this.render(0,true);this.prepared=true;
  }
  label(text,size,color){const T=this.T,c=document.createElement('canvas');c.width=c.height=128;const ctx=c.getContext('2d');ctx.font='bold 88px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#'+color.toString(16);ctx.fillText(text,64,65);const tex=this.own(new T.CanvasTexture(c));tex.colorSpace=T.SRGBColorSpace;const s=new T.Sprite(this.own(new T.SpriteMaterial({map:tex,depthWrite:false})));s.scale.set(size,size,1);return s;}
+ courseSign(text,width,height,warning=false){
+  const T=this.T,canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
+  const ctx=canvas.getContext('2d');ctx.fillStyle=warning?'#30151e':'#101e31';ctx.strokeStyle=warning?'#ff766b':'#80ccea';ctx.lineWidth=warning?7:4;
+  ctx.beginPath();ctx.roundRect(5,5,502,118,19);ctx.fill();ctx.stroke();
+  ctx.font='900 60px Orbitron, Rajdhani, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=warning?'#ffe2d6':'#e6fbff';ctx.fillText(text,256,66,444);
+  const map=this.own(new T.CanvasTexture(canvas));map.colorSpace=T.SRGBColorSpace;
+  const sign=new T.Mesh(this.own(new T.PlaneGeometry(width,height)),this.own(new T.MeshBasicMaterial({map,transparent:true,alphaTest:.1,side:T.DoubleSide})));
+  sign.name=warning?'troll-maze-wrong-way':'troll-maze-sign';sign.userData.label=text;return sign;
+ }
+ trollCourseMaterial(look){
+  const params={
+   neonKill:{color:0xa81727,emissive:0xff0000,emissiveIntensity:2.5,roughness:.39,metalness:.14},
+   mazeGlass:{color:0x8be7ff,emissive:0x7fdaff,emissiveIntensity:.45,opacity:.13,transparent:true,depthWrite:false},
+   mazeRoof:{color:0xa1d9f3,emissive:0x6ea4c2,emissiveIntensity:.35,opacity:.10,transparent:true,depthWrite:false},
+   mazeFloor:{color:0x9fe5f7,roughness:.27,opacity:.24,transparent:true,depthWrite:false},
+   mazeExterior:{color:0x5e819c,metalness:.08,roughness:.61},
+   iceCabinWall:{color:0x416079,roughness:.58,metalness:.12},
+   iceCabinRoof:{color:0x537c96,roughness:.65,metalness:.12},
+   spiralStep:{color:0xf7e7c3,roughness:.52,vertexColors:true},
+   plainPad:{color:0x92b9cc,roughness:.61,metalness:.09},
+   iceBank:{color:0x4d768e,roughness:.75,metalness:.05},
+   iceTread:{color:0x92b9cc,roughness:.61,metalness:.09},
+   iceCabin:{color:0xbce7ed,roughness:.7},
+   spikeDeck:{color:0x9abacc,roughness:.63},
+   spike:{color:0xf05349,emissive:0xc41916,emissiveIntensity:.50,roughness:.34,metalness:.29},
+   boulder:{color:0x7b8ea1,roughness:.89,metalness:.02,vertexColors:true}
+  }[look];
+  return params?this.own(new this.T.MeshStandardMaterial(params)):null;
+ }
  // One shared cutoff uniform erases floor, scenery, unions AND obstacle details.
  // Materials are owned by this isolated scene; normal modes are never patched.
  preparePursuit(own){
@@ -149,6 +179,7 @@ class ElementalObbyRun{
   this.pendingDive=false;const oldCP=this.checkpoint,oldP=this.p,oldFall=this.deaths,wasStarting=this.race.countdown>0;
   const grounded=this.p.grounded,oldVy=this.p.vy;
   this.race.step(input);this.worldTime=this.race.time;this.p=this.race.player.p;this.checkpoint=this.race.player.checkpoint;this.deaths=this.race.player.falls;this.respawnTimer=this.race.player.respawn;
+  if(this.deaths>oldFall||this.race.over&&this.race.failure==='caught')this.api.onDeathBiome?.(this.data.theme.phase);
   if(this.p.collected){this.p.collected=false;this.api.sound('coin');}
   if(wasStarting&&this.race.countdown===0)this.clock.start();
   if(this.race.countdown<=0)this.elapsed+=C.DT;

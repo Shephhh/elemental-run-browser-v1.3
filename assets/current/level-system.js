@@ -148,10 +148,11 @@
     // interval by this value), while density stays deliberately below the
     // normal campaign curve. The ramp is gradual so Level 6 does not feel like
     // a sudden difficulty wall.
-    const onboardingTrafficScale = [0, 0.48, 0.49, 0.51, 0.62, 0.69][index] ?? null;
-    const onboardingSpawnScale = [0, 1.50, 1.55, 1.50, 1.30, 1.18][index] ?? null;
-    const onboardingDensity = [0, 0.78, 0.84, 0.90, 1.08, 1.22][index] ?? null;
-    const onboardingSafety = [0, 4.8, 5.0, 4.8, 3.5, 2.9][index] ?? null;
+    // Early failures are a tuning candidate, not a proven exit cause.
+    const onboardingTrafficScale = [0, 0.44, 0.47, 0.51, 0.62, 0.69][index] ?? null;
+    const onboardingSpawnScale = [0, 1.72, 1.68, 1.50, 1.30, 1.18][index] ?? null;
+    const onboardingDensity = [0, 0.66, 0.76, 0.90, 1.08, 1.22][index] ?? null;
+    const onboardingSafety = [0, 6.2, 6.0, 4.8, 3.5, 2.9][index] ?? null;
     const onboardingLevel = index <= 5;
     // Every playable level, including Level 1 and the bonus stages, shares the
     // same distant curve language. The curve renderer keeps the near collision

@@ -1,6 +1,6 @@
 /* Party Run: reference-led gauntlets, FPS movement and deterministic 120Hz simulation. */
 (function(g){'use strict';
-const DT=1/120,G=24,JUMP=9.5,SPEED=7.5,R=.43,H=1.8,COURSE_VERSION=14,ROUND_COUNT=9;
+const DT=1/120,G=24,JUMP=9.5,SPEED=7.5,R=.43,H=1.8,COURSE_VERSION=14,ROUND_COUNT=9,TROLL_COURSE_VERSION=15;
 const themes=[{phase:1,color:0x59bea2,sky:0xa8dce6},{phase:5,color:0x9ac8df,sky:0x7f9fbc},{phase:2,color:0x8baceb,sky:0xc3e4f6},{phase:0,color:0x54b5cf,sky:0x152b46},{phase:3,color:0xe7995c,sky:0x4b2940},{phase:4,color:0x58c5b4,sky:0x8dccdc}];
 function difficulty(level){return{factor:(level-1)/5,coyote:.12,crumbleDelay:1.4};}
 const layouts=[
@@ -319,38 +319,275 @@ function spiritHunt(){
 }
 // All animation is pure worldTime math. No per-frame randomness or timers.
 // Authored, learnable traps: no per-frame randomness or changes to Party routes.
+// Troll 1: authored JSON-compatible [X, local -Z distance, W, D, properties].
+// Traps live on their platform collider; no duplicate hazard colliders.
+const TROLL_ONE_LAYOUT=[
+ {"kind":"surprise_slide","platforms":[
+  [0,6.8,3.6,3.6,{"safe":true}],
+  [0,12.6,3.6,3.6,{"safe":true}],
+  [0,18.4,3.6,3.6,{"safe":true}],
+  [0,24,3.6,3.6,{"trap":"slideFake","slideX":4.2,"slideSeconds":0.16,"safe":true,"routeX":4.2}]
+ ],"hazards":[]},
+ {"kind":"invisible_bridge","platforms":[
+  [0,13,3,14,{"look":"ghost","safe":true}],
+  [-3.45,13,3,14,{"trap":"fake"}],
+  [3.45,13,3,14,{"trap":"fake"}],
+  [0,25,8,4.6,{"safe":true}]
+ ],"hazards":[]},
+ {"kind":"reverse_psychology","platforms":[
+  [0,13,3,14,{"trap":"fake","look":"ghost"}],
+  [-3.45,13,3,14,{"safe":true}],
+  [3.45,13,3,14,{}],
+  [0,25,8,4.6,{"safe":true}]
+ ],"hazards":[]},
+ {"kind":"deadly_checkerboard","platforms":[
+  [-4.2,9.9,4.2,4.2,{"checker":true,"look":"plain","trap":"gift"}],
+  [0,9.9,4.2,4.2,{"checker":true,"look":"danger","safe":true}],
+  [4.2,9.9,4.2,4.2,{"checker":true,"look":"plain","trap":"gift"}],
+  [-4.2,14.1,4.2,4.2,{"checker":true,"look":"danger","safe":true}],
+  [0,14.1,4.2,4.2,{"checker":true,"look":"plain","trap":"gift"}],
+  [4.2,14.1,4.2,4.2,{"checker":true,"look":"danger"}],
+  [-4.2,18.3,4.2,4.2,{"checker":true,"look":"plain","trap":"gift"}],
+  [0,18.3,4.2,4.2,{"checker":true,"look":"danger","safe":true}],
+  [4.2,18.3,4.2,4.2,{"checker":true,"look":"plain","trap":"gift"}],
+  [-4.2,22.5,4.2,4.2,{"checker":true,"look":"danger","safe":true}],
+  [0,22.5,4.2,4.2,{"checker":true,"look":"plain","trap":"gift"}],
+  [4.2,22.5,4.2,4.2,{"checker":true,"look":"danger"}]
+ ],"hazards":[]},
+ {"kind":"invisible_wall_maze","platforms":[
+  [0,8,4.2,4,{"safe":true}],
+  [0,13,4.4,0.45,{"trap":"wall","hideReveal":true,"y":14.5,"h":11}],
+  [4,13,2.8,4,{"look":"ghost","safe":true}],
+  [-4,13,2.8,4,{"look":"ghost"}],
+  [0,17.5,4.2,4.8,{"safe":true}],
+  [-4,22,2.8,4,{"look":"ghostBrown","trap":"fake"}],
+  [4,22,2.8,4,{"look":"ghostBrown","trap":"fake"}],
+  [0,26,4.4,4,{"safe":true}]
+ ],"hazards":[]}
+];
 function trollCourse(level=1){
- level=Math.max(1,Math.min(3,level|0));const platforms=[],checkpoints=[],route=[],safeRoute=[],modules=[];
- const add=(x,z,w=4,d=4,extra={})=>{const p={id:platforms.length,x,y:8,z,w,d,h:1.25,baseX:x,baseY:8,baseZ:z,yaw:0,previousYaw:0,active:true,dx:0,dy:0,dz:0,...extra};platforms.push(p);return p;};
- const cp=z=>{const p=add(0,z,16,8,{checkpoint:checkpoints.length});checkpoints.push({x:0,y:8.004,z,w:16,d:8,index:checkpoints.length,platform:p.id,distance:-z});safeRoute.push(p.id);};
+ level=Math.max(1,Math.min(3,level|0));
+ const platforms=[],hazards=[],checkpoints=[],route=[],safeRoute=[],safePath=[],modules=[];
+ let stage=0,spikeBoard=null,cyber=null;
+ const roomDepth=level===1?32:40;
+ const snowRooms=[40,96,48,84,40,73],spiralTop=26.24,rampTop=34.24;
+ const cyberRooms=[145,144,145,173,104];
+ // Explicit authored arrays below are local to each room: [X, forward Z, W, D, extra].
+ // Y is the TOP of a solid, never its centre. No randomised or frame-time geometry.
+ const add=(x,z,w=4,d=4,extra={})=>{
+  const y=extra.y??8,p={id:platforms.length,x,y,z,w,d,h:1.25,baseX:x,baseY:y,baseZ:z,yaw:0,previousYaw:0,active:true,dx:0,dy:0,dz:0,stage,...extra};
+  platforms.push(p);return p;
+ };
+ const path=(p,x=p.x,z=p.z)=>{safeRoute.push(p.id);safePath.push({platform:p.id,x,y:p.y+.002,z});return p;};
+ const cp=(z,x=0,w=12,d=7,y=8)=>{
+  const p=add(x,z,w,d,{checkpoint:checkpoints.length,stage:-1,y});
+  checkpoints.push({x,y:p.y+.004,z,w,d,index:checkpoints.length,platform:p.id,distance:-z});path(p);
+ };
+ const room=(kind,build,endY=8)=>{stage=modules.length;const start=checkpoints.at(-1).z,len=level===2?snowRooms[stage]:level===3?cyberRooms[stage]:roomDepth;modules.push({kind,stage,start});
+  const safe=(x,z,w,d,extra={})=>path(add(x,start-z,w,d,{safeRoute:true,...extra}));
+  const trap=(x,z,w,d,type,extra={})=>add(x,start-z,w,d,{trap:type,triggerAt:null,revealUntil:0,...extra});
+  build(safe,trap,(p,x,z)=>path(p,x,start-z),start,len);cp(start-len,0,12,7,endY);
+ };
  cp(0);
- const order=level===1?['fake_stones','invisible_wall','troll_bounce','gift_bricks']:level===2?['gift_bricks','crumble_steps','fake_stones','troll_bounce','invisible_wall']:['invisible_wall','troll_bounce','crumble_steps','gift_bricks','fake_stones','finale'];
- order.forEach((kind,stage)=>{const start=-stage*40,side=(stage+level)%2?1:-1;modules.push({kind,stage,start});
-  const safe=(x,z,w,d,extra={})=>{const o=add(x,start-z,w,d,{stage,safeRoute:true,...extra});safeRoute.push(o.id);return o;};
-  const trap=(x,z,w,d,type,extra={})=>add(x,start-z,w,d,{stage,trap:type,...extra});
-  if(kind==='fake_stones'){
-   safe(side*5,11,5,12);safe(side*5,27,5,14);
-   for(let j=0;j<4;j++)trap(-side*2,9+j*7,5,5,j===2?'approachFake':'fake',{triggerAt:null});
-  }else if(kind==='invisible_wall'){
-   safe(0,10,14,9);safe(side*6,21,4,10);safe(0,31,14,9);
-   trap(0,16,8,.45,'wall',{y:13,baseY:13,h:5,revealUntil:0});
-   trap(-side*5.5,23,3,.45,'shoveWall',{y:12,baseY:12,h:4,revealUntil:0});
-  }else if(kind==='troll_bounce'){
-   safe(0,9,13,10);safe(side*5.5,20,4.5,12);safe(0,31,13,10);
-   trap(-side*2,20,5,7,'reversePad');
-  }else if(kind==='gift_bricks'){
-   for(let j=0;j<4;j++){const x=[-2,2,-2,0][j]*side;safe(x,10+j*7,6,5);trap(x+side*2.1,10+j*7,1.3,1.6,'gift',{y:9.6,baseY:9.6,h:1.6});}
-  }else if(kind==='crumble_steps'){
-   for(let j=0;j<4;j++)safe(Math.sin(j*1.2)*2,10+j*7,5.5,5,{type:'crumble',touchAt:null,permanent:true});
-   trap(-side*5,19,4.5,8,'fake');
-  }else{
-   safe(side*4,10,6,10);safe(0,22,8,8);safe(-side*4,32,6,6);
-   trap(-side*4,10,5,10,'approachFake',{triggerAt:null});trap(side*6,31,1,1,'hiddenKill',{y:10,baseY:10,h:2});trap(side*3,22,1.4,1.4,'gift',{y:9.6,baseY:9.6,h:1.6});
+ if(level===1){
+  for(const layout of TROLL_ONE_LAYOUT){
+   stage=modules.length;const start=-stage*roomDepth;
+   modules.push({kind:layout.kind,stage,start});
+   for(const [x,z,w,d,{safe,routeX,...extra}] of layout.platforms){
+    const p=add(x,start-z,w,d,{...(safe?{safeRoute:true}:{}),...(extra.trap?{triggerAt:null,revealUntil:0}:{}),...extra});
+    if(safe)path(p,routeX??x);
+   }
+   hazards.push(...layout.hazards);
+   cp(start-roomDepth);
   }
-  cp(start-40);
- });
- const theme=themes[[0,1,3][level-1]];
- return{version:3,troll:true,level,kind:'race',name:'Troll Obby',nameKey:'trollObby',theme,difficulty:{coyote:.12,crumbleDelay:.8},platforms,hazards:[],rails:[],barriers:[],route,safeRoute,modules,checkpoints,finish:checkpoints.at(-1),length:order.length*40,depth:order.length*40,fallY:1,bounds:{x:20,minZ:-order.length*40-12,maxZ:10}};
+ }else if(level===2){
+  room('neon_kill_walls',(safe,trap)=>{
+   // Low lethal red strips stay anchored at Y=8; island widths and routes are unchanged.
+   for(const [z,x]of [[7.9,0],[15.5,1.25],[23.1,-1.35],[30.7,1],[34.7,0]]){
+    const depth=3.6;safe(x,z,4.8,depth);
+    for(const side of [-1,1])trap(x+side*1.75,z,1.3,depth,'gift',{look:'neonKill',y:8.45,h:.45});
+   }
+  });
+  room('roofed_dead_end',(safe,trap,waypoint,start,len)=>{
+   const a=10,b=len-10,center=(a+b)/2,inside=38.8,sideX=inside/2,ledge=1.65,full=inside+ledge*2;
+   const front=safe(0,(3.5+a)/2,full,a-3.5,{checker:true,look:'iceTread'});
+   safe(0,center,inside,b-a,{checker:true,look:'mazeFloor'});
+   const left=safe(-sideX-ledge/2,center,ledge,b-a,{checker:true,look:'iceTread'});
+   safe(sideX+ledge/2,center,ledge,b-a,{checker:true,look:'iceTread'});
+   const tail=safe(0,(b+len-3.5)/2,full,len-3.5-b,{checker:true,look:'iceTread'});
+   for(let i=0;i<5;i++){safeRoute.pop();safePath.pop();}
+   const bypass=-sideX-ledge/2-.11;
+   waypoint(front,bypass,a-2.4);waypoint(left,bypass,a+2);waypoint(left,bypass,b-2);waypoint(tail,bypass,b+2.6);waypoint(tail,0,b+4.5);
+   const glass={y:13.5,h:5.5,look:'mazeGlass',hideReveal:true,cameraMaze:true};
+   const frame={...glass,look:'mazeExterior',hideReveal:false};
+   for(const side of [-1,1]){
+    trap(side*sideX,center,.48,b-a,'wall',frame);
+    for(const z of [a+.24,b-.24])trap(side*(sideX+2.25)/2,z,sideX-2.25,.48,'wall',frame);
+   }
+   trap(0,b-.24,4.5,.48,'wall',{...glass,look:'mazeExitBlock'}); // The visible doorway is solid, without a rendered panel.
+   trap(0,center,inside+.48,b-a,'wall',{...glass,look:'mazeRoof',y:13.82,h:.32});
+   // Seeded depth-first maze on an actual 7 × 13 lattice. Each cell can be
+   // explored; the last opening looks real but has the invisible exit collider.
+   const cols=7,rows=13,cw=(inside-.48)/cols,cd=(b-a-.96)/rows,x0=-(inside-.48)/2,z0=a+.48;
+   const right=new Uint8Array(cols*rows).fill(1),down=right.slice(),seen=new Uint8Array(cols*rows),stack=[3];
+   let seed=0x45c2;seen[3]=1;
+   while(stack.length){
+    const i=stack.at(-1),x=i%cols,z=Math.floor(i/cols),next=[];
+    if(x>0&&!seen[i-1])next.push(i-1);if(x+1<cols&&!seen[i+1])next.push(i+1);
+    if(z>0&&!seen[i-cols])next.push(i-cols);if(z+1<rows&&!seen[i+cols])next.push(i+cols);
+    if(!next.length){stack.pop();continue;}
+    seed=(Math.imul(seed,1664525)+1013904223)>>>0;const j=next[(seed>>>16)%next.length],k=Math.min(i,j);
+    (Math.abs(i-j)===1?right:down)[k]=0;seen[j]=1;stack.push(j);
+   }
+   for(let col=0;col<cols-1;col++)for(let row=0;row<rows;){
+    if(!right[row*cols+col]){row++;continue;}
+    let end=row+1;while(end<rows&&right[end*cols+col])end++;
+    trap(x0+(col+1)*cw,z0+(row+end)*cd/2,.24,(end-row)*cd,'wall',glass);row=end;
+   }
+   for(let row=0;row<rows-1;row++)for(let col=0;col<cols;){
+    if(!down[row*cols+col]){col++;continue;}
+    let end=col+1;while(end<cols&&down[row*cols+end])end++;
+    trap(x0+(col+end)*cw/2,z0+(row+1)*cd,(end-col)*cw,.24,'wall',glass);col=end;
+   }
+   modules.at(-1).sign={key:'trollMaze',x:0,y:14.45,z:start-a+.4};
+   modules.at(-1).maze={a:start-a,b:start-b,w:inside,cols,rows};
+  });
+  room('spiral_crumble_reversal',(safe,trap,waypoint,start)=>{
+   const cx=-5.8,mid=8,n=96,span=Math.PI/16,inner=3.8,outer=7.8,top=spiralTop;
+   safe(0,5.75,3.6,4.5,{checker:true,look:'iceTread'});
+   for(let i=0;i<n;i++){
+    const arcStart=-(i+1)*span,a=arcStart+span/2,y=8+(i+1)*.19;
+    const o=safe(cx,mid,outer*2,outer*2,{y,h:.34,walkSurface:'sector',arcStart,arcSpan:span,inner,outer,checker:true,look:'spiralStep',type:'crumble',crumbleDelay:2.45,touchAt:null,permanent:true});
+    safeRoute.pop();safePath.pop();waypoint(o,cx+Math.cos(a)*5.8,mid-Math.sin(a)*5.8);
+   }
+   // Leave the staircase at its full height; only the concealed raised strip must be jumped.
+   safe(0,23.5,3.6,31,{y:top,walkSurface:'grade',checker:true,look:'iceTread'});
+   trap(0,39.75,3.6,1.5,'reversePad',{look:'plainPad',walkSurface:'grade',checker:true,y:top+.19,reverseX:-8.5,h:.55});
+   safe(0,42.5,3.6,4,{y:top,walkSurface:'grade',checker:true,look:'iceTread'});
+  },spiralTop);
+  room('boulder_refuge',(safe,trap,waypoint,start,len)=>{
+   const width=7.8,a=3.5,b=len-3.5,grade=(spiralTop-rampTop)/(b-a),height=z=>spiralTop-grade*(z-a);
+   const floor=safe(0,(a+b)/2,width,b-a,{y:height((a+b)/2),grade,walkSurface:'grade',checker:true,look:'iceTread',h:.9});
+   safeRoute.pop();safePath.pop();
+   const pairs=[[-1,18],[1,38],[-1,59]];
+   const wall=(side,edge,lo,hi)=>{
+    if(hi-lo<.03)return;
+    const z=(lo+hi)/2,y=height(z);
+    trap(side*edge,z,.24,hi-lo,'wall',{y:y+5.4,h:8,look:'iceBank',hideReveal:true,displayY:y,displayGrade:grade});
+   };
+   let last=a;
+   for(const [open,z]of pairs){
+    const d=7.4,y=height(z);
+    for(const side of [-1,1]){
+     wall(side,4.02,last,z-d/2);
+     const bay=add(side*6.5,start-z,5.2,d,{y,grade,walkSurface:'grade',checker:true,look:'iceCabin',h:.88});
+     const ceiling=y+3.05;
+     const shell=(x,z,w,d)=>{const foot=height(z);trap(side*x,z,w,d,'wall',{y:ceiling+.02,h:ceiling-foot+.7,look:'iceCabinWall',hideReveal:true,displayY:foot,displayGrade:grade,displayH:ceiling-foot,displayTopFlat:true});};
+     shell(9.02,z,.24,d);for(const end of [-1,1])shell(6.5,z+end*(d/2-.14),5.2,.27);
+     trap(side*6.5,z,5.26,d+.08,'wall',{y:ceiling+.25,h:.25,look:'iceCabinRoof',hideReveal:true});
+     if(side===open){waypoint(floor,0,z);waypoint(bay,side*6.5,z);waypoint(floor,0,z);}
+     else trap(side*4.02,z,.24,d,'wall',{hideReveal:true,look:'closedCabin',y:y+5,h:6});
+    }
+    last=z+d/2;
+   }
+   for(const side of [-1,1])wall(side,4.02,last,b);
+   waypoint(floor,0,b-.4);
+   // Match the visible sphere to the full lane at avatar height: even an
+   // avatar pressed against a blocked cabin mouth must touch the boulder.
+   const radius=3.85,high=b-4.8,low=a+1.3,lift=radius*Math.hypot(1,grade);
+   hazards.push({id:hazards.length,type:'ball',look:'trollBoulder',x:0,z:start-high,zStart:start-high,zEnd:start-low,y:height(high)+lift,yEnd:height(low)+lift,radius,speed:22,returnSpeed:17,turnHold:1.85,phase:.45,lethal:true});
+   modules.at(-1).refuges=pairs.map(([side,z])=>({z:start-z,side,x:side*6.5}));
+  },rampTop);
+  const crestPlatform=platforms[checkpoints.at(-1).platform];
+  crestPlatform.walkSurface='grade';crestPlatform.checker=true;
+  room('shifting_jump_blocks',(safe,trap,waypoint,start)=>{
+   for(const [i,[x,z,d]]of [[0,8,4.4],[.4,15.9,4.4],[-.45,24.0,4.4],[.35,32.0,4.4]].entries())safe(x,z,3.7,d,{y:rampTop,shiftGroup:'troll2-blocks',shiftIndex:i});
+   modules.at(-1).shift={key:'troll2-blocks',y:rampTop,forward:-1.9,back:3.45,duration:.15,firstZ:start-12.65,lastZ:start-28};
+  },rampTop);
+  room('parabolic_spike_board',(safe,trap,waypoint,start,len)=>{
+   // Red plates always occupy the same chessboard parity. Protection is
+   // authored independently: a straight jump can skip a full red square.
+   const size=4,columns=4,rows=16;
+   const guide=[1,null,1,2,3,2,null,2,3,2,1,null,1,2,null,2];
+   const alternatives=new Map([[0,3],[3,0],[8,1],[13,0]]);
+   const front=4.25,back=front+size*rows;
+   safe(0,(3.5+front)/2,16,front-3.5,{y:rampTop,checker:true,look:'spikeDeck'});
+   const cells=[];
+   for(let row=0;row<rows;row++)for(let col=0;col<columns;col++){
+    const x=(col-1.5)*size,z=front+(row+.5)*size,home=(row+col)%2===0;
+    const safe=guide[row]===col||alternatives.get(row)===col;
+    cells.push(add(x,start-z,size,size,{y:rampTop,checker:true,look:'spikeDeck',boardTile:true,spikeHome:home,spikeBait:!home&&!safe,spikeAt:null}).id);
+   }
+   for(let row=0;row<rows;row++)for(let col=0;col<columns;col++){
+    const o=platforms[cells[row*columns+col]];if(!o.spikeBait)continue;
+    const neighbor=col^1; // same-row pairs, no competing targets for one plate
+    const from=platforms[cells[row*columns+neighbor]];o.spikeSource=from.id;from.spikeTarget=o.id;from.slideX=o.x-from.x;
+   }
+   for(const [row,col]of guide.entries())if(col!=null){
+    const o=platforms[cells[row*columns+col]];o.safeRoute=true;
+    // Aim at the near edge for an 8 m center-to-center transfer: from the
+    // source edge the actual jump distance is under 5.4 m.
+    path(o,o.x,o.z+(row>0&&guide[row-1]==null?1.5:0));
+   }
+   safe(0,(back+len-3.5)/2,16,len-3.5-back,{y:rampTop,checker:true,look:'spikeDeck'});
+   spikeBoard={xMin:-8,zFront:start-front,y:rampTop,size,columns,rows,cells,stage};
+  },rampTop);
+ }else{
+  cyber={};
+  room('cyber_stoplight',(safe,trap,waypoint,start,len)=>{
+   // The deck is one unbroken box; only the hurdles have separate collision.
+   safe(0,len/2,8.8,len-7,{look:'cyberSignal',checker:true});
+   for(const [i,z] of [17,25.2,33.4,41.6].entries()){
+    const h=.52+i*.045;trap(0,z,8.8,.8,'gift',{y:8+h,h,look:'cyberSignalBar',checker:true});
+   }
+   trap(0,66,4.28,1.16,'gift',{y:11.2,h:3.2,look:'cyberSignalColumn',checker:true});
+   for(const side of [-1,1])trap(side*3.08,70.25,2.64,1.16,'gift',{y:11.2,h:3.2,look:'cyberSignalColumn',checker:true});
+   cyber.signal={front:start-4,back:start-len+5,width:8.8,cycles:[[4.65,.88,1.85],[4.16,.88,1.65],[4.85,.88,2.05]],feintZ:start-116,feint:[1.14,.23,1.52]};
+  });
+  room('cyber_broken_sequence',(safe,trap,waypoint,start,len)=>{
+   // One animated bank per color; the deception uses these same full-length
+   // slabs. There are no extra bait/exit colliders near the checkpoint.
+   const lanes=Array.from({length:6},(_,i)=>safe((i-2.5)*3.62,len/2,2.57,len-7,{look:i%2?'cyberSequencePink':'cyberSequence',cyberTile:i,cyberLane:true,checker:true}).id);
+   cyber.sequence={lanes,period:4.4,fade:.48,overlap:.26,commitZ:start-len+20,trapWarning:.62,breakDuration:.64,flashFrom:.10,flashUntil:.27,restore:.97,standTime:.22,exit:2};
+  });
+  platforms[checkpoints[cyber.sequence.exit].platform].cyberExit=true;
+  room('cyber_crosswind',(safe,trap,waypoint,start,len)=>{
+   safe(0,len*.5,2.18,len-7,{look:'cyberWind',checker:true});
+   for(const [i,z] of [16,29,43,58,72,87,101,116,131].entries()){
+    const h=i%2?.64:.49;add(0,start-z,2.18,.87,{y:8+h,h,look:'cyberWindBar',checker:true});
+   }
+   cyber.wind={front:start-4,back:start-len+4,width:9,phases:[[1.85,6],[.83,-8],[2.24,-8.5],[.68,9],[1.35,7],[1.08,-7]]};
+  });
+  room('cyber_ice_launch',(safe,trap,waypoint,start,len)=>{
+   const lip=len-19,slab=safe(0,(3.5+lip)*.5,9.8,lip-3.5,{look:'cyberIce',cyberIce:true,checker:true});
+   // Lethal pylons alternate the available lane. Low red cores must be jumped.
+   for(const [x,z,w,h] of [[-2.8,22,4.2,2.2],[2.85,36,4.1,2.45],[-2.75,67,4.3,2.1],[2.8,91,4.2,2.6],[-3.65,99,2.5,1.85],[3.65,99,2.5,1.85],[-2.85,113,4.1,2.2],[2.8,140,4.1,2.45]])
+    trap(x,z,w,1.55,'gift',{y:8+h,h,look:'cyberCrystal',checker:true});
+   for(const [z,h] of [[48,.58],[77,.65],[126,.60]])trap(0,z,9.8,.88,'gift',{y:8+h,h,look:'cyberLaser',checker:true});
+   const scan={type:'bumper',x:0,y:8.61,z:start-57.8,radius:.75,amplitude:3.62,rate:2.1,phase:.42,lethal:true,look:'cyberScanner'};
+   hazards.push(scan);
+   cyber.ice={slab:slab.id,front:start-3.5,lip:start-lip,landing:start-len+3.5,cap:23.5};
+  });
+  room('cyber_overhead',(safe,trap,waypoint,start)=>{
+   safe(0,7,5.9,5.6,{look:'cyberOverhead'});
+   for(const [i,z] of [15.5,33.5,51.5,69.5].entries()){
+    const high=i%2?1:-1;
+    // Only the models share an initial height; collision never lies.
+    safe(high*2.65,z,3.6,6.3,{y:9.30,look:'cyberPair',cyberPair:i,apparentTop:8});
+    add(-high*2.65,start-z,3.6,6.3,{y:7.35,look:'cyberPair',cyberPair:i,apparentTop:8});
+    safe(high*1.27,z+8.7,7.2,7.2,{look:'cyberOverhead'});
+    trap(-high*.55,z+8.7,.35,5.8,'gift',{y:8.48,h:.48,look:'cyberLethalStrip',checker:true});
+   }
+   safe(1.6,87,4.8,5.1,{look:'cyberPivot',type:'mover',rate:1.16,phase:.6,amplitude:.65});
+   safe(-.6,96,5.6,6.2,{look:'cyberOverhead'});
+   add(-1.35,start-96.65,1.42,.82,{y:8.66,h:.66,look:'cyberWindBar',checker:true});
+   trap(2.85,95.85,1.05,.95,'gift',{y:9.42,h:1.42,look:'cyberCrystal',checker:true});
+   cyber.overhead={front:start-9.45,back:start-100.7,zoom:[{z:start-31,span:13,lift:3.4},{z:start-63,span:15,lift:-2.5},{z:start-84,span:11,lift:3.1}]};
+  });
+ }
+ const theme=themes[[0,1,3][level-1]],depth=-checkpoints.at(-1).z;
+ const shift=modules.find(m=>m.shift)?.shift;
+ return{version:TROLL_COURSE_VERSION,troll:true,level,kind:'race',name:'Troll Obby',nameKey:'trollObby',theme,difficulty:{coyote:.12,crumbleDelay:.8},platforms,hazards,rails:[],barriers:[],route,safeRoute,safePath,modules,shift,...(cyber?{cyber}:{}),...(spikeBoard?{spikeBoard,walkSurfaces:platforms.filter(o=>o.walkSurface)}:{}),checkpoints,finish:checkpoints.at(-1),length:depth,depth,fallY:1,bounds:{x:level===2?23:20,minZ:-depth-12,maxZ:10}};
 }
 function trollContact(p,o,data,top){
  if(!data.troll||!o.trap)return false;
@@ -358,27 +595,44 @@ function trollContact(p,o,data,top){
  if(o.trap==='gift'||o.trap==='hiddenKill'){p.dead=true;p.trapEvent=o.trap;o.revealed=true;return true;}
  if(o.trap==='shoveWall'){o.revealUntil=data.time+2;o.active=false;o.consumed=true;p.vy=-12;p.vx=0;p.vz=6;p.stun=.5;p.grounded=false;p.support=-1;p.buffer=p.coyote=0;p.trapEvent='shoveWall';return true;}
  if(o.trap==='wall'){o.revealUntil=data.time+2;p.trapEvent='wall';}
- if(o.trap==='reversePad'&&top&&p.bounceLock<=0){p.vx=0;p.vz=19;p.vy=7;p.bounceLock=.7;p.stun=.6;p.grounded=false;p.support=-1;p.buffer=p.coyote=0;p.bounced=true;p.trapEvent='reversePad';return true;}
+ if(o.trap==='reversePad'&&top&&p.bounceLock<=0){p.vx=o.reverseX||0;p.vz=19;p.vy=7;p.bounceLock=.7;p.stun=.6;p.grounded=false;p.support=-1;p.buffer=p.coyote=0;p.bounced=true;p.trapEvent='reversePad';return true;}
  return false;
 }
 function pose(data,time){
  data.time=time;
+ const shift=data.shift;
+ if(shift){const ease=t=>1-(1-Math.max(0,Math.min(1,t/shift.duration)))**3;shift.offset=(shift.firstAt!=null?shift.forward*ease(time-shift.firstAt):0)+(shift.lastAt!=null?shift.back*ease(time-shift.lastAt):0);}
  for(const o of data.platforms){
   const x=o.x,y=o.y,z=o.z;o.previousYaw=o.yaw||0;
   o.x=o.baseX+(o.type==='mover'||o.motion==='sway'?Math.sin(time*o.rate+o.phase)*o.amplitude:0);
-  o.y=o.baseY+(o.type==='lift'?Math.sin(time*o.rate+o.phase)*o.amplitude:0);o.z=o.baseZ;
+  if(o.trap==='slideFake'&&o.triggerAt!=null){const t=Math.max(0,Math.min(1,(time-o.triggerAt)/o.slideSeconds));o.x+=o.slideX*(1-(1-t)**3);}
+  o.y=o.baseY+(o.type==='lift'?Math.sin(time*o.rate+o.phase)*o.amplitude:0);o.z=o.baseZ+(shift&&o.shiftGroup===shift.key?shift.offset:0);
   if(o.type==='fan'){o.yaw=time*o.rate+o.phase;o.x=o.centerX+Math.cos(o.yaw)*o.orbit;o.z=o.centerZ-Math.sin(o.yaw)*o.orbit;}
   o.dx=o.x-x;o.dy=o.y-y;o.dz=o.z-z;
   const period=o.period||1,phase=((time+(o.phase||0))%period+period)%period;
   o.active=!o.consumed&&(o.type!=='tile'||phase<o.activeFor);o.warning=o.type==='tile'&&phase>o.activeFor-o.warningFor;o.drop=0;o.reforming=false;
-  if(o.type==='crumble'&&o.touchAt!==null){const age=time-o.touchAt,delay=data.difficulty.crumbleDelay,regen=o.regrowAfter||3.6;if(age>=regen&&!o.permanent)o.touchAt=null;else{o.warning=true;o.active=!o.consumed&&age<delay;o.reforming=!o.permanent&&age>regen-.8;o.drop=o.reforming?(regen-age)*5:Math.max(0,age-delay)*3;}}
+  if(o.type==='crumble'&&o.touchAt!==null){const age=time-o.touchAt,delay=o.crumbleDelay??data.difficulty.crumbleDelay,regen=o.regrowAfter||3.6;if(age>=regen&&!o.permanent)o.touchAt=null;else{o.warning=true;o.active=!o.consumed&&age<delay;o.reforming=!o.permanent&&age>regen-.8;o.drop=o.reforming?(regen-age)*5:Math.max(0,age-delay)*3;}}
  }
  for(const rail of data.rails||[]){const owner=data.platforms[rail.owner];rail.active=!!owner?.active;if(rail.moving&&owner){rail.x=owner.x+rail.localX;rail.y=owner.y+1.12;rail.z=owner.z;rail.dx=owner.dx;rail.dy=owner.dy;rail.dz=owner.dz;}}
  for(const b of data.barriers||[])b.active=!!data.platforms[b.owner]?.active;
  for(const h of data.hazards){
   if(h.attached){const p=data.platforms[h.anchor];h.x=h.baseX+p.x-p.baseX;h.y=h.baseY+p.y-p.baseY;h.z=h.baseZ+p.z-p.baseZ;}
   h.angle=time*(h.rate||1)+.5*(h.acceleration||0)*time*time+h.phase;h.currentX=h.x;h.currentY=h.y;h.currentZ=h.z;
-  if(h.type==='ball'){const span=Math.abs(h.zEnd-h.zStart),sign=Math.sign(h.zEnd-h.zStart)||1,t=span?((time*h.speed+h.phase*h.speed)%(span*2)+span*2)%(span*2):0;h.currentZ=h.zStart+sign*(t<span?t:span*2-t);h.velocityZ=sign*(t<span?1:-1)*h.speed;h.angle=(h.currentZ-h.zStart)/h.radius;}
+  if(h.type==='ball'){
+   const span=Math.abs(h.zEnd-h.zStart),sign=Math.sign(h.zEnd-h.zStart)||1;
+   if(h.returnSpeed&&span&&h.speed>0){
+    const down=span/h.speed,up=span/h.returnSpeed,hold=h.turnHold||0,period=down+up+2*hold,t=((time+h.phase)%period+period)%period;
+    if(t<down){h.currentZ=h.zStart+sign*t*h.speed;h.velocityZ=sign*h.speed;}
+    else if(t<down+hold){h.currentZ=h.zEnd;h.velocityZ=0;}
+    else if(t<down+hold+up){h.currentZ=h.zEnd-sign*(t-down-hold)*h.returnSpeed;h.velocityZ=-sign*h.returnSpeed;}
+    else{h.currentZ=h.zStart;h.velocityZ=0;}
+   }else{
+    const t=span?((time*h.speed+h.phase*h.speed)%(span*2)+span*2)%(span*2):0;
+    h.currentZ=h.zStart+sign*(t<span?t:span*2-t);h.velocityZ=sign*(t<span?1:-1)*h.speed;
+   }
+   h.angle=(h.currentZ-h.zStart)/h.radius;
+   if(h.yEnd!=null&&span){h.currentY=h.y+(h.yEnd-h.y)*(h.currentZ-h.zStart)/(h.zEnd-h.zStart);h.angle*=Math.hypot(1,(h.yEnd-h.y)/span);}
+  }
   h.push=h.type==='piston'?Math.pow(Math.max(0,Math.sin(h.angle)),3)*(h.stroke||4.8):0;
   if(h.type==='gate'){h.open=.5+.5*Math.sin(h.angle);h.currentX=h.x+h.side*(2+4.5*h.open);h.warning=h.open<.3;}
   if(h.type==='pendulum'){const phase=h.angle;h.angle=Math.sin(phase)*h.amplitude;h.currentX=h.x+Math.sin(h.angle)*h.length;h.currentY=h.y-Math.cos(h.angle)*h.length;h.velocityX=Math.cos(h.angle)*Math.cos(phase)*h.amplitude*h.rate*h.length;h.warning=Math.abs(h.angle)<.35;}
@@ -395,7 +649,7 @@ function pose(data,time){
 function player(cp){return{x:cp.x,y:cp.y,z:cp.z,vx:0,vy:0,vz:0,grounded:false,support:-1,coyote:0,buffer:0,invulnerable:0,bounceLock:0,diveTimer:0,diveUsed:false,diveCooldown:0,tumble:0,stun:0,hitSlow:0,hits:0,speedScale:1,dead:false,airTime:0,landingAge:1,bhop:0,momentum:0,boostTime:0};}
 function launchPad(p,o){p.vy=o.bounce||14;p.bounceLock=.3;p.buffer=p.coyote=0;p.grounded=false;p.support=-1;p.bounced=true;p.jumped=false;p.diveTimer=0;}
 function impact(p,h,nx,nz){
- if(h.lethal){p.dead=true;return;}
+ if(h.lethal){p.dead=true;if(h.look==='trollBoulder')p.trapEvent='boulder';return;}
  const incoming=Math.hypot(p.vx,p.vz);if(incoming>.3){nx=nx*.65-p.vx/incoming*.85;nz=nz*.65-p.vz/incoming*.85;}
  const len=Math.max(.01,Math.hypot(nx,nz));p.hit=true;p.hits=(p.hits||0)+1;
  const force=h.type==='hammer'?16:13.5;
@@ -408,7 +662,22 @@ function contains(o,x,z,margin=R-.02){
  const c=Math.cos(o.yaw||0),s=Math.sin(o.yaw||0);return Math.abs(c*dx-s*dz)<=o.w/2+margin&&Math.abs(s*dx+c*dz)<=o.d/2+margin;
 }
 const localPlayer={},localSolid={};
+function walkTopY(o,z){return o.y+(o.grade||0)*(z-o.z);}
+function walkContains(o,x,z,margin=.02){
+ const dx=x-o.x,dz=z-o.z;
+ if(o.walkSurface!=='sector')return Math.abs(dx)<=o.w/2+margin&&Math.abs(dz)<=o.d/2+margin;
+ const rr=dx*dx+dz*dz,inner=o.inner-margin,outer=o.outer+margin;
+ if(rr<inner*inner||rr>outer*outer)return false;
+ const turn=Math.PI*2,a=((Math.atan2(dz,dx)-o.arcStart)%turn+turn)%turn,pad=margin/o.inner;
+ return a<=o.arcSpan+pad||a>=turn-pad;
+}
 function surfaceSweep(p,dx,dy,dz,o){
+ if(o.walkSurface){
+  const rel=dy-(o.grade||0)*dz;if(rel>=0)return null;
+  const t=(walkTopY(o,p.z)-p.y)/rel;
+  if(t<0||t>1||!walkContains(o,p.x+dx*t,p.z+dz*t))return null;
+  return{t,axis:1,sign:1,o};
+ }
  if(o.shape==='disc'){
   const top=o.y,bot=o.y-o.h-H;let best=null;
   if(Math.abs(dy)>1e-12){const sign=dy<0?1:-1,t=((dy<0?top:bot)-p.y)/dy;if(t>=0&&t<=1&&contains(o,p.x+dx*t,p.z+dz*t))best={t,axis:1,sign,o};}
@@ -459,6 +728,9 @@ function rotorContact(p,h){
 }
 function step(p,input,data,dt=DT){
  if(p.dead)return;
+ const ice=!!(data.cyber?.ice&&p.grounded&&data.platforms[p.support]?.cyberIce);
+ if(data.cyber&&p.grounded)p.iceAir=ice;
+ if(ice){p.momentum=p.bhop=p.boostTime=0;}
  let beltX=0,beltZ=0;
  p.coyote=Math.max(0,p.coyote-dt);p.buffer=Math.max(0,p.buffer-dt);p.invulnerable=Math.max(0,p.invulnerable-dt);p.bounceLock=Math.max(0,p.bounceLock-dt);
  p.stun=Math.max(0,(p.stun||0)-dt);p.hitSlow=Math.max(0,(p.hitSlow||0)-dt);
@@ -467,34 +739,50 @@ function step(p,input,data,dt=DT){
   else{p.x+=o.dx;p.z+=o.dz;}beltX=o.flowX||0;beltZ=o.flowZ||0;p.y+=o.dy||0;
  }else p.grounded=false;}
  const wasGrounded=p.grounded;p.landingAge=p.grounded?p.landingAge+dt:p.landingAge;p.airTime=p.grounded?0:p.airTime+dt;p.boostTime=Math.max(0,p.boostTime-dt);
- if(input.jumpHeld&&p.stun<=0)p.buffer=.14;if(p.stun>0)p.buffer=0;
+ // Troll is a deliberate platformer: one press, one jump, no landing boost.
+ // Party keeps its original hold-to-hop/combo behaviour.
+ if(input.jumpHeld&&(!data.troll||!p.jumpHeldLast)&&p.stun<=0)p.buffer=.14;
+ p.jumpHeldLast=!!input.jumpHeld;
+ if(data.troll){p.momentum=0;p.bhop=0;}
+ if(p.stun>0)p.buffer=0;
  p.diveTimer=Math.max(0,(p.diveTimer||0)-dt);p.diveCooldown=Math.max(0,(p.diveCooldown||0)-dt);p.tumble=Math.max(0,(p.tumble||0)-dt);
  if(input.dive&&p.stun<=0&&p.diveCooldown<=0&&!p.diveUsed){p.diveUsed=true;p.diveCooldown=.85;p.diveTimer=.38;p.vy=p.grounded?3:Math.min(p.vy,1.4);p.grounded=false;p.support=-1;p.vx-=Math.sin(input.yaw||0)*2.5;p.vz-=Math.cos(input.yaw||0)*2.5;p.dived=true;}
  const boost=p.diveTimer>0?1.4:1;
  const f=input.forward||(p.diveTimer>0&&!input.strafe?1:0),s=input.strafe||0,len=Math.max(1,Math.hypot(f,s)),c=Math.cos(input.yaw||0),sn=Math.sin(input.yaw||0),moving=Math.abs(f)+Math.abs(s)>.01;
  if(p.grounded&&p.landingAge>.16){p.momentum=Math.max(0,p.momentum-dt*4);if(p.momentum<.05)p.bhop=0;}
  if(!moving&&p.grounded){p.momentum=0;p.bhop=0;}
- const targetSpeed=Math.max(SPEED+p.momentum,p.boostTime>0?12:0)*boost*(p.speedScale||1)*(1-.5*p.hitSlow/2.2),tx=(s*c-f*sn)/len*targetSpeed,tz=(-f*c-s*sn)/len*targetSpeed;
+ const baseSpeed=data.troll?7:SPEED;
+ const targetSpeed=Math.max(baseSpeed+p.momentum,p.boostTime>0?12:0)*boost*(p.speedScale||1)*(1-.5*p.hitSlow/2.2),tx=(s*c-f*sn)/len*targetSpeed,tz=(-f*c-s*sn)/len*targetSpeed;
  if(p.stun<=0){
-  if(p.grounded){const dx=tx-p.vx,dz=tz-p.vz,k=Math.min(1,(moving?20:50)*dt/Math.max(.00001,Math.hypot(dx,dz)));p.vx+=dx*k;p.vz+=dz*k;}
+  if(ice){
+   // Like the runner's ice: low grip and lateral carry. W/S follow
+   // the course axis; looking around must not unexpectedly invert steering.
+   const throttle=input.forward||0,accel=throttle>.04?4.6*throttle:throttle<-.04?6.2*throttle:-.58;
+   p.vz=-Math.max(0,Math.min(data.cyber.ice.cap,-p.vz+accel*dt));
+   p.vx+=(s*5.2-p.vx)*(1-Math.exp(-(Math.abs(s)>.035?2.8:.87)*dt));
+  }else if(!p.grounded&&p.iceAir){
+   // Preserve the approach speed throughout flight. A/D only trims X.
+   p.vx+=(s*3.7-p.vx)*(1-Math.exp(-1.15*dt));
+  }else if(p.grounded){const dx=tx-p.vx,dz=tz-p.vz,k=Math.min(1,(moving?20:50)*dt/Math.max(.00001,Math.hypot(dx,dz)));p.vx+=dx*k;p.vz+=dz*k;}
   else if(moving){const forwardDot=p.vx*tx+p.vz*tz,speed=Math.max(Math.hypot(p.vx,p.vz),Math.min(targetSpeed,Math.hypot(p.vx,p.vz)+12*dt)),k=1-Math.exp(-4*dt);p.vx+=(tx-p.vx)*k;p.vz+=(tz-p.vz)*k;const v=Math.hypot(p.vx,p.vz);if(v>0&&forwardDot>0){p.vx*=speed/v;p.vz*=speed/v;}}
  }else{p.vx*=Math.exp(-.65*dt);p.vz*=Math.exp(-.65*dt);p.momentum=0;p.bhop=0;}
  // Wind is an external displacement, not an input velocity immediately erased
  // by ground braking. Integrate its drag-limited velocity separately.
- let windForce=0;for(const h of data.hazards)if(!h.consumed&&h.type==='wind'&&Math.abs(p.x-h.x)<5.5&&Math.abs(p.z-h.z)<5&&p.y>h.y-1.5&&p.y<h.y+3.3)windForce-=h.side*h.strength*h.gust;
+ let windForce=input.cyberWind||0;for(const h of data.hazards)if(!h.consumed&&h.type==='wind'&&Math.abs(p.x-h.x)<5.5&&Math.abs(p.z-h.z)<5&&p.y>h.y-1.5&&p.y<h.y+3.3)windForce-=h.side*h.strength*h.gust;
  p.windV=(p.windV||0)*Math.exp(-2.8*dt)+windForce*dt;
  // Pad contact wins over a buffered/held Space jump, including coplanar catches.
  if(p.stun<=0&&p.bounceLock<=0&&(p.grounded||p.vy<=0))for(const o of data.platforms){if(o.active&&o.type==='bounce'&&contains(o,p.x,p.z,-.08)&&p.y>=o.y-.035&&p.y<=o.y+.09){launchPad(p,o);break;}}
  if(p.stun<=0&&p.buffer>0&&(p.grounded||p.coyote>0)){
-  if(p.landingAge<=.14&&moving&&Math.hypot(p.vx,p.vz)>4){p.bhop++;p.momentum=Math.min(5,p.momentum+.65);const v=Math.hypot(p.vx,p.vz),gain=Math.min(.65,Math.max(0,SPEED+p.momentum-v));if(v){p.vx*=1+gain/v;p.vz*=1+gain/v;}}
+  if(!data.troll&&!p.iceAir&&p.landingAge<=.14&&moving&&Math.hypot(p.vx,p.vz)>4){p.bhop++;p.momentum=Math.min(5,p.momentum+.65);const v=Math.hypot(p.vx,p.vz),gain=Math.min(.65,Math.max(0,baseSpeed+p.momentum-v));if(v){p.vx*=1+gain/v;p.vz*=1+gain/v;}}
   p.vy=JUMP;p.buffer=0;p.coyote=0;p.grounded=false;p.support=-1;p.jumped=true;p.landingAge=1;
  }
+ const stayOnFloor=p.grounded;
  p.vy-=G*dt;p.grounded=false;p.support=-1;let remaining=dt;
  for(let pass=0;pass<4&&remaining>1e-7;pass++){
   const dx=(p.vx+(p.windV||0)+beltX)*remaining,dy=p.vy*remaining,dz=(p.vz+beltZ)*remaining;let hit=null;
   for(const o of data.platforms){
    const reach=o.yaw?Math.hypot(o.w,o.d)/2:0;
-   if(!o.active||o.triggerOnly||Math.abs(o.z-p.z)>Math.abs(dz)+(reach||o.d/2)+R+1||Math.abs(o.x-p.x)>Math.abs(dx)+(reach||o.w/2)+R+1)continue;
+   if(!o.active||o.triggerOnly||stayOnFloor&&o.walkSurface||Math.abs(o.z-p.z)>Math.abs(dz)+(reach||o.d/2)+R+1||Math.abs(o.x-p.x)>Math.abs(dx)+(reach||o.w/2)+R+1)continue;
    const h=(pass===0&&o.type==='lift'?movingTop(p,dx,dy,dz,o):null)||surfaceSweep(p,dx,dy,dz,o);
    if(h&&(!hit||h.t<hit.t))hit=h;
   }
@@ -511,23 +799,46 @@ function step(p,input,data,dt=DT){
   if(hit.nx!==undefined){p.x+=hit.nx*.002;p.z+=hit.nz*.002;const inward=p.vx*hit.nx+p.vz*hit.nz;if(inward<0){p.vx-=inward*hit.nx;p.vz-=inward*hit.nz;}}
   else{p[key]+=hit.sign*.002;p[v]=0;if(hit.axis===0)p.windV=0;}remaining*=1-hit.t;
   if(hit.axis===1&&hit.sign===1){
-   p.y=hit.o.y+.002;p.grounded=true;p.support=hit.o.id;p.diveUsed=false;p.diveTimer=0;
+   p.y=walkTopY(hit.o,p.z)+.002;p.grounded=true;p.support=hit.o.id;p.diveUsed=false;p.diveTimer=0;
    if(hit.o.type==='crumble'&&hit.o.touchAt===null)hit.o.touchAt=data.time;
    p.coyote=data.difficulty?.coyote??.12;
    if(hit.o.type==='bounce'&&p.bounceLock<=0)launchPad(p,hit.o);
   }
  }
+ // Explicit low-rise walk surfaces: accept only the surface directly under
+ // a previously grounded avatar. No step-up through unrelated AABB walls,
+ // no assisted landing while in the air, and no changes to other courses.
+ if(data.walkSurfaces&&stayOnFloor&&!p.dead&&p.vy<=0){
+  let floor=null,top=-Infinity;
+  for(const o of data.walkSurfaces){
+   if(!o.active)continue;
+   const y=walkTopY(o,p.z);
+   if(y>top&&y>=p.y-.24&&y<=p.y+.225&&walkContains(o,p.x,p.z,.038)){floor=o;top=y;}
+  }
+  if(floor&&(!p.grounded||top>=p.y-.007)){
+   if(!trollContact(p,floor,data,true)){
+    p.y=top+.002;p.vy=0;p.grounded=true;p.support=floor.id;p.diveUsed=false;p.diveTimer=0;p.coyote=data.difficulty?.coyote??.12;
+    if(floor.type==='crumble'&&floor.touchAt===null)floor.touchAt=data.time;
+   }
+  }
+ }
  // Preserve the 2mm skin support probe; it also keeps lift riders attached.
  if(!p.grounded&&p.vy<=0)for(const o of data.platforms){
-  if(!o.active||o.triggerOnly||o.type==='bounce'||!contains(o,p.x,p.z))continue;
-  if(data.troll&&p.y>=o.y-1e-5&&p.y<=o.y+.006&&trollContact(p,o,data,true))continue;
-  if(p.y>=o.y-1e-5&&p.y<=o.y+.006){p.y=o.y+.002;p.vy=0;p.grounded=true;p.support=o.id;p.diveUsed=false;p.diveTimer=0;if(o.type==='crumble'&&o.touchAt===null)o.touchAt=data.time;p.coyote=data.difficulty?.coyote??.12;break;}
+  if(!o.active||o.triggerOnly||o.type==='bounce'||!(o.walkSurface?walkContains(o,p.x,p.z):contains(o,p.x,p.z)))continue;
+  const y=walkTopY(o,p.z);
+  if(data.troll&&p.y>=y-1e-5&&p.y<=y+.006&&trollContact(p,o,data,true))continue;
+  if(p.y>=y-1e-5&&p.y<=y+.006){p.y=y+.002;p.vy=0;p.grounded=true;p.support=o.id;p.diveUsed=false;p.diveTimer=0;if(o.type==='crumble'&&o.touchAt===null)o.touchAt=data.time;p.coyote=data.difficulty?.coyote??.12;break;}
  }
  if(p.grounded&&p.bounceLock<=0)for(const o of data.platforms)if(o.triggerOnly&&o.type==='bounce'&&Math.abs(p.x-o.x)<o.w/2&&Math.abs(p.z-o.z)<o.d/2&&Math.abs(p.y-o.y)<.08){launchPad(p,o);break;}
  // The same 2mm resting probe on rail tops avoids grounded/bob flicker if a
  // player deliberately lands on the low barrier instead of jumping past it.
  if(!p.grounded&&p.vy<=0)for(const o of data.rails||[]){if(o.active&&data.platforms[o.owner]?.active&&contains(o,p.x,p.z)&&p.y>=o.y-1e-5&&p.y<=o.y+.006){p.y=o.y+.002;p.vy=0;p.grounded=true;p.support=o.id;p.diveUsed=false;p.coyote=data.difficulty?.coyote??.12;break;}}
  if(p.grounded&&!wasGrounded&&p.airTime>.12){p.landingAge=0;p.airTime=0;}
+ // The dry catch deck removes excess ice momentum ON landing, never in
+ // flight. Otherwise the short checkpoint can be crossed before braking.
+ if(p.iceAir&&p.grounded&&data.platforms[p.support]?.checkpoint===4){
+  p.iceAir=false;p.vx*=.38;p.vz*=.38;
+ }
  for(const h of data.hazards){
   if(h.consumed||h.type==='wind'||Math.abs(p.z-(h.currentZ??h.z))>Math.max(9,(h.length||0)/2+R)||p.invulnerable>0&&!h.lethal)continue;
   let hit=false,nx=0,nz=0;
@@ -561,10 +872,10 @@ function predictLanding(p,data,out){
   const x=p.x+(p.vx+(p.windV||0))*t,z=p.z+p.vz*t;
   if(!contains(o,x,z,-R-.05))continue;
   if(o.type==='tile'&&((data.time+t+o.phase)%o.period+o.period)%o.period>=o.activeFor)continue;
-  if(o.type==='crumble'&&o.touchAt!==null&&data.time+t-o.touchAt>=data.difficulty.crumbleDelay)continue;
+  if(o.type==='crumble'&&o.touchAt!==null&&data.time+t-o.touchAt>=(o.crumbleDelay??data.difficulty.crumbleDelay))continue;
   nearest=t;out.platform=o.id;out.x=x;out.y=o.y;out.z=z;out.time=t;
  }
  return out;
 }
-g.ElementalObbyCourse={course,round,trollCourse,trollContact,roundOrder,layouts,difficulty,pose,player,step,sweep,surfaceSweep,contains,movingTop,rotorContact,predictLanding,machineEnvelope,DT,G,JUMP,SPEED,R,H,themes,COURSE_VERSION,ROUND_COUNT};if(typeof module!=='undefined')module.exports=g.ElementalObbyCourse;
+g.ElementalObbyCourse={course,round,trollCourse,trollContact,roundOrder,layouts,difficulty,pose,player,step,sweep,surfaceSweep,contains,walkTopY,movingTop,rotorContact,predictLanding,machineEnvelope,DT,G,JUMP,SPEED,R,H,themes,COURSE_VERSION,ROUND_COUNT,TROLL_COURSE_VERSION};if(typeof module!=='undefined')module.exports=g.ElementalObbyCourse;
 })(typeof window!=='undefined'?window:globalThis);

@@ -586,6 +586,7 @@
       } else {
         this.clearInputs();
         this.deathClock = 0; this.shakeTime = 0; this.shakeDuration = DEATH_SHAKE; this.shakeIntensity = 13;
+        this.api.onDeathBiome?.([1,5,0,3,2,4][this.biome]);
         this.explodePlayer();
         this.setState('dying');
       }

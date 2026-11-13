@@ -1,0 +1,158 @@
+/* A shared, bundled title face: no runtime Google Fonts request. */
+@font-face{
+ font-family:ElementalMenu;src:url('vendor/fonts/fredoka-variable.ttf') format('truetype');
+ font-style:normal;font-weight:300 700;font-display:swap;
+}
+/* High contrast at the actual hotspot, not only a translucent trailing halo. */
+#loading-screen.boot-play-ready{
+ --menu-cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='14' fill='%23101320' stroke='%2304060c' stroke-width='7'/%3E%3Ccircle cx='20' cy='20' r='14' fill='none' stroke='%23ffffff' stroke-width='3'/%3E%3Ccircle cx='20' cy='20' r='4' fill='%23ffffff'/%3E%3C/svg%3E") 20 20,default;
+ --menu-cursor-active:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='14' fill='%23101320' stroke='%2304060c' stroke-width='7'/%3E%3Ccircle cx='20' cy='20' r='14' fill='none' stroke='%23ffe16a' stroke-width='3'/%3E%3Ccircle cx='20' cy='20' r='4' fill='%23ffe16a'/%3E%3C/svg%3E") 20 20,default;
+}
+/* One row of portrait posters. Navigation arrows do not have an outer frame. */
+/* Reopening from the hub must not leave its top-level reward/HUD above the gallery. */
+body.mode-gallery-open #hub-hud,body.mode-gallery-open #hub-first-glove,
+body.mode-gallery-open #hub-guide-pointer,body.mode-gallery-open #hub-glove-gold-fx{visibility:hidden!important}
+#boot-mode-picker{
+  width:min(100%,2200px);max-height:100dvh;overflow:visible;
+  padding:clamp(8px,2.2vh,26px) max(12px,2.2vw,env(safe-area-inset-right)) 6px max(12px,2.2vw,env(safe-area-inset-left));
+  --mode-gap:clamp(12px,1.6vw,25px);
+}
+.boot-mode-window{position:relative}
+#boot-mode-picker #boot-mode-grid{
+  display:flex;direction:ltr;align-items:stretch;gap:var(--mode-gap);box-sizing:border-box;
+  height:calc(100dvh - 92px);min-height:200px;max-height:1150px;
+  padding:12px 6px 14px;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:6px;
+  touch-action:pan-x pinch-zoom;
+}
+#boot-mode-grid::-webkit-scrollbar{display:none}
+#boot-mode-picker #boot-mode-grid>.boot-mode{
+  flex:0 0 calc((100% - var(--mode-gap)*2.3)/3.23);min-width:0;margin:0;
+  scroll-snap-align:start;scroll-snap-stop:always;border-width:clamp(5px,.7vmin,9px);
+  border-radius:11px;transform:perspective(1000px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg));
+  transform-origin:50% 58%;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,opacity .22s;
+  box-shadow:0 10px 28px #03031199,inset 0 0 0 1px #ffffffaa;
+  padding-bottom:clamp(20px,4vh,48px);
+  animation:boot-poster-reveal .56s cubic-bezier(.16,1,.3,1) var(--arrival,0s) backwards;
+}
+@keyframes boot-poster-reveal{from{opacity:0;translate:0 18px}to{opacity:1;translate:0 0}}
+#boot-mode-picker #boot-mode-grid>.boot-mode[data-mode="troll"]{box-shadow:0 0 25px #ff284669,0 10px 28px #03031199}
+#boot-mode-grid .boot-mode-photo{
+  object-position:center;transform:scale(1.018) translate3d(var(--art-x,0px),var(--art-y,0px),0);
+  transition:transform .4s cubic-bezier(.2,.7,.2,1),filter .35s;filter:saturate(.95);
+}
+#boot-mode-grid .boot-mode::after{background:linear-gradient(0deg,#050719e8,transparent 35%,#11162b04 78%,#ffffff04)}
+#boot-mode-grid .boot-mode::before{
+  content:"";z-index:2;position:absolute;inset:-30% -100%;pointer-events:none;
+  background:linear-gradient(105deg,transparent 43%,#ffffff0b 48%,#ffffff30 50%,#ffffff08 53%,transparent 58%);
+  opacity:0;transform:translateX(-38%);
+}
+@keyframes boot-shine-left{0%{opacity:0;transform:translateX(-38%)}15%,85%{opacity:1}100%{opacity:0;transform:translateX(38%)}}
+@keyframes boot-shine-right{0%{opacity:0;transform:translateX(38%)}15%,85%{opacity:1}100%{opacity:0;transform:translateX(-38%)}}
+@keyframes boot-shine-top{0%{opacity:0;transform:translateY(-38%)}15%,85%{opacity:1}100%{opacity:0;transform:translateY(38%)}}
+@keyframes boot-shine-bottom{0%{opacity:0;transform:translateY(38%)}15%,85%{opacity:1}100%{opacity:0;transform:translateY(-38%)}}
+#boot-mode-picker #boot-mode-grid .boot-mode-caption{
+ position:relative;z-index:3;display:flex;align-items:center;justify-content:center;
+ width:max-content;max-width:100%;min-width:0;direction:inherit;
+ color:#fff;transition:color .25s ease;
+}
+#boot-mode-picker #boot-mode-grid .boot-mode-name{
+  font:600 clamp(22px,2.7vw,36px)/1.12 ElementalMenu,system-ui,sans-serif;letter-spacing:.005em;
+  color:inherit;min-width:0;overflow-wrap:normal;
+  text-shadow:0 3px 3px #02030a,0 4px 20px #02030ac9;
+  transform:none;transition:color .25s ease;
+}
+#boot-mode-grid .boot-mode-play{
+ display:block;flex:0 0 auto;width:0;height:clamp(21px,2.4vw,30px);margin-inline-end:0;
+ opacity:0;fill:currentColor;transform:translateX(-8px) scale(.65);
+ transition:width .3s cubic-bezier(.2,.7,.2,1),margin-inline-end .3s,opacity .22s,transform .3s;
+ pointer-events:none;
+}
+#boot-mode-picker #boot-mode-grid .boot-mode:focus-visible .boot-mode-caption{color:#ffe16a}
+#boot-mode-grid .boot-mode:focus-visible .boot-mode-play{width:clamp(21px,2.4vw,30px);margin-inline-end:.38em;opacity:1;transform:none}
+#boot-mode-grid .boot-mode-new{font-family:ElementalMenu,system-ui,sans-serif;font-weight:650;font-size:clamp(13px,1.8vmin,22px);padding:.45em .7em}
+#boot-mode-picker #boot-mode-grid>.boot-mode:focus-visible{
+  outline:3px solid #ffdf88;outline-offset:2px;box-shadow:0 0 0 2px #101526,0 0 28px #ffdf8866;
+}
+@media(hover:hover){
+  #boot-mode-picker #boot-mode-grid>.boot-mode:not(:disabled):hover{
+    box-shadow:0 16px 36px #030311b8,0 0 20px #b3eaff38;
+    transform:perspective(1000px) translateY(-3px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg));
+  }
+  #boot-mode-picker #boot-mode-grid>.boot-mode:not(:disabled):hover .boot-mode-photo{
+    transform:scale(1.065) translate3d(var(--art-x,0px),var(--art-y,0px),0);filter:saturate(1.1);
+  }
+  #boot-mode-picker #boot-mode-grid .boot-mode:not(:disabled):hover .boot-mode-caption{color:#ffe16a}
+  #boot-mode-grid .boot-mode:not(:disabled):hover .boot-mode-play{width:clamp(21px,2.4vw,30px);margin-inline-end:.38em;opacity:1;transform:none}
+  #boot-mode-grid .boot-mode.is-shining:not(:disabled)::before{animation:boot-shine-left .85s ease-out both}
+  #boot-mode-grid .boot-mode.is-shining[data-shine-from="right"]:not(:disabled)::before{animation-name:boot-shine-right}
+  #boot-mode-grid .boot-mode.is-shining[data-shine-from="top"]:not(:disabled)::before,
+  #boot-mode-grid .boot-mode.is-shining[data-shine-from="bottom"]:not(:disabled)::before{
+    inset:-100% -30%;background:linear-gradient(15deg,transparent 43%,#ffffff0b 48%,#ffffff30 50%,#ffffff08 53%,transparent 58%);
+    animation-name:boot-shine-top;
+  }
+  #boot-mode-grid .boot-mode.is-shining[data-shine-from="bottom"]:not(:disabled)::before{animation-name:boot-shine-bottom}
+}
+.boot-gallery-nav{
+  position:absolute;z-index:4;top:12px;bottom:14px;width:clamp(38px,5vw,70px);height:auto;
+  display:flex;align-items:center;justify-content:center;padding:0!important;border:0!important;
+  border-radius:0!important;background:linear-gradient(90deg,#15182b00,#15182bc9)!important;
+  box-shadow:none!important;color:#fff!important;touch-action:manipulation;
+}
+.boot-gallery-nav::before{display:none!important;content:none!important}
+.boot-gallery-nav svg{position:relative;width:38px;height:38px;fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 3px #000);transition:translate .2s,color .2s}
+.boot-gallery-next{right:0}.boot-gallery-prev{left:0;transform:none!important;background:linear-gradient(90deg,#15182bc9,#15182b00)!important}
+.boot-gallery-prev svg{transform:none}
+.boot-gallery-next:hover svg{translate:3px 0}.boot-gallery-prev:hover svg{translate:-3px 0}
+.boot-gallery-nav:hover{color:#ffe16a!important}
+.boot-gallery-nav[hidden]{display:none!important}
+#boot-mode-picker .boot-mode-footer{min-height:46px;display:flex;justify-content:center;gap:22px}
+.boot-gallery-dots{display:flex;gap:8px;align-items:center;pointer-events:none}
+.boot-gallery-dots i{width:6px;height:6px;border-radius:50%;background:#ffffff6b;transition:width .25s,background .25s}
+.boot-gallery-dots i.is-current{width:23px;border-radius:6px;background:#fff}
+.boot-press-ripple{position:absolute;z-index:3;inset:0;pointer-events:none;border:3px solid #fff9;border-radius:4px;opacity:0}
+#loading-screen.boot-play-ready,#loading-screen.boot-play-ready *{cursor:var(--menu-cursor)!important}
+#loading-screen.boot-play-ready button:hover,#loading-screen.boot-play-ready button:hover *{cursor:var(--menu-cursor-active)!important}
+.boot-cursor-halo{
+  position:fixed;top:0;left:0;z-index:10010;width:48px;height:48px;border:2px solid #fff;border-radius:50%;
+  background:#0a10202e;box-shadow:0 0 0 2px #080c1ded,0 3px 9px #0009;pointer-events:none;opacity:0;
+  transition:opacity .18s,width .18s,height .18s,border-color .18s;margin:-29px 0 0 -29px;
+}
+.boot-cursor-halo{margin:-24px 0 0 -24px}
+.boot-cursor-halo.is-visible{opacity:.85}.boot-cursor-halo.is-over{border-color:#ffe16a;opacity:1}
+.boot-cursor-halo.is-down{width:40px;height:40px;margin:-20px 0 0 -20px}
+.boot-cursor-halo.is-red{border-color:#ffe16a}
+.boot-sticker{position:absolute;inset:var(--sy) auto auto var(--sx);width:var(--ss);color:var(--sc);opacity:.72;
+  filter:drop-shadow(0 5px 9px #06061977);animation:boot-sticker-drift var(--sd) ease-in-out infinite alternate;animation-delay:var(--so);pointer-events:none}
+.boot-sticker svg{width:100%;height:auto;overflow:visible;stroke:#fff9;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+@keyframes boot-sticker-drift{
+  from{transform:translate3d(-10px,12px,0) rotate(-13deg) scale(.93)}
+  to{transform:translate3d(21px,-30px,0) rotate(15deg) scale(1.05)}
+}
+.boot-orbit{position:absolute;left:var(--ox);top:var(--oy);width:var(--os);height:var(--os);border:1px dashed #d1ecff30;border-radius:50%;animation:boot-orbit-spin var(--ot) linear infinite}
+.boot-orbit::after{content:"";position:absolute;left:7%;top:7%;width:10px;height:10px;background:#cefcff;border-radius:50%;box-shadow:0 0 16px #88eaff}
+@keyframes boot-orbit-spin{to{transform:rotate(360deg)}}
+.boot-play-ready .boot-mode-scenery::before{animation-duration:34s}
+#loading-screen.boot-gallery-suspended .boot-mode-scenery *,#loading-screen.boot-gallery-suspended .boot-mode-scenery::before,#loading-screen.boot-gallery-suspended .boot-mode-scenery::after{animation-play-state:paused!important}
+@media(orientation:portrait){
+  #boot-mode-picker #boot-mode-grid>.boot-mode{flex-basis:78%}
+  #boot-mode-picker #boot-mode-grid{height:calc(100dvh - 94px)}
+  #boot-mode-picker #boot-mode-grid .boot-mode-name{font-size:clamp(25px,6.6vw,36px)}
+  .boot-gallery-nav{width:42px}.boot-sticker{opacity:.55}
+}
+@media(max-height:450px) and (orientation:landscape){
+  #boot-mode-picker #boot-mode-grid{height:calc(100dvh - 66px);min-height:180px;padding-top:7px;padding-bottom:7px}
+  #boot-mode-picker #boot-mode-grid>.boot-mode{padding-bottom:14px}
+  #boot-mode-picker #boot-mode-grid .boot-mode-name{font-size:clamp(18px,3.1vw,28px)}
+  .boot-gallery-nav{top:7px;bottom:7px;width:36px}
+  #boot-mode-picker .boot-mode-footer{min-height:34px}
+}
+@media(pointer:coarse){.boot-cursor-halo{display:none!important}}
+@media(prefers-reduced-motion:reduce){
+  .boot-sticker,.boot-orbit{animation:none}.boot-cursor-halo{display:none!important}
+  #boot-mode-picker #boot-mode-grid>.boot-mode,#boot-mode-grid .boot-mode-photo,#boot-mode-grid .boot-mode-name{animation:none;transition:none;transform:none!important}
+  #boot-mode-grid .boot-mode::before{display:none}
+  #boot-mode-grid .boot-mode-play,#boot-mode-grid .boot-mode-caption{transition:none}
+}
+
+/* The actual loader intentionally keeps its original styles from index.html. */

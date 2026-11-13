@@ -1,4 +1,46 @@
-# Poki teknik paket kontrolü — 1.74.1 / 3 Kasım 2026
+# Poki teknik paket kontrolü — 1.79.4 / 7 Kasım 2026
+
+- 1.79.4: Strict sliding checkerboard, protected straight jumps, smooth
+  boulder with lethal closed cabin thresholds, and staircase fade. Local only.
+
+- 1.79.3: Varied spike route, smoothed staircase presentation, WRONG WAY sign
+  and solid refuge roofs. CourseVersion 10; local only.
+
+- 1.79.2: Calmer jelly stride, larger Troll 2 maze/spiral/uphill ramp and
+  64-square sliding-spike finale. CourseVersion 9. Local only.
+
+- 1.79.1: Troll 2 walkable staircase, continuous ramp and predictive spikes.
+  CourseVersion 8; no live upload.
+
+- 1.79.0: Six-stage Troll 2 Snow course, CourseVersion 7. No new asset files
+  or physics dependency. Local ZIP only; no live upload.
+
+- 1.78.1: Softer grounded jelly flex/rebound and irregular pooled slime prints;
+  no game physics or progress change. Local ZIP only; no live upload.
+
+- 1.78.0: Shared mint jelly avatar, animations and bounded ground trails in
+  Lobby / games hall / Troll only. Physics, CourseVersion 6 and records unchanged.
+  Local package only; no live upload.
+
+- 1.77.1: Troll 1 flush glow checkerboard, corrected finale and 99% transparent
+  false/solid platforms. No live upload.
+
+- 1.77.0: Five-stage Troll 1 (CourseVersion 5), mixed Nature trees, physics and
+  browser tests. Local package only; no live upload.
+
+- 1.76.1: Centred pine tips,6angular single-crown species profiles, lower triangle
+  count; current Nature cache/vertex colours preserved. No external asset import.
+
+- 1.76.0: Authored Troll CourseVersion4 /88safe physics links / hiddenKill maze /
+  lower shelf and aligned left finish. Cyber ground cubes removed; nearer textured
+  skyline. Party playfield unchanged. Local desktop/mobile QA, same ZIP; no upload.
+
+- 1.75.1: Classic8Nature species restored, one continuous faceted crown per
+  broadleaf; no intersecting leaf balls. Preserved baked vertex colours; same
+  instancing/cache. Study opt-in only. Same ZIP, no live publication.
+
+- 1.75.0: User-reference sparse Nature tree test,8variants/5–7clusters/two cached
+  parts; classic opt-out. No live publication, shared modes use same source tree.
 
 - 1.74.1: Shared Troll/Party finish horizon +400m ground/+240m decor; playable
   finish unchanged. Actual levels reference included. CPU/browser horizon checks.

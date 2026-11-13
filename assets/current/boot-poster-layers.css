@@ -1,0 +1,58 @@
+/* All four plates have identical canvas framing and object-fit geometry. */
+.boot-layer-scene{
+ position:absolute;inset:0;opacity:0;overflow:hidden;pointer-events:none;
+ transform:scale(1.018) translate3d(var(--art-x,0px),var(--art-y,0px),0);
+ transition:opacity .18s ease,transform .4s cubic-bezier(.2,.7,.2,1);
+}
+#boot-mode-grid .has-poster-layers>.boot-mode-photo{opacity:0}
+.has-poster-layers>.boot-layer-scene{opacity:1}
+.boot-art-layer,.boot-art-effects{position:absolute;inset:0;pointer-events:none}
+.boot-art-layer img{display:block;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none;user-select:none}
+.boot-art-base{z-index:0}
+.boot-art-b{z-index:1;animation:boot-object-drift-b 3.7s ease-in-out infinite paused}
+.boot-art-a{z-index:2;animation:boot-object-drift-a 3.1s ease-in-out infinite paused}
+.boot-art-hero{z-index:3;transform-origin:50% 44%;animation:boot-hero-breathe 2.6s ease-in-out infinite paused}
+.boot-art-effects{z-index:4;opacity:0;transition:opacity .3s}
+.is-poster-live .boot-art-layer{animation-play-state:running}
+.is-poster-live .boot-art-effects{opacity:1}
+.boot-art-light{
+ position:absolute;left:var(--lx);top:var(--ly);width:25%;aspect-ratio:1;translate:-50% -50%;
+ border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--lc) 52%,transparent),transparent 68%);
+ mix-blend-mode:screen;animation:boot-art-glow 2.4s ease-in-out var(--ld) infinite paused;
+ opacity:.15;
+}
+.boot-art-twinkle{
+ position:absolute;left:var(--lx);top:var(--ly);width:clamp(7px,1.1vw,15px);aspect-ratio:1;
+ background:var(--lc);clip-path:polygon(50% 0,61% 38%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 38%);
+ animation:boot-art-twinkle 2.5s ease-in-out var(--ld) infinite paused;
+ opacity:0;
+}
+.is-poster-live .boot-art-light,.is-poster-live .boot-art-twinkle{animation-play-state:running}
+@keyframes boot-hero-breathe{
+ 0%,100%{transform:translate3d(0,0,0) rotate(-.35deg) scale(1);filter:brightness(1)}
+ 50%{transform:translate3d(1px,-5px,0) rotate(.5deg) scale(1.016);filter:brightness(1.065)}
+}
+@keyframes boot-object-drift-a{
+ 0%,100%{transform:translate3d(0,0,0) rotate(0deg)}
+ 50%{transform:translate3d(3px,-2px,0) rotate(.7deg)}
+}
+@keyframes boot-object-drift-b{
+ 0%,100%{transform:translate3d(0,0,0) rotate(0deg)}
+ 50%{transform:translate3d(-2px,3px,0) rotate(-.55deg)}
+}
+@keyframes boot-art-glow{0%,100%{opacity:.15;scale:.84}50%{opacity:.5;scale:1.12}}
+@keyframes boot-art-twinkle{0%,25%,100%{opacity:0;transform:scale(.35) rotate(0deg)}48%,58%{opacity:.86;transform:scale(1) rotate(45deg)}}
+.boot-mode[data-mode="obby"] .boot-art-a{transform-origin:86% 46%}
+.boot-mode[data-mode="obby"] .boot-art-b{transform-origin:12% 46%}
+.boot-mode[data-mode="flappy"] .boot-art-hero{animation-duration:2s}
+.boot-mode[data-mode="flappy"] .boot-art-a,.boot-mode[data-mode="flappy"] .boot-art-b{animation-duration:4.2s}
+@media(hover:hover){
+ #boot-mode-picker #boot-mode-grid>.has-poster-layers:not(:disabled):hover>.boot-layer-scene{
+  transform:scale(1.065) translate3d(var(--art-x,0px),var(--art-y,0px),0);
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .boot-layer-scene{transition:none;transform:none!important}
+ .boot-art-layer,.boot-art-light,.boot-art-twinkle{animation:none!important;transform:none!important}
+ .boot-art-effects{display:none}
+}

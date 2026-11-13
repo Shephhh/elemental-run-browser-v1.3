@@ -186,6 +186,8 @@
       this.floorMaterial = floor;
       this.buildSurfaceDetails();
       const trim = this.material('#d1b987', { metalness: .3 });
+      this.plazaTrimMaterial=trim;
+      this.plazaLampMaterial=this.material('#f6d395',{emissive:'#f6d395',emissiveIntensity:.72});
       this.box(70, 1.2, 64, dark, 0, -.65, -2);
       this.floorSurface = this.box(68, .14, 62, floor, 0, -.04, -2);
       this.buildCarpet();
@@ -194,13 +196,13 @@
         this.box(.47, .08, 62, trim, side * 34, .69, -2);
         for (const z of [-28, -14, 0, 14, 25]) {
           this.box(.65, 4.5, .65, dark, side * 33, 2.2, z);
-          this.mesh(new T.SphereGeometry(.4, 12, 8), this.material('#f6d395', { emissive: '#f6d395', emissiveIntensity: 1 }), side * 33, 4.5, z);
+          this.mesh(new T.SphereGeometry(.4, 12, 8), this.plazaLampMaterial, side * 33, 4.5, z);
         }
       }
       this.box(68, .7, .45, dark, 0, .3, 29, true);
       this.box(68, 2, .45, dark, 0, 1, -33, true);
       this.buildEnclosure();
-      this.themeLabel = this.text('', 15, 0, 11.1, -31.84, '#edf5ee', 48);
+      this.themeLabel = this.text('', 15, 0, this.plazaWallHeight+.95, -31.84, '#edf5ee', 48);
       // Reuse the runner's actual celestial meshes and point field. Shared
       // geometries remain cached; only their light, straight-lobby materials
       // are cloned so map updates cannot mutate the lobby.
@@ -222,9 +224,12 @@
         this.scene.add(this.starField);
       }
       this.avatar = new T.Group(); this.scene.add(this.avatar);
-      // Restore the classic lobby cube; the race avatar belongs to its own mode.
-      this.body = this.mesh(window.ElementalCubeAvatar.rounded(T,1.7,2,1.7,.17,8),this.material('#73d2bd',{metalness:.15,roughness:.5}),0,0,0,this.avatar);
+      const jelly=window.ElementalCubeAvatar;
+      this.body = this.mesh(jelly.rounded(T,1.7,2,1.7,.34,8),this.track(jelly.jellyMaterial(T)),0,0,0,this.avatar);
+      this.body.renderOrder=4;
       this.avatarMotion={phase:0,move:0,landing:0,wasGrounded:true,vy:0};
+      this.jellyTrail=jelly.createJellyTrail(T,r=>this.track(r),this.scene,this.mobile);
+      this.jellySurface=(x,z)=>this.jellyFloorAt(x,z,true);
       // User-supplied PBR cosmetic, loaded once behind the initial loading UI.
       this.avatarHat = new T.Group(); this.avatarHat.position.y = 1.04; this.body.add(this.avatarHat);
       this.avatarHat.visible=!!this.api.hatOwned?.();
@@ -287,77 +292,12 @@
       this.buildAdStand(dark, 'missions', -16, 22, this.api.tr('hubMissions'), () => this.api.openPanel('missions'));
       this.buildAdStand(dark, 'ad-score', 9, 22, '2× SCORE', () => this.api.rewardScore());
       this.buildAdStand(dark, 'ad-speed', 16, 22, '2× SPEED', () => this.api.rewardSpeed());
-      this.buildPlazaDetails(trim, dark);
       this.buildGuidance();
       this.buildWayfinding();
       this.buildCourtyardFurnishings(dark,trim);
       this.batchStaticArchitecture();
-      this.buildPlayfulDecor();
+      this.plazaArt=window.ElementalConcourseArt.buildPlaza(this);
       this.monitorDirty = true;
-    }
-
-    buildPlayfulDecor() {
-      // Shared geometry + instancing: four draw calls, no new lights, GLBs or
-      // per-frame garbage. Friendly elemental companions stay above the paths.
-      const T = this.T, count = this.mobile ? 8 : 12;
-      this.companionCount = count;
-      this.companionDummy = new T.Object3D();
-      this.companionBodies = new T.InstancedMesh(this.track(new T.IcosahedronGeometry(.74, 1)),
-        this.material('#ffffff', { roughness: .62, metalness: .04 }), count);
-      this.companionEyes = new T.InstancedMesh(this.track(new T.SphereGeometry(.085, 6, 4)),
-        this.track(new T.MeshBasicMaterial({ color: '#152333' })), count * 2);
-      this.companionWings = new T.InstancedMesh(this.track(new T.OctahedronGeometry(.3, 0)),
-        this.material('#fff1c6', { roughness: .85 }), count * 2);
-      this.companionPositions = [];
-      const colors = ['#ffbc58', '#67dfc9', '#c6a2ff', '#7acbff', '#ff96b3', '#d5ed80'];
-      for (let i = 0; i < count; i++) {
-        this.companionPositions.push(i < 4
-          ? { x: [-22, -15, 15, 22][i], z: -27, y: 7.3 + i % 2 * .35, facing: 0 }
-          : { x: i % 2 ? 26 : -26, z: -10 + Math.floor((i - 4) / 2) * 9, y: 7.4 + (i % 3) * .6, facing: i % 2 ? -Math.PI / 2 : Math.PI / 2 });
-        this.companionBodies.setColorAt(i, new T.Color(colors[i % colors.length]));
-      }
-      for (const mesh of [this.companionBodies, this.companionEyes, this.companionWings]) {
-        mesh.instanceMatrix.setUsage(T.DynamicDrawUsage); mesh.frustumCulled = false;
-        mesh.name = 'lobby-elemental-companions'; this.scene.add(mesh);
-      }
-      const flagGeometry = this.track(new T.BufferGeometry());
-      flagGeometry.setAttribute('position', new T.Float32BufferAttribute([-.42, .35, 0, .42, .35, 0, 0, -.5, 0], 3));
-      this.festivalFlags = new T.InstancedMesh(flagGeometry,
-        this.track(new T.MeshBasicMaterial({ color: '#ffffff', side: T.DoubleSide, toneMapped: false })), 24);
-      this.festivalFlags.frustumCulled = false;
-      for (let i = 0; i < 24; i++) {
-        this.companionDummy.position.set(-23 + i * 2, 10 - Math.sin(i / 23 * Math.PI) * 1.1, -28);
-        this.companionDummy.rotation.set(0, 0, Math.cos(i / 23 * Math.PI) * -.13);
-        this.companionDummy.scale.setScalar(1); this.companionDummy.updateMatrix();
-        this.festivalFlags.setMatrixAt(i, this.companionDummy.matrix);
-        this.festivalFlags.setColorAt(i, new T.Color(colors[i % colors.length]));
-      }
-      this.scene.add(this.festivalFlags);
-      this.updatePlayfulDecor();
-    }
-
-    updatePlayfulDecor() {
-      const d = this.companionDummy;
-      if (!d) return;
-      for (let i = 0; i < this.companionCount; i++) {
-        const p = this.companionPositions[i], t = this.time * 1.25 + i * 1.7;
-        const x = p.x + Math.sin(t * .6) * .35, y = p.y + Math.sin(t) * .42;
-        const facing = p.facing;
-        d.position.set(x, y, p.z); d.rotation.set(0, facing, Math.sin(t) * .1); d.scale.set(1, 1 + Math.sin(t * 2) * .025, 1);
-        d.updateMatrix(); this.companionBodies.setMatrixAt(i, d.matrix);
-        for (let j = 0; j < 2; j++) {
-          const side = j ? 1 : -1, blink = Math.sin(t * .41) > .995 ? .14 : 1;
-          d.position.set(x + Math.sin(facing) * .68 + Math.cos(facing) * side * .2, y + .1, p.z + Math.cos(facing) * .68 - Math.sin(facing) * side * .2);
-          d.rotation.set(0, facing, 0); d.scale.set(1, blink * 1.45, .65); d.updateMatrix();
-          this.companionEyes.setMatrixAt(i * 2 + j, d.matrix);
-          d.position.set(x + Math.cos(facing) * side * .86, y + Math.sin(t * 3.2) * .11, p.z - Math.sin(facing) * side * .86);
-          d.rotation.set(0, facing, side * (.3 + Math.sin(t * 3.2) * .35)); d.scale.set(.55, 1.3, .6); d.updateMatrix();
-          this.companionWings.setMatrixAt(i * 2 + j, d.matrix);
-        }
-      }
-      this.companionBodies.instanceMatrix.needsUpdate = true;
-      this.companionEyes.instanceMatrix.needsUpdate = true;
-      this.companionWings.instanceMatrix.needsUpdate = true;
     }
 
     async prepareForEntry() {
@@ -418,6 +358,16 @@
         const ratio = Math.min(window.devicePixelRatio || 1, this.mobile ? 1 : 1.25);
         if (r.getPixelRatio() !== ratio) r.setPixelRatio(ratio);
         this.camera.aspect = r.domElement.clientWidth / Math.max(1, r.domElement.clientHeight); this.camera.updateProjectionMatrix();
+        if(this.inConcourse&&this.concourse?.prepared){
+          // Hall geometry/textures stay resident when a mode releases the hub
+          // composer. Do not compile the hidden plaza/hand catalogue on return.
+          const target=r.getRenderTarget(),auto=r.autoClear,pose=this.returnPose;
+          if(pose?.hall){this.avatar.position.set(pose.x,this.avatarHalfHeight,pose.z);this.yaw=pose.yaw;this.pitch=pose.pitch;this.hallCameraProbe=null;this.updateCamera(1,true);}
+          try{r.autoClear=true;this.ensureLobbyRenderer();window.ElementalConcourseArt.draw(this,()=>this.composer.render(0));await yieldBatch();window.ElementalConcourseArt.draw(this,()=>this.composer.render(0));}
+          finally{r.autoClear=auto;r.setRenderTarget(target);}
+          await window.ElementalModeConcourse.drainGpu(this);
+          this.entryPrepared=true;this.entryPreparationMs=Math.round(performance.now()-started);return;
+        }
         const textures = new Set();
         this.scene.traverse(node => {
           for (const material of (Array.isArray(node.material) ? node.material : [node.material])) {
@@ -460,42 +410,84 @@
 
     courtyardTexture(phase) {
       if(this.courtyardMaps.has(phase))return this.courtyardMaps.get(phase);
-      const T=this.T,size=512,count=size*size;
+      const T=this.T,size=this.mobile?256:512,count=size*size;
       const color=new Uint8Array(count*4),normal=new Uint8Array(count*4),roughness=new Uint8Array(count*4),height=new Float32Array(count);
+      const glow=phase===0||phase===3?new Uint8Array(count*4):null;
       // Periodic value noise: every octave and its finite-difference normals wrap.
       // Each tile covers ~5 metres, rather than stretching 512px over the courtyard.
       const hash=(x,y)=>{let n=Math.imul(x+139,374761393)^Math.imul(y+phase*31,668265263);n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295;};
-      const noise=(u,v,cells)=>{const x=u*cells,y=v*cells,ix=Math.floor(x),iy=Math.floor(y),x0=ix%cells,y0=iy%cells,x1=(ix+1)%cells,y1=(iy+1)%cells;let a=x-ix,b=y-iy;a=a*a*(3-2*a);b=b*b*(3-2*b);return (hash(x0,y0)*(1-a)+hash(x1,y0)*a)*(1-b)+(hash(x0,y1)*(1-a)+hash(x1,y1)*a)*b;};
-      const palettes=[[[8,12,27],[26,39,64]],[[75,83,67],[114,124,93]],[[174,179,188],[221,225,224]],[[47,44,45],[81,69,63]],[[55,86,95],[102,137,139]],[[174,192,203],[230,239,241]]];
-      const [low,high]=palettes[phase],warm=[180,58,12];
+      const noise=(u,v,cells,rows=cells)=>{const x=u*cells,y=v*rows,ix=Math.floor(x),iy=Math.floor(y),x0=ix%cells,y0=iy%rows,x1=(ix+1)%cells,y1=(iy+1)%rows;let a=x-ix,b=y-iy;a=a*a*(3-2*a);b=b*b*(3-2*b);return (hash(x0,y0)*(1-a)+hash(x1,y0)*a)*(1-b)+(hash(x0,y1)*(1-a)+hash(x1,y1)*a)*b;};
+      const palettes=[[[20,29,43],[68,87,109]],[[52,78,38],[130,153,72]],[[183,178,162],[245,240,219]],[[32,27,32],[91,72,68]],[[30,76,83],[99,161,151]],[[148,177,196],[234,247,251]]];
+      const mortar=[[11,19,30],null,[166,132,78],[40,23,27],[24,66,77],[196,220,232]][phase];
+      const [low,high]=palettes[phase],fract=x=>x-Math.floor(x);
+      const cyan=[38,213,233],purple=[194,88,232],ember=[247,82,23];
+      const cols=[3,0,2,0,4,3][phase],rows=[4,0,2,0,4,2][phase],baseRoughness=[.61,.83,.7,.85,.78,.88][phase];
+      const smoother=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
+      const edge=x=>{const f=fract(x);return Math.min(f,1-f);};
       for(let y=0;y<size;y++)for(let x=0;x<size;x++){
         const i=y*size+x,u=x/size,v=y/size;
         const coarse=noise(u,v,8),fine=noise(u,v,32),grit=hash(x,y);
-        const sx=u*7,sy=v*7,cx=Math.floor(sx),cy=Math.floor(sy);let nearest=100,second=100,stoneShade=0;
-        for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
-          const gx=cx+ox,gy=cy+oy,wx=(gx+7)%7,wy=(gy+7)%7;
-          const dx=gx+.18+hash(wx,wy)*.64-sx,dy=gy+.18+hash(wx+67,wy+31)*.64-sy,d=dx*dx+dy*dy;
-          if(d<nearest){second=nearest;nearest=d;stoneShade=hash(wx+83,wy+91);}else if(d<second)second=d;
+        const k=i*4;
+        if(phase===1){
+          // Baked, periodic turf. No extra floor layer or meshes under feet.
+          const clump=noise(u,v,24),bladeU=fract(u+v+fine*.007),bladeV=fract(v+fine*.006);
+          const blades=noise(bladeU,bladeV,104,43)*.57+noise(fract(v+u),u,73,44)*.43;
+          const tips=smoother((blades-.49)*2.6);
+          const tone=.17+coarse*.26+clump*.27+tips*.24+grit*.06;
+          height[i]=clump*.068+tips*.135+grit*.023;
+          for(let c=0;c<3;c++)color[k+c]=low[c]+(high[c]-low[c])*tone;
+          color[k+3]=roughness[k+3]=255;
+          roughness[k]=roughness[k+1]=roughness[k+2]=236+clump*16;
+          continue;
         }
-        const border=Math.sqrt(second)-Math.sqrt(nearest),seam=Math.max(0,1-border/.045),lip=Math.min(1,border/.095);
-        const wave=Math.sin(u*Math.PI*8+Math.sin(v*Math.PI*4)*1.4+coarse*2.5);
-        const vein=Math.pow(Math.max(0,1-Math.abs(wave)),14);
-        let tone=coarse*.57+fine*.25+grit*.18,h=coarse*.35+fine*.22+grit*.09;
-        if(phase===2){tone=.68+tone*.22-vein*.19;h=vein*.08+fine*.06;}
-        if(phase===4){tone=tone*.78+vein*.22;h=wave*.1+fine*.08;}
-        if(phase===5){tone=.45+tone*.52;h=coarse*.18+fine*.16+grit*.09;}
-        if(phase===0){tone=.3+fine*.25+grit*.13;h=fine*.06+grit*.025;}
-        if(phase>0&&phase!==5){tone=tone*.6+stoneShade*.24+lip*.13;h=h*.35+lip*.16;}
-        height[i]=h;
+        let border,stone,engraving=0,emission=0,tint=null;
+        if(phase===3){
+          const cells=4,sx=u*cells,sy=v*cells,cx=Math.floor(sx),cy=Math.floor(sy),jitter=.43;
+          let nearest=100,second=100;
+          for(let oy=-1;oy<=1;oy++)for(let ox=-1;ox<=1;ox++){
+            const gx=cx+ox,gy=cy+oy,wx=(gx+cells)%cells,wy=(gy+cells)%cells;
+            const dx=gx+.5+(hash(wx,wy)-.5)*jitter-sx,dy=gy+.5+(hash(wx+67,wy+31)-.5)*jitter-sy,d=dx*dx+dy*dy;
+            if(d<nearest){second=nearest;nearest=d;stone=hash(wx+83,wy+91);}else if(d<second)second=d;
+          }
+          border=Math.sqrt(second)-Math.sqrt(nearest);
+          emission=(1-smoother(border/.036))*smoother((coarse-.29)*3.6)*.72;
+          tint=ember;
+        }else{
+          // Integer repeats and even row counts close the stagger across both UV edges.
+          const vy=v*rows,row=Math.floor(vy),ux=u*cols+(phase===0?0:(row%2)*.5),col=Math.floor(ux);
+          const ax=edge(ux),ay=edge(vy),px=fract(ux),py=fract(vy);
+          border=Math.min(ax,ay);
+          stone=hash(col%cols,row);
+          if(phase===0){
+            const trace=.18+(py<.2?0:Math.min(.14,(py-.2)*.52,(.8-py)*.52));
+            const line=(1-smoother((Math.abs(px-trace)-.003)*88))*smoother((py-.12)*35)*smoother((.88-py)*35);
+            const fastener=(1-smoother((Math.hypot(ax-.09,ay-.10)-.012)*100))*.55;
+            engraving=fastener;
+            emission=line*(col===1?.72:.45);
+            tint=(col+row)%3===1?purple:cyan;
+          }else if(phase===2||phase===4){
+            const wave=Math.sin((phase===2?px*2:px*3)*Math.PI+stone*.65);
+            const mask=smoother((ax-.12)*7)*smoother((ay-.1)*10);
+            const ribbon=edge((py+wave*(phase===2?.11:.19))*(phase===2?3:4));
+            engraving=(1-smoother((ribbon-.013)*15))*mask*(phase===2?.38:.82);
+          }else{
+            // Snow drifts soften the edge of the pressed, matte ice stones.
+            border+=coarse*.105;
+            engraving=smoother((fine-.58)*2.1)*.25;
+          }
+        }
+        const grout=1-smoother(border/(phase===5?.09:.045));
+        const lip=smoother(border/.09);
+        const tone=(phase===5?.28:phase===2?.23:.05)+stone*.32+coarse*.18+fine*.13+grit*.06+lip*.13;
+        height[i]=lip*.22+fine*(phase===3?.095:.047)+grit*.018-engraving*.047;
         for(let c=0;c<3;c++){
-          let value=low[c]+(high[c]-low[c])*tone;
-          if(phase===3)value=value*(1-seam*.75)+seam*warm[c];
-          else if(phase>0&&phase!==5)value*=1-seam*(phase===1?.48:.3);
-          if(phase===2)value-=vein*12;
-          color[i*4+c]=value;
+          const value=low[c]+(high[c]-low[c])*tone-engraving*(phase===4?24:16);
+          color[i*4+c]=Math.max(0,Math.min(255,(value*(1-grout)+mortar[c]*grout)*(1-emission*.54)+(tint?.[c]||0)*emission*.54));
+          if(glow)glow[i*4+c]=tint[c]*emission;
         }
         color[i*4+3]=255;
-        const r=Math.round((phase===0?.7:phase===2?.65:phase===4?.78:.89)*255+fine*17);
+        if(glow)glow[i*4+3]=255;
+        const r=Math.round((baseRoughness+fine*.07)*255);
         roughness[i*4]=roughness[i*4+1]=roughness[i*4+2]=r;roughness[i*4+3]=255;
       }
       for(let y=0;y<size;y++)for(let x=0;x<size;x++){
@@ -504,23 +496,7 @@
         normal[i*4]=(-dx/len*.5+.5)*255;normal[i*4+1]=(-dy/len*.5+.5)*255;normal[i*4+2]=(1/len*.5+.5)*255;normal[i*4+3]=255;
       }
       const texture=(pixels,srgb)=>{const t=this.track(new T.DataTexture(pixels,size,size,T.RGBAFormat));t.colorSpace=srgb?T.SRGBColorSpace:T.NoColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(13.6,12.4);t.magFilter=T.LinearFilter;t.minFilter=T.LinearMipmapLinearFilter;t.generateMipmaps=true;t.anisotropy=Math.min(8,this.api.renderer().capabilities.getMaxAnisotropy());t.needsUpdate=true;return t;};
-      let glow=null;
-      if(phase===0){
-        const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
-        const ctx=canvas.getContext('2d');ctx.putImageData(new ImageData(new Uint8ClampedArray(color),size,size),0,0);
-        const emission=document.createElement('canvas');emission.width=emission.height=size;
-        const e=emission.getContext('2d');e.fillStyle='#000';e.fillRect(0,0,size,size);
-        // Seamless neon grid, matching the Cyber track. Baked once, no line meshes.
-        for(const target of [ctx,e])for(let i=0;i<=512;i+=64){
-          target.strokeStyle=i%128?'#08455f':'#00b9da';target.lineWidth=i%128?1:2;
-          target.beginPath();target.moveTo(i,0);target.lineTo(i,512);target.stroke();
-          target.strokeStyle=i%128?'#482057':'#b723b3';
-          target.beginPath();target.moveTo(0,i);target.lineTo(512,i);target.stroke();
-        }
-        color.set(ctx.getImageData(0,0,size,size).data);
-        glow=this.track(new T.CanvasTexture(emission));glow.colorSpace=T.SRGBColorSpace;glow.wrapS=glow.wrapT=T.RepeatWrapping;glow.repeat.set(13.6,12.4);
-      }
-      const maps={map:texture(color,true),normalMap:texture(normal,false),roughnessMap:texture(roughness,false),emissiveMap:glow};
+      const maps={map:texture(color,true),normalMap:texture(normal,false),roughnessMap:texture(roughness,false),emissiveMap:glow?texture(glow,true):null};
       this.courtyardMaps.set(phase,maps);return maps;
     }
 
@@ -559,20 +535,13 @@
         for(const end of [-1,1])this.bevelBox(1.5,.65,.55,dark,30,.33,z+end*2.1);
         this.solids.push({x:30,z,hx:1,hz:2.9});
       }
-      this.planterLeaves=[];
-      const leafMat=this.material('#5d967b',{roughness:.82}),potMat=this.material('#536b78',{roughness:.65,metalness:.16});
+      const potMat=this.plazaPlanterMaterial=this.material('#536b78',{roughness:.65,metalness:.16});
       for(const x of [-30,30])for(const z of [-28,25]){
         this.contactShadow(x,z,5.3,5.3);
         this.mesh(new T.CylinderGeometry(1.3,1.05,1.1,8),potMat,x,.55,z);
         this.mesh(new T.CylinderGeometry(1.21,1.21,.05,12),dark,x,1.13,z);
-        const foliage=new T.Group();foliage.position.set(x,1.1,z);this.scene.add(foliage);
-        for(let i=0;i<5;i++){
-          const leaf=this.mesh(new T.SphereGeometry(1,6,4),leafMat,Math.sin(i*2.4)*.6,.6+(i%2)*.45,Math.cos(i*2.4)*.6,foliage);
-          leaf.scale.set(.45,1.2,.23);leaf.rotation.set(.3*Math.cos(i),i*2.4,.3*Math.sin(i));
-        }
-        this.planterLeaves.push(foliage);this.solids.push({x,z,hx:1.35,hz:1.35});
+        this.solids.push({x,z,hx:1.35,hz:1.35});
       }
-      this.foliageMaterial=leafMat;
       // Keep the central approach to the single Games portal unobstructed.
       const statsGroup=new T.Group();statsGroup.position.set(24,0,-13);statsGroup.rotation.y=-Math.atan2(24,13);this.scene.add(statsGroup);
       const statsBefore=new Set(this.scene.children);
@@ -604,7 +573,7 @@
       });
       let removed=0;
       for(const [material,nodes] of buckets){
-        if(nodes.length<3)continue;
+        if(nodes.length<(root===this.scene?3:2))continue;
         const geometries=nodes.map(n=>{const g=n.geometry.index?n.geometry.toNonIndexed():n.geometry.clone();g.applyMatrix4(n.matrixWorld);return g;});
         const count=geometries.reduce((sum,g)=>sum+g.attributes.position.count,0),merged=new this.T.BufferGeometry();
         for(const [name,size] of [['position',3],['normal',3],['uv',2]]){
@@ -612,7 +581,7 @@
           for(const g of geometries){data.set(g.attributes[name].array,offset);offset+=g.attributes[name].array.length;}
           merged.setAttribute(name,new this.T.BufferAttribute(data,size));
         }
-        merged.computeBoundingSphere();const mesh=new this.T.Mesh(this.track(merged),material);mesh.name='batched-lobby-architecture';root.add(mesh);
+        merged.computeBoundingSphere();const mesh=new this.T.Mesh(this.track(merged),material);mesh.name='batched-lobby-architecture';mesh.castShadow=nodes.some(n=>n.castShadow);mesh.receiveShadow=nodes.some(n=>n.receiveShadow);root.add(mesh);
         for(const node of nodes)node.removeFromParent();for(const g of geometries)g.dispose();removed+=nodes.length-1;
       }
       this.staticDrawCallsSaved=(this.staticDrawCallsSaved||0)+removed;
@@ -620,6 +589,7 @@
 
     buildEnclosure() {
       const T = this.T;
+      const height=this.plazaWallHeight=8.6;
       this.wallTextureCache = new Map();
       this.wallMaterial = this.material('#ffffff', { roughness: .94 });
       this.wallFrameMaterial = this.material('#314b60');
@@ -636,21 +606,21 @@
       const instances = [], accents = [];
       for (const side of this.wallSides) {
         const group = new T.Group(); group.position.set(side.x, 0, side.z); group.rotation.y = side.yaw; this.enclosure.add(group);
-        this.box(side.width, 13.4, .9, this.wallMaterial, 0, 6.7, 0, false, group);
-        for (const y of [.55, 9.5, 13.35]) this.box(side.width, .32, 1.06, this.wallFrameMaterial, 0, y, 0, false, group);
-        this.box(side.width, .085, .09, this.wallAccentMaterial, 0, 9.72, .56, false, group);
+        this.box(side.width, height, .9, this.wallMaterial, 0, height/2, 0, false, group);
+        for (const y of [.55, height*.69, height-.05]) this.box(side.width, .32, 1.06, this.wallFrameMaterial, 0, y, 0, false, group);
+        this.box(side.width, .085, .09, this.wallAccentMaterial, 0, height*.69+.22, .56, false, group);
         const count = Math.round(side.width / 8);
         for (let i = 0; i <= count; i++) {
           const x = -side.width / 2 + i * side.width / count;
           const transform = (y, z) => new T.Vector3(x, y, z).applyAxisAngle(new T.Vector3(0,1,0), side.yaw).add(group.position);
-          instances.push({ p: transform(6.7, .53), yaw: side.yaw });
-          accents.push({ p: transform(7.8, 1.02), yaw: side.yaw });
+          instances.push({ p: transform(height/2, .53), yaw: side.yaw });
+          accents.push({ p: transform(height*.55, 1.02), yaw: side.yaw });
         }
       }
       // One draw call for all buttresses, one for all inset lamps.
       for (const [list, geometry, material] of [
-        [instances, new T.BoxGeometry(.65,13.4,.85), this.wallFrameMaterial],
-        [accents, new T.BoxGeometry(.22,1.9,.12), this.wallAccentMaterial]
+        [instances, new T.BoxGeometry(.65,height,.85), this.wallFrameMaterial],
+        [accents, new T.BoxGeometry(.22,1.48,.12), this.wallAccentMaterial]
       ]) {
         const batch = new T.InstancedMesh(this.track(geometry), material, list.length), dummy = new T.Object3D();
         list.forEach((item,i) => { dummy.position.copy(item.p); dummy.rotation.y=item.yaw; dummy.updateMatrix(); batch.setMatrixAt(i,dummy.matrix); });
@@ -670,7 +640,7 @@
         const batch=new T.InstancedMesh(geometry,this.wallAccentMaterial,8);
         let index=0;
         for(const side of this.wallSides) for(const x of [-22,22]) {
-          dummy.position.set(x,11.55,.68).applyAxisAngle(new T.Vector3(0,1,0),side.yaw);
+          dummy.position.set(x,height-.94,.68).applyAxisAngle(new T.Vector3(0,1,0),side.yaw);
           dummy.position.x+=side.x; dummy.position.z+=side.z;
           dummy.rotation.set(0,side.yaw,phase===0?Math.PI/4:0); dummy.updateMatrix(); batch.setMatrixAt(index++,dummy.matrix);
         }
@@ -687,35 +657,30 @@
       const [base,edge,accent]=palettes[phase];
       ctx.fillStyle=base; ctx.fillRect(0,0,512,512);
       let seed=phase+39; const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
-      for(let row=0;row<8;row++) for(let col=-1;col<5;col++) {
-        const x=col*128+(row%2)*64, y=row*64;
-        ctx.fillStyle=edge; ctx.globalAlpha=.22+random()*.2; ctx.fillRect(x+2,y+2,124,60);
-        ctx.globalAlpha=.45; ctx.fillStyle='#101921';ctx.fillRect(x,y,128,2);
-        ctx.globalAlpha=.18;ctx.fillStyle='#ffffff';ctx.fillRect(x+3,y+3,120,1);
+      const [w,h,stagger]=[[128,64,0],[128,64,.5],[256,128,0],[128,128,.5],[128,128,0],[256,64,.5]][phase];
+      for(let row=0;row<512/h;row++) for(let col=0;col<512/w;col++) {
+        const x=col*w+(row%2)*w*stagger, y=row*h, sheen=.22+random()*.24;
+        for(const dx of [-512,0,512]){
+          const px=x+dx;
+          if(px>=512||px+w<=0)continue;
+          ctx.fillStyle=edge;ctx.globalAlpha=sheen;ctx.fillRect(px+3,y+3,w-6,h-6);
+          ctx.globalAlpha=.28;ctx.fillStyle='#101921';ctx.fillRect(px,y,w,2);
+          ctx.globalAlpha=.26;ctx.fillStyle='#ffffff';ctx.fillRect(px+4,y+4,w-8,1);
+        }
       }
       for(let i=0;i<3800;i++) {ctx.globalAlpha=random()*.085;ctx.fillStyle=i%2?'#ffffff':'#000000';ctx.fillRect(random()*512,random()*512,1+random()*3,1+random()*2);}
       ctx.globalAlpha=.7;ctx.strokeStyle=accent;ctx.lineWidth=2;
-      if(phase===0) {
-        ctx.globalAlpha=1;
-        for(let row=0;row<2;row++)for(let col=0;col<2;col++){
-          const x=col*256+12,y=row*256+12;
-          const g=ctx.createLinearGradient(x,y,x+232,y+232);g.addColorStop(0,'#536474');g.addColorStop(.12,'#2c3c4b');g.addColorStop(1,'#1a2937');
-          ctx.fillStyle=g;ctx.beginPath();ctx.roundRect(x,y,232,232,18);ctx.fill();ctx.strokeStyle='#78909c';ctx.globalAlpha=.6;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;
-          ctx.fillStyle='#0e1d29';ctx.fillRect(x+24,y+152,136,45);
-          for(let vent=0;vent<6;vent++){ctx.fillStyle='#647783';ctx.fillRect(x+30,y+157+vent*6,122,2);}
-          for(const sx of [12,219])for(const sy of [12,219]){ctx.fillStyle='#80929c';ctx.beginPath();ctx.arc(x+sx,y+sy,3,0,Math.PI*2);ctx.fill();}
-          ctx.fillStyle=accent;ctx.fillRect(x+182,y+28,5,64);ctx.fillStyle='#9279b6';ctx.fillRect(x+195,y+28,5,38);
-          ctx.font='bold 12px monospace';ctx.fillStyle='#afc5d0';ctx.fillText('ER / 0'+(row*2+col+1),x+25,y+40);
-        }
-        ctx.strokeStyle=accent;ctx.globalAlpha=.6;
-        for(let x=32;x<512;x+=128){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,100);ctx.lineTo(x+32,132);ctx.lineTo(x+32,350);ctx.lineTo(x,382);ctx.lineTo(x,512);ctx.stroke();}
-      } else if(phase===1) {
+      if(phase===1) {
         for(let i=0;i<100;i++){const x=random()*512,y=random()*512;ctx.fillStyle=i%2?'#637d43':'#93aa61';ctx.globalAlpha=.3;ctx.beginPath();ctx.ellipse(x,y,4+random()*9,2+random()*4,random()*6,0,Math.PI*2);ctx.fill();}
-      } else if(phase===3 || phase===5) {
-        for(let i=0;i<8;i++){let x=random()*512,y=0;ctx.beginPath();ctx.moveTo(x,y);while(y<512){x+=(random()-.5)*65;y+=25+random()*50;ctx.lineTo(x,y);}ctx.stroke();}
+      } else if(phase===3||phase===5) {
+        ctx.globalAlpha=phase===3?.32:.41;
+        for(let i=0;i<(phase===3?7:5);i++){
+          const x=30+i*(phase===3?69:103),dir=i%2?1:-1;
+          ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+18*dir,94);ctx.lineTo(x-8*dir,202);ctx.lineTo(x+24*dir,313);ctx.lineTo(x-13*dir,410);ctx.lineTo(x,512);ctx.stroke();
+        }
       } else {
-        ctx.globalAlpha=.28;
-        for(let y=32;y<512;y+=64){ctx.beginPath();for(let x=0;x<=512;x+=8)ctx.lineTo(x,y+Math.sin(x/40)*12);ctx.stroke();}
+        ctx.globalAlpha=phase===2?.48:.38;
+        for(let y=32;y<512;y+=64){ctx.beginPath();for(let x=0;x<=512;x+=8)ctx.lineTo(x,y+Math.sin(x*Math.PI/128)*(phase===2?5:13));ctx.stroke();}
       }
       ctx.globalAlpha=1;
       const texture=this.track(new this.T.CanvasTexture(canvas));texture.colorSpace=this.T.SRGBColorSpace;
@@ -726,23 +691,26 @@
 
     cyberWallTexture() {
       const T=this.T,c=document.createElement('canvas'),g=document.createElement('canvas');c.width=c.height=g.width=g.height=512;
-      const ctx=c.getContext('2d'),glow=g.getContext('2d');ctx.fillStyle='#060b20';ctx.fillRect(0,0,512,512);glow.fillStyle='#000';glow.fillRect(0,0,512,512);
-      // The same cyan/magenta window rhythm as Cyber's buildings, integrated into the enclosing walls.
-      for(let tower=0;tower<4;tower++){
-        const x=tower*128;
-        ctx.fillStyle=tower%2?'#10162e':'#0b203a';ctx.fillRect(x+9,12,108,488);
-        ctx.fillStyle='#304566';ctx.fillRect(x+7,0,3,512);ctx.fillRect(x+116,0,3,512);
-        for(let row=0;row<14;row++)for(let col=0;col<3;col++){
-          const px=x+18+col*31,py=24+row*33,active=(row*7+col*3+tower)%7!==0;
-          const tint=(row+tower*2)%6===0?'#fa20cf':(row+col)%3===0?'#0481d4':'#00cbdf';
-          ctx.fillStyle=active?tint:'#112b45';ctx.fillRect(px,py,23,22);
-          if(active){glow.fillStyle=tint;glow.fillRect(px,py,23,22);}
-          ctx.fillStyle='#426180';ctx.fillRect(px,py+24,23,2);
+      const ctx=c.getContext('2d'),glow=g.getContext('2d');
+      ctx.fillStyle='#121b2a';ctx.fillRect(0,0,512,512);glow.fillStyle='#000';glow.fillRect(0,0,512,512);
+      // The distant skyline keeps the bright windows. Close courtyard walls
+      // use broad steel panels with restrained locator lights instead.
+      for(let panel=0;panel<2;panel++){
+        const x=panel*256;
+        const shade=ctx.createLinearGradient(x,0,x+220,512);
+        shade.addColorStop(0,panel?'#303f57':'#35485f');
+        shade.addColorStop(.55,'#26374d');shade.addColorStop(1,'#1c2a40');
+        ctx.fillStyle=shade;ctx.fillRect(x+3,0,250,512);
+        ctx.fillStyle='#485b71';ctx.fillRect(x+5,0,2,512);
+        ctx.fillStyle='#1a2839';ctx.fillRect(x+246,0,4,512);
+        ctx.strokeStyle='#405268';ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(x+18,398);ctx.lineTo(x+46,425);ctx.lineTo(x+208,425);ctx.lineTo(x+236,398);ctx.stroke();
+        if(panel===0){
+          ctx.fillStyle='#75aebb';ctx.fillRect(x+42,412,35,3);
+          glow.fillStyle='#267386';glow.fillRect(x+42,412,35,3);
         }
-        const tint=tower%2?'#ff23ce':'#00e3ff';
-        for(const target of [ctx,glow]){target.fillStyle=tint;target.fillRect(x+4,0,2,512);}
       }
-      const texture=canvas=>{const t=this.track(new T.CanvasTexture(canvas));t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(8,1);t.anisotropy=Math.min(4,this.api.renderer().capabilities.getMaxAnisotropy());return t;};
+      const texture=canvas=>{const t=this.track(new T.CanvasTexture(canvas));t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.repeat.set(4,1);t.anisotropy=Math.min(4,this.api.renderer().capabilities.getMaxAnisotropy());return t;};
       const map=texture(c);this.cyberWallGlow=texture(g);this.wallTextureCache.set(0,map);return map;
     }
 
@@ -814,58 +782,31 @@
       for(const mesh of [this.arcadeScreen,this.arcadeTitle.mesh,this.arcadeStatus.mesh]){mesh.userData.click=()=>this.invokeZone(zone);this.clickable.push(mesh);}
     }
 
-    buildPlazaDetails(trim, dark) {
-      const T = this.T;
-      // Lightweight kinetic sculptures frame the portals without obstructing
-      // any approach/pad. Geometry-only animation adds no texture downloads.
-      const gemMaterial = this.material('#86ead9', { emissive: '#36b89f', emissiveIntensity: .45, metalness: .28 });
-      for (const x of [-3.8, 3.8]) {
-        this.mesh(new T.CylinderGeometry(.7,1,.8,8), dark, x,.4,-22);
-        const gem = this.mesh(new T.OctahedronGeometry(.65), gemMaterial, x,2,-22);
-        this.animatedDecor.push({ mesh: gem, y: 2, phase: x, spin: .45 });
-        const orbit = this.mesh(new T.TorusGeometry(1,.035,6,32), trim, x,2,-22);
-        orbit.rotation.x = .8;
-        this.animatedDecor.push({ mesh: orbit, y: 2, phase: x, spin: -.24 });
-      }
-      const motes = new Float32Array(32 * 3);
-      for (let i=0;i<32;i++) { const angle=i*2.39996; const r=5.8+(i%3)*.4; motes[i*3]=Math.cos(angle)*r; motes[i*3+1]=.4+(i%5)*.13; motes[i*3+2]=Math.sin(angle)*r; }
-      const geometry=this.track(new T.BufferGeometry()); geometry.setAttribute('position',new T.BufferAttribute(motes,3));
-      this.plazaMotes=new T.Points(geometry,this.track(new T.PointsMaterial({color:'#ffe0a0',size:.065,transparent:true,opacity:.65,depthWrite:false})));
-      this.plazaMotes.position.set(0,0,5); this.scene.add(this.plazaMotes);
-    }
-
-
     applyTheme(force = false) {
       if (!this.scene) return;
       const phase = Math.max(0, Math.min(5, Math.floor(Number(this.api.theme?.()) || 0)));
+      if(this.inConcourse){this.themePhase=phase;window.ElementalConcourseArt.atmosphere(this,true,phase);return;}
       if (!force && phase === this.themePhase) return;
       this.themePhase = phase;
-      this.wallMaterial.map=this.wallTexture(phase);this.wallMaterial.needsUpdate=true;
-      this.wallMaterial.emissiveMap=phase===0?this.cyberWallGlow:null;
+      const wallMap=this.wallTexture(phase);
+      if(this.wallMaterial.map!==wallMap){
+        this.wallMaterial.map=wallMap;this.wallMaterial.emissiveMap=phase===0?this.cyberWallGlow:null;
+        this.wallMaterial.needsUpdate=true;
+      }
       this.wallMaterial.emissive.set(phase===0?'#ffffff':'#000000');this.wallMaterial.emissiveIntensity=.55;
-      this.wallFrameMaterial.color.set(['#263b4b','#334c4b','#b1b5b6','#372e32','#294a58','#6b8498'][phase]);
-      const accent=['#16e1ff','#a2bf75','#ecc778','#f29a54','#76d4c9','#bcf0ff'][phase];
-      this.wallAccentMaterial.color.set(accent);this.wallAccentMaterial.emissive.set(accent);
       this.wallCrests.forEach((group,index)=>{group.visible=index===phase;});
-      if(this.foliageMaterial)this.foliageMaterial.color.set(['#648ca8','#63a77c','#d4dfc1','#9f624e','#61b6ac','#adc7dd'][phase]);
       if(this.portalPreviews)for(const preview of this.portalPreviews)this.updatePortalTheme(preview,phase);
-      // Match the runner's environment colors, not a separate lobby palette.
-      const colors = ['#081726', '#87ceeb', '#ddeeff', '#2a0904', '#12383d', '#18294a'];
-      const lights = ['#ffe2b0', '#fff0c6', '#ffffff', '#ffad73', '#d4f7ff', '#e9f6ff'];
-      const sunColors = ['#ff00aa', '#ffff88', '#ffffff', '#ff7a1a', '#ffd45a', '#fff1a8'];
       const labels = ['CITY', 'NATURE', 'SKY', 'LAVA', 'WATER', 'SNOW'];
-      this.scene.background.set(colors[phase]); this.scene.fog.color.set(colors[phase]);
-      this.scene.fog.density = [.006, .002, .0012, .0085, .0026, .0048][phase];
-      this.floorMaterial.color.set('#ffffff');Object.assign(this.floorMaterial,this.courtyardTexture(phase));this.floorMaterial.normalScale.set(.45,.45);this.floorMaterial.needsUpdate=true;
-      this.floorMaterial.roughness=1;this.floorMaterial.metalness=phase===0?.22:.025;this.sun.color.set(lights[phase]);
-      this.floorMaterial.emissive.set(phase===0?'#ffffff':'#000000');this.floorMaterial.emissiveIntensity=.6;
-      this.sun.intensity=phase===0?1.5:2.6;this.hemisphere.intensity=phase===0?1.05:1.65;
-      this.fillLight.color.set(phase===0?'#d557ff':'#bedfff');
+      this.floorMaterial.color.set(['#d7e9ff','#e5f1d9','#f7f5ff','#ffe3d0','#d8f5f5','#edf5ff'][phase]);
+      const floorMaps=this.courtyardTexture(phase);
+      if(this.floorMaterial.map!==floorMaps.map){
+        Object.assign(this.floorMaterial,floorMaps);this.floorMaterial.normalScale.set(.32,.32);this.floorMaterial.needsUpdate=true;
+      }
+      this.floorMaterial.roughness=[.8,.98,.91,1,.98,.98][phase];this.floorMaterial.metalness=phase===0?.46:.035;
+      this.floorMaterial.emissive.set(phase===0||phase===3?'#ffffff':'#000000');this.floorMaterial.emissiveIntensity=phase===0?.63:.42;
       this.carpetMaterial.color.set(['#abd4e1','#bdd3a8','#fff0cd','#dfaf92','#a6e2db','#d2eaff'][phase]);
-      this.hemisphere.color.set(lights[phase]);
-      this.hemisphere.groundColor.set(['#263848','#405448','#667487','#382b32','#294c5a','#485b7c'][phase]);
-      if (this.sunDisc) this.sunDisc.material.color.set(sunColors[phase]);
-      if (this.starField) { this.starField.visible = phase === 0 || phase >= 3; this.starField.material.opacity = phase === 5 ? .55 : .38; }
+      window.ElementalConcourseArt.paintPlaza(this,phase);
+      if (this.starField) { this.starField.visible = phase === 0 || phase === 5; this.starField.material.opacity = phase === 5 ? .45 : .32; }
       this.floorSurface.material = this.floorMaterial;
       this.themeLabel.set(labels[phase]);
       // Run assets are prepared by their own portal, never by entering a room.
@@ -884,8 +825,9 @@
       }
       this.bevelBox(8.5,1.35,6.6,dark,x,6.7,-30,this.scene,.2);
       this.bevelBox(8.8,.25,6.8,trim,x,7.37,-30,this.scene,.07);
+      const edgeMaterial=this.material(color, { emissive: color, emissiveIntensity: .6 });
       for (let z = -27; z >= -33; z -= 2) {
-        const mat = this.material(color, { emissive: color, emissiveIntensity: .6 });
+        const mat = edgeMaterial;
         this.box(.13, 5.3, .13, mat, x - 2.35, 2.65, z);
         this.box(.13, 5.3, .13, mat, x + 2.35, 2.65, z);
         this.box(4.8, .13, .13, mat, x, 5.3, z);
@@ -894,7 +836,7 @@
       const title = this.text('', 10, x, 6.8, -26.53, color, 62);
       const recordLabel = mode === 'level' ? this.text('', 10, x, 8.1, -26.53, '#f2d790', 44) : null;
       this.portalPreviews ||= [];
-      const preview={mode,recordLabel,frameMaterial};this.portalPreviews.push(preview);
+      const preview={mode,recordLabel,frameMaterial,edgeMaterial};this.portalPreviews.push(preview);
       // The camera approaches this backing wall before the handoff. A solid
       // black material cannot turn into a magnified/pixelated road illustration.
       preview.backing=this.mesh(new T.PlaneGeometry(4.65,5.3),this.track(new T.MeshBasicMaterial({color:0x000000,side:T.DoubleSide,toneMapped:false})),x,2.75,-32.35);
@@ -956,6 +898,7 @@
     }
     portalArrow(direction,x,y,z){const T=this.T,s=new T.Shape();s.moveTo(-.38,.72);s.lineTo(.32,0);s.lineTo(-.38,-.72);s.lineTo(-.62,-.48);s.lineTo(-.14,0);s.lineTo(-.62,.48);s.closePath();const mesh=this.mesh(new T.ShapeGeometry(s),this.track(new T.MeshBasicMaterial({color:'#d9efdf',transparent:true,side:T.DoubleSide,toneMapped:false})),x,y,z);if(direction<0)mesh.rotation.z=Math.PI;return{mesh};}
     updatePortalTheme(preview,phase) {
+      if(preview.hallColor){preview.portalMaterial.uniforms.uColor.value.set(preview.hallColor);return;}
       if(preview.phase===phase)return;preview.phase=phase;
       if(preview.portalMaterial)preview.portalMaterial.uniforms.uColor.value.set(preview.mode==='troll'?'#ff62d5':preview.mode==='soon'?'#858b92':preview.mode==='surf'?'#78d6ff':preview.mode==='runner2d'?'#e99e85':['#65d9bd','#a8da87','#efc77d','#ff9659','#68d8dc','#a8dfff'][phase]);
     }
@@ -1025,6 +968,8 @@
       this.hud = document.createElement('section'); this.hud.id = 'hub-hud'; this.hud.hidden = true;
       this.hud.innerHTML = '<header><div class="hub-brand">ELEMENTAL <b>RUN</b><small>LOBBY</small></div><div id="hub-location"><span></span><strong></strong></div><div class="hub-tools"><span id="hub-wallet"></span><button id="hub-settings" type="button" aria-label="Settings">⚙</button></div></header><div id="hub-reticle" aria-hidden="true"></div><div id="hub-message" role="status" aria-live="polite"></div><div id="hub-prompt"><strong></strong><span></span><progress max="1.5" value="0"></progress></div><footer id="hub-hint"></footer><div id="hub-stick" aria-label="Move"><i></i></div><button id="hub-home" type="button" aria-label="Recenter camera">⌖</button>';
       document.body.appendChild(this.hud);
+      const brand=this.hud.querySelector('.hub-brand');brand.innerHTML='<button type="button" id="hub-mode-cards"><svg viewBox="0 0 32 28" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="8" height="19" rx="2" transform="rotate(-8 6 14)"/><rect x="12" y="3" width="8" height="22" rx="2"/><rect x="23" y="5" width="7" height="19" rx="2" transform="rotate(8 26 14)"/></svg></button><small hidden></small>';
+      brand.querySelector('button').onclick=event=>{event.preventDefault();event.stopPropagation();this.api.onInteraction?.(event);this.api.openModeCards?.();};
       const guide=document.createElement('button');guide.type='button';guide.id='hub-guide-note';guide.hidden=true;
       guide.addEventListener('click',event=>{this.api.onInteraction?.(event);if(this.lastGuideStage==='upgrades')this.api.openPanel('upgrades');else if(this.lastGuideStage==='games')this.transition('games');});this.hud.appendChild(guide);
       this.prompt = this.hud.querySelector('#hub-prompt'); this.message = this.hud.querySelector('#hub-message');
@@ -1061,13 +1006,14 @@
       const ratio = Math.min(window.devicePixelRatio || 1, this.mobile ? 1 : 1.25);
       if (this.api.renderer().getPixelRatio() !== ratio) this.api.renderer().setPixelRatio(ratio);
       this.velocity.set(0, 0); this.jumpVelocity = 0; this.yaw = restore?.yaw??0; this.pitch = restore?.pitch??.48;this.portalReentryUntil=this.time+.8;
-      if(this.avatarMotion)Object.assign(this.avatarMotion,{move:0,landing:0,wasGrounded:true,vy:0,turn:0});
+      this.resetAvatarJelly();
       this.keys.clear(); this.hold = 0; this.zone = null; this.latched = null;
-      this.api.onEnter(); this.applyTheme(); this.refresh(); this.updateCamera(1, true);
+      this.api.onEnter(); this.refresh(true); this.updateCamera(1, true);
       this.focusSurface();
       this.queuePointerRestore();
     }
     exit(options = {}) {
+      this.jellyTrail?.clear();
       this.active = false; this.state = 'inactive'; this.serial++; this.modelEpoch++;
       this.entryPrepared = false;
       this.keys.clear(); this.touchMove.set(0, 0); this.velocity.set(0, 0);
@@ -1261,6 +1207,30 @@
       }
       return 0;
     }
+    jellyFloorAt(x,z,forTrail=false){
+      const hall=this.inConcourse;
+      if(forTrail&&(Math.abs(x)>(hall?17.45:33.2)||z< -32.1||z>(hall?27.3:28.3)))return null;
+      let height=this.floorHeightAt(x,z);
+      if(height>0){
+        const tier=this.handTier,dist=Math.abs(z-tier.z)-tier.length/2;
+        if(dist>0&&dist%tier.tread>tier.tread-.09)height+=.018;
+      }else if(hall){
+        height=.03;
+        // Games garden pavers/forecourts are flush with the existing support.
+        if(Math.abs(x)<=6.24)height=.03;
+      }else height=Math.abs(x)<=2.8&&Math.abs(z+1)<=24.5?.073:.03;
+      for(const zone of this.zones){
+        if(Math.abs(zone.floorY-height)>.24||Math.abs(x-zone.x)>1.69||Math.abs(z-zone.z)>1.69)continue;
+        if((x-zone.x)**2+(z-zone.z)**2>1.69**2)continue;
+        if(forTrail)return null;
+        height=Math.max(height,zone.floorY+.16);
+      }
+      return height;
+    }
+    resetAvatarJelly(){
+      this.jellyTrail?.clear();
+      if(this.body&&this.avatarMotion)window.ElementalCubeAvatar.resetJelly(this.body,this.avatarMotion);
+    }
     updateCamera(dt, instant = false) {
       const p = this.avatar.position, distance = 10.5;
       this.desiredCamera.set(p.x + Math.sin(this.yaw) * Math.cos(this.pitch) * distance, p.y + 1.15 + Math.sin(this.pitch) * distance, p.z + Math.cos(this.yaw) * Math.cos(this.pitch) * distance);
@@ -1286,7 +1256,7 @@
       // behind its modal instead of spending GPU time drawing an unseen scene.
       if(this.api.arcadeActive?.()){this.pointerWasBlocked=true;this.clearMovement();this.pointer=null;this.prompt.hidden=true;this.progressRing.visible=false;return;}
       dt = Math.max(0, Math.min(.05, dt)); this.time += dt;
-      if (this.state === 'transition') this.updateTransition(dt);
+      if (this.state === 'transition') {this.jellyTrail?.clear();this.updateTransition(dt);}
       else {
         const blocked = this.blocked();
         if (this.pointerWasBlocked && !blocked) this.queuePointerRestore();
@@ -1314,6 +1284,7 @@
         const groundY = this.floorHeightAt(p.x, p.z), floorY = groundY + this.avatarHalfHeight;
         this.jumpVelocity = (this.jumpVelocity || 0) - 22 * dt;
         p.y = Math.max(floorY, p.y + this.jumpVelocity * dt);
+        const impact=p.y===floorY&&!this.avatarMotion.wasGrounded?Math.max(0,-this.jumpVelocity):0;
         if (p.y === floorY) this.jumpVelocity = 0;
         this.avatarMotion.turn=0;
         if (speed > .2) {
@@ -1322,7 +1293,9 @@
           this.avatar.rotation.y += diff * damping;
           this.avatarMotion.turn=dt?diff*damping/dt:0;
         }
-        this.animateAvatar(dt,speed,p.y===floorY,this.jumpVelocity);
+        const grounded=p.y===floorY;
+        this.animateAvatar(dt,speed,grounded,this.jumpVelocity,impact);
+        this.jellyTrail.update(dt,p.x,p.z,grounded&&!blocked&&this.state==='exploring'?(this.inConcourse?-1:groundY):null,this.jellySurface,speed>.22,impact,this.guideMotion.matches);
         this.shadow.position.set(p.x, groundY + .19, p.z);
         this.shadow.material.opacity = Math.max(.25, 1 - (p.y - floorY) * .15);
         this.updateCamera(dt); this.updateZones(dt, blocked);
@@ -1332,12 +1305,12 @@
       this.updateFace(dt);
       for(const portal of this.portalPreviews){
         portal.portalMaterial.uniforms.uTime.value=this.time;
-        portal.portalMaterial.uniforms.uUnplayed.value=portal.unplayed?1:0;
+        portal.portalMaterial.uniforms.uUnplayed.value=portal.unplayed?(this.inConcourse?.6:1):0;
         portal.portalMaterial.uniforms.uEntry.value=this.state==='transition'&&this.transitionMode===portal.mode?Math.min(1,this.transitionTime/1.15):portal.unplayed?.55+.35*Math.sin(this.time*2.1):0;
         // Gentle continuous pulse, never a harsh on/off flash. Reduced motion
         // keeps a steady highlight. Reuse column meshes, no extra lights/FX.
         const pulse=this.guideMotion.matches?.75:.5+.5*Math.sin(this.time*2.1);
-        if(portal.frameMaterial)portal.frameMaterial.emissiveIntensity=portal.unplayed?.03+pulse*.23:0;
+        if(portal.frameMaterial)portal.frameMaterial.emissiveIntensity=portal.unplayed?.03+pulse*(this.inConcourse?.07:.23):0;
         if(portal.ring){portal.ring.material.emissiveIntensity=portal.unplayed?1.3+2.8*pulse:.6;portal.ring.material.color.set(portal.unplayed?'#effff2':portal.portalMaterial.uniforms.uColor.value);}
         if(portal.highScoreLabel){portal.highScoreLabel.mesh.position.y=portal.hologramY+Math.sin(this.time*1.6)*.12;portal.highScoreLabel.mesh.material.opacity=.9+Math.sin(this.time*2)*.06;}
       }
@@ -1350,8 +1323,7 @@
         decor.mesh.position.y = decor.y + Math.sin(this.time * 1.35 + decor.phase) * .13;
         decor.mesh.rotation.y = this.time * decor.spin;
       }
-      this.plazaMotes.rotation.y = this.time * .06;
-      this.updatePlayfulDecor();
+      window.ElementalConcourseArt.update(this);
       for(const halo of this.portalHalos){halo.rotation.z=this.time*.2;halo.scale.setScalar(1+Math.sin(this.time*1.4)*.025);}
       for (const hand of this.models.values()) hand.rotation.y = hand.userData.baseYaw + this.time * .19;
       for(const zone of this.zones)if(zone.skin){zone.label.mesh.quaternion.copy(this.camera.quaternion);zone.price.mesh.quaternion.copy(this.camera.quaternion);zone.skillLabel.mesh.quaternion.copy(this.camera.quaternion);}
@@ -1364,17 +1336,13 @@
       if (this.camera.aspect !== aspect) { this.camera.aspect = aspect; this.camera.updateProjectionMatrix(); }
       const target = r.getRenderTarget(), auto = r.autoClear;
       r.info.reset();window.ElementalGraphicsEngine.prepareDisplay(r,this.T);r.autoClear = true;
-      try{this.ensureLobbyRenderer();this.composer.render(dt);}
+      try{this.ensureLobbyRenderer();window.ElementalConcourseArt.draw(this,()=>this.composer.render(dt));}
       finally{r.autoClear=auto;r.setRenderTarget(target);}
     }
 
-    animateAvatar(dt,speed,grounded,vy){
-      const m=this.avatarMotion,k=1-Math.exp(-12*dt);m.move+=(Math.min(1,speed/7.5)-m.move)*k;m.phase+=dt*(2+speed*1.55);
-      if(grounded&&!m.wasGrounded)m.landing=Math.min(.13,Math.abs(m.vy)*.012);m.landing*=Math.exp(-12*dt);m.wasGrounded=grounded;m.vy=vy;
-      const breath=Math.sin(this.time*2.1)*.006,step=grounded?Math.abs(Math.sin(m.phase))*.065*m.move:0,stretch=grounded?0:Math.min(.045,Math.abs(vy)*.004);
-      this.body.position.y=breath+step-m.landing*.3;this.body.scale.set(1+m.landing*.42-stretch*.35,1-m.landing+stretch,1+m.landing*.42-stretch*.35);
-      const lean=grounded?-.095*m.move:Math.max(-.08,Math.min(.08,-vy*.006)),bank=Math.max(-.07,Math.min(.07,-(m.turn||0)*.012))+(grounded?Math.sin(m.phase)*.025*m.move:0);
-      this.body.rotation.x+=(lean-this.body.rotation.x)*k;this.body.rotation.z+=(bank-this.body.rotation.z)*k;
+    animateAvatar(dt,speed,grounded,vy,impact=0){
+      const p=this.avatar.position,foot=grounded?this.jellyFloorAt(p.x,p.z)-p.y:-1;
+      window.ElementalCubeAvatar.animateJelly(this.body,this.avatarMotion,dt,speed,grounded,vy,foot,this.guideMotion.matches,impact);
     }
     updateFace(dt) {
       if(this.time>=this.faceBlinkAt){this.faceBlinkTime=.18;this.faceBlinkAt=this.time+3.2+Math.sin(this.time*1.7)*.8;}
@@ -1467,6 +1435,7 @@
       this.api.syncFullscreenControls?.();
       this.hud.querySelector('#hub-home').setAttribute('aria-label',this.copy('Recenter camera','Kamerayı ortala'));
       this.hud.querySelector('.hub-brand small').textContent=this.inConcourse?this.api.tr('hubGames'):this.copy('ELEMENTAL PLAZA','ELEMENTAL MEYDANI');
+      this.hud.querySelector('#hub-mode-cards').setAttribute('aria-label',this.api.tr('hubGames'));
       if(this.concourse){this.concourse.hall.heading.set(this.api.tr('hubGames'));this.concourse.hall.returnLabel?.set(this.api.tr('surfLobby'));this.concourse.back.textContent='↩ '+this.api.tr('surfLobby');}
       this.hud.querySelector('#hub-wallet').textContent = `◈ ${wallet.toLocaleString()}`;
       this.hud.querySelector('#hub-hint').textContent = this.mobile
@@ -1713,7 +1682,7 @@
       this.avatar.position.x=this.transitionAvatarOrigin.x+(this.transitionTarget.x-this.transitionAvatarOrigin.x)*eased;
       this.avatar.position.z=this.transitionAvatarOrigin.z+(this.transitionTarget.z-this.transitionAvatarOrigin.z)*eased;
       this.avatar.rotation.y=0;this.avatar.visible = t < .72;
-      if (t >= 1) { const mode = this.transitionMode;if(mode==='games'||mode==='plaza'){window.ElementalModeConcourse.setArea(this,mode==='games');this.portalReentryUntil=this.time+.8;return;}if(mode==='surf'&&this.api.surfPrepared&&!this.api.surfPrepared()){this.cancelSurfEntry();this.notify(this.copy('Could not prepare the run. Step off and retry.','Koşu hazırlanamadı. Pedden çıkıp tekrar dene.'));return;}this.api.guideEntered?.(mode);this.captureHandoff();this.exit({ deferModels: true });try{this.api.start(mode);window.ElementalModeConcourse.markPlayed(mode);}catch(error){if(mode!=='surf')throw error;console.warn('[Surf entry]',error);this.api.abortSurfEntry?.();if(!this.active)this.enter();this.notify(this.copy('Could not prepare the run. Step off and retry.','Koşu hazırlanamadı. Pedden çıkıp tekrar dene.'));} }
+      if (t >= 1) { const mode = this.transitionMode;if(mode==='games'||mode==='plaza'){window.ElementalModeConcourse.setArea(this,mode==='games');this.portalReentryUntil=this.time+.8;return;}if(mode==='surf'&&this.api.surfPrepared&&!this.api.surfPrepared()){this.cancelSurfEntry();this.notify(this.copy('Could not prepare the run. Step off and retry.','Koşu hazırlanamadı. Pedden çıkıp tekrar dene.'));return;}this.captureHandoff();this.exit({ deferModels: true });Promise.resolve().then(()=>this.api.start(mode,{source:'portal'})).then(started=>{if(started!==false){this.api.guideEntered?.(mode);window.ElementalModeConcourse.markPlayed(mode);}}).catch(error=>{console.warn('[Mode entry]',error);this.api.abortSurfEntry?.();if(!this.active)this.enter();this.notify(this.copy('Could not prepare the run. Step off and retry.','Koşu hazırlanamadı. Pedden çıkıp tekrar dene.'));}); }
     }
     captureHandoff() {
       this.clearHandoff();
@@ -1743,8 +1712,12 @@
       return { active: this.active, state: this.state, handoffActive: !!this.handoff, player: this.avatar ? { x: +this.avatar.position.x.toFixed(2), y: +this.avatar.position.y.toFixed(2), z: +this.avatar.position.z.toFixed(2) } : null,
         pointerCapture: { wanted: this.pointerLockWanted, locked: document.pointerLockElement === this.api.renderer().domElement, suspended: this.blocked(), restoreQueued: this.pointerRestoreQueued },
         coordinateSystem: 'Lobby: X right, Y up, -Z forward (independent of runner)', themePhase: this.themePhase, themeWarm: !!this.themeWarmPromise,
-        enclosure: { walls: this.wallSides?.length || 0, height: 13.4, theme: this.themePhase, cachedTextures: this.wallTextureCache?.size || 0 },
-        graphics: { staticDrawCallsSaved: this.staticDrawCallsSaved || 0, portalPreviews: this.portalPreviews?.length || 0, themedFloor: this.themePhase, grid: this.themePhase===0, entryPrepared: !!this.entryPrepared, preparationMs: this.entryPreparationMs || 0, companions: this.companionCount || 0 },
+        enclosure: { walls: this.inConcourse?4:(this.wallSides?.length || 0), height: this.inConcourse?window.ElementalConcourseArt.wallHeight:this.plazaWallHeight, theme: this.themePhase, cachedTextures: this.wallTextureCache?.size || 0 },
+        graphics: { staticDrawCallsSaved: this.staticDrawCallsSaved || 0, portalPreviews: this.portalPreviews?.length || 0, themedFloor: this.themePhase, grid: this.themePhase===0, entryPrepared: !!this.entryPrepared, preparationMs: this.entryPreparationMs || 0, companions: 0 },
+        gamesGarden:this.inConcourse?{style:'sunset-garden',biome:this.concourse.hall.art.id,pavers:80,trees:this.themePhase===1||this.themePhase===5?8:0,
+          cloudPeaks:this.concourse.hall.art.peakMesh.visible?this.concourse.hall.art.peakMesh.count:0,clouds:this.concourse.hall.art.cloudMesh.count,horizonSectors:4,
+          cloudSea:this.concourse.hall.art.mist.uniforms.uMistLevel.value,staticShadows:!!this.sun.castShadow}:null,
+        plazaArt:!this.inConcourse&&this.plazaArt?{theme:this.plazaArt.phase,light:this.sun.intensity,cloudSea:this.plazaArt.mist.uniforms.uMistLevel.value}:null,
         modePreparation: this.modePreparation?.snapshot() || null,
         guide:this.api.guide?.()||null,
         guideRoute: { visible: !!this.active && !!this.guideArrows?.visible, arrows: this.guideArrows?.count || 0, target: this.lastGuideStage || null, reducedMotion: !!this.guideMotion?.matches },

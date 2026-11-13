@@ -1,6 +1,6 @@
 'use strict';
 
-const BUILD = '1.74.1-continuous-finish-horizon';
+const BUILD = '1.89.3-lean-boot-troll-camera';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

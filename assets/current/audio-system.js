@@ -43,6 +43,129 @@
   const noiseCache = Object.create(null);
   let runner2DState = 'inactive', runner2DMusic = null, runner2DPlayPending = false;
   const partyHeartVoices = new Set();
+  // Troll Obby shares the existing SFX bus and AudioContext.
+  const trollVoices=new Set(),trollLast=Object.create(null),trollPlayedByKind=Object.create(null);
+  let trollAudioActive=false,trollBed=null,trollVoiceCount=0;
+  let trollLaughBuffer=null,trollLaughLoading=null,trollLaughVoice=null,trollLaughTicket=0;
+  const trollSounds=Object.freeze({
+    foot:['sine',128,60,.075,.16,.32],iceStep:['sine',245,109,.075,.12,.57],
+    jump:['triangle',300,610,.13,.23,.11],land:['sine',142,49,.13,.22,.39],
+    checkpoint:['sine',613,1290,.28,.28,0],count:['sine',510,435,.12,.22,0],
+    ready:['triangle',415,1030,.24,.25,.05],finish:['triangle',462,1374,.46,.25,0],
+    fail:['triangle',248,55,.27,.30,.44],hit:['square',118,47,.19,.20,.38],
+    pad:['triangle',163,838,.24,.24,.15],retry:['sine',370,570,.16,.21,.10],
+    trigger:['triangle',497,204,.18,.20,.16],crumble:['sine',99,36,.24,.18,.66],
+    warning:['triangle',533,760,.18,.15,.08],spike:['square',248,104,.19,.12,.49],
+    rock:['sine',82,40,.24,.19,.52],shift:['sine',282,663,.20,.18,.30],
+    go:['sine',595,1010,.15,.29,0],stop:['triangle',315,141,.24,.30,.06],
+    phasing:['sine',541,243,.26,.21,.26],flash:['triangle',801,1220,.13,.23,.12],
+    fanFlip:['triangle',139,290,.22,.14,.52],iceLaunch:['sine',300,738,.30,.25,.48],
+    perspective:['sine',349,683,.26,.23,.10],scanner:['sine',522,354,.17,.14,.21]
+  });
+  function trollAudible(){
+    const v=settings();
+    return trollAudioActive&&audioContext?.state==='running'&&!document.hidden&&!v.muted&&!state().audioBlocked&&Number(v.sfxVolume)!==0&&Number(v.masterVolume)!==0;
+  }
+  function prepareTrollLaugh(){
+    if(trollLaughBuffer)return Promise.resolve(trollLaughBuffer);
+    if(!audioContext)return Promise.resolve(null);
+    if(!trollLaughLoading){
+      trollLaughLoading=fetch('assets/audio/troll-death-laugh.mp3')
+        .then(r=>{if(!r.ok)throw Error('Laugh clip unavailable');return r.arrayBuffer();})
+        .then(bytes=>audioContext.decodeAudioData(bytes))
+        .then(buffer=>trollLaughBuffer=buffer)
+        .catch(()=>null);
+    }
+    return trollLaughLoading;
+  }
+  function stopTrollLaugh(){
+    ++trollLaughTicket;
+    if(!trollLaughVoice)return;
+    const {source,gain}=trollLaughVoice,now=audioContext.currentTime;
+    trollLaughVoice=null;
+    gain.gain.setTargetAtTime(0,now,.018);
+    try{source.stop(now+.075);}catch(_){}
+  }
+  function playTrollLaugh(){
+    if(!trollAudible())return false;
+    stopTrollLaugh();
+    const ticket=trollLaughTicket,requestAt=performance.now();
+    const play=buffer=>{
+      if(!buffer||ticket!==trollLaughTicket||!trollAudible()||performance.now()-requestAt>450)return;
+      const source=audioContext.createBufferSource(),gain=audioContext.createGain(),now=audioContext.currentTime;
+      source.buffer=buffer;gain.gain.value=.53;
+      source.connect(gain).connect(sfxGain);
+      const voice=trollLaughVoice={source,gain};
+      source.onended=()=>{source.disconnect();gain.disconnect();if(trollLaughVoice===voice)trollLaughVoice=null;};
+      source.start(now,0,Math.min(2,buffer.duration));
+      trollVoiceCount++;trollPlayedByKind.laugh=(trollPlayedByKind.laugh||0)+1;
+    };
+    if(trollLaughBuffer)play(trollLaughBuffer);else void prepareTrollLaugh().then(play);
+    return true;
+  }
+  function stopTrollBed(){
+    if(!trollBed)return;
+    const b=trollBed;trollBed=null;
+    const now=audioContext.currentTime;
+    b.gain.gain.cancelScheduledValues(now);b.gain.gain.setTargetAtTime(.0001,now,.035);
+    try{b.source.stop(now+.15);}catch(_){}
+  }
+  function setTrollAudioState(next){
+    trollAudioActive=next==='playing';
+    if(trollAudioActive)return;
+    stopTrollLaugh();
+    stopTrollBed();
+    if(next==='won')return; // Let the finish cue ring out.
+    for(const v of trollVoices){
+      if(v.stopping)continue;v.stopping=true;
+      const now=audioContext.currentTime;
+      v.env.gain.cancelScheduledValues(now);v.env.gain.setTargetAtTime(.0001,now,.012);
+      for(const src of v.sources)try{src.stop(now+.04);}catch(_){}
+    }
+  }
+  function playTrollSound(kind,strength=1,pan=0){
+    if(kind==='laugh')return playTrollLaugh();
+    const profile=trollSounds[kind];
+    if(!profile||!trollAudible()||trollVoices.size>=8)return false;
+    const now=audioContext.currentTime,gap=kind==='foot'||kind==='iceStep'?.17:.07;
+    if(now-(trollLast[kind]??-Infinity)<gap)return false;
+    trollLast[kind]=now;trollVoiceCount++;trollPlayedByKind[kind]=(trollPlayedByKind[kind]||0)+1;
+    const [wave,start,end,length,volume,noise]=profile,osc=audioContext.createOscillator(),env=audioContext.createGain();
+    const v={sources:[osc],nodes:[osc,env],env};osc.type=wave;
+    osc.frequency.setValueAtTime(start,now);osc.frequency.exponentialRampToValueAtTime(end,now+length);
+    env.gain.setValueAtTime(.0001,now);
+    env.gain.exponentialRampToValueAtTime(Math.max(.0002,volume*clamp(strength,.08,1.25,1)),now+.011);
+    env.gain.exponentialRampToValueAtTime(.0001,now+length);
+    osc.connect(env);
+    const panner=audioContext.createStereoPanner?.();
+    if(panner){panner.pan.value=clamp(pan,-1,1,0);env.connect(panner).connect(sfxGain);v.nodes.push(panner);}else env.connect(sfxGain);
+    if(noise){
+      const src=audioContext.createBufferSource(),filter=audioContext.createBiquadFilter(),mix=audioContext.createGain();
+      src.buffer=getNoiseBuffer(.35);src.loop=true;filter.type='lowpass';filter.frequency.value=kind==='iceStep'?2800:1550;mix.gain.value=noise;
+      src.connect(filter).connect(mix).connect(env);v.sources.push(src);v.nodes.push(src,filter,mix);
+      src.start(now);src.stop(now+length+.02);
+    }
+    trollVoices.add(v);
+    osc.onended=()=>{for(const n of v.nodes)n.disconnect();trollVoices.delete(v);};
+    osc.start(now);osc.stop(now+length+.025);return true;
+  }
+  function setTrollBed(kind,strength=0,pan=0){
+    if(!kind||strength<.025||!trollAudible()){stopTrollBed();return;}
+    const now=audioContext.currentTime;
+    if(trollBed&&trollBed.kind!==kind)stopTrollBed();
+    if(!trollBed){
+      const source=audioContext.createBufferSource(),filter=audioContext.createBiquadFilter(),gain=audioContext.createGain(),panner=audioContext.createStereoPanner?.();
+      source.buffer=getNoiseBuffer(1.3);source.loop=true;filter.type='lowpass';gain.gain.value=.0001;
+      source.connect(filter).connect(gain);if(panner)gain.connect(panner).connect(sfxGain);else gain.connect(sfxGain);
+      source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();panner?.disconnect();};
+      source.start(now);trollBed={kind,source,filter,gain,panner,last:-Infinity};
+    }
+    const b=trollBed;if(now-b.last<.065)return;b.last=now;
+    const k=clamp(strength,0,1,0),rock=kind==='rock',ice=kind==='ice';
+    b.filter.frequency.setTargetAtTime(rock?150+160*k:ice?1000+2400*k:360+900*k,now,.065);
+    b.gain.gain.setTargetAtTime(k*(rock?.18:ice?.14:.20),now,.075);
+    b.panner?.pan.setTargetAtTime(clamp(pan,-1,1,0),now,.065);
+  }
   let lastPartyHeartBeat = -Infinity, partyHeartBeatCount = 0;
   function stopPartyHeartbeat() {
     for (const voice of partyHeartVoices) {
@@ -631,7 +754,7 @@
     osc.start(now); osc.stop(now + duration + .01);
   }
 
-  document.addEventListener('visibilitychange',()=>{updateRunner2DMusic();updateSurfMusic();});
+  document.addEventListener('visibilitychange',()=>{updateRunner2DMusic();updateSurfMusic();if(document.hidden){stopTrollBed();stopTrollLaugh();}});
 
   function applySettings() {
     if (!audioContext) { syncHtmlAudioWithSettings(); return; }
@@ -703,6 +826,7 @@
       contextCreated: !!audioContext,
       contextState: audioContext ? audioContext.state : 'uninitialized',
       partyHeartbeat: { beats:partyHeartBeatCount, voices:partyHeartVoices.size },
+      trollAudio:{played:trollVoiceCount,voices:trollVoices.size,bed:trollBed?.kind||null,laughReady:!!trollLaughBuffer,laughPlaying:!!trollLaughVoice,byKind:{...trollPlayedByKind}},
       surfMusic:{state:surfState,created:!!surfMusic,src:surfMusic?.getAttribute('src')||'',paused:surfMusic?.paused??true,volume:surfMusic?.volume||0,currentTime:surfMusic?.currentTime||0,readyState:surfMusic?.readyState||0},softPad:{voices:softPadVoices.size},
       runner2D: {
         state: runner2DState, created: !!runner2DMusic, paused: runner2DMusic?.paused ?? true,
@@ -734,6 +858,7 @@
   const api = Object.freeze({
     configure, init, getNodes, getNoiseBuffer, resumeContext,
     setRunner2DState, playRunner2DSound, playPartyHeartbeat, stopPartyHeartbeat, setSurfState, playSoftPadSound,
+    playTrollSound,setTrollBed,setTrollAudioState,prepareTrollLaugh,stopTrollLaugh,
     applySettings, syncHtmlAudioWithSettings, updateMix,
     startMenuAmbient, ensureGameplayMusic, primeGameplayMusicBuffer,
     requestGameplayMusicPlay, updateGameplayMusic, invalidateGameplayMusicPlay,

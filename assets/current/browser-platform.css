@@ -36,31 +36,84 @@ body.game-over-active #how-to-play-overlay { display: none !important; }
 #game-over #retry-btn { background: #d2ae62 !important; border-color: #e3c986 !important; color: #231d12 !important; text-shadow: none !important; box-shadow: 0 3px 0 #725c32 !important; font-size: 16px; }
 #game-over #retry-btn:hover, #game-over #retry-btn:focus-visible { background: #e3c986 !important; }
 #game-over #gameover-menu-btn { min-height: 42px; opacity: .88; }
-/* Web and Poki require an explicit ready-screen PLAY click. */
-#boot-play-btn[hidden] { display: none !important; }
-#boot-play-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 20px;
-  width: min(340px, 100%); min-height: 100px; margin-top: 24px; padding: 18px 24px;
-  border: 2px solid #d9faff; border-radius: 12px;
-  background: linear-gradient(180deg, #73e4f8, #36bcd7);
-  box-shadow: 0 7px 0 #18768e, 0 12px 34px #42d2ed35;
-  color: #082431; font: 900 clamp(26px, 6vw, 38px) Orbitron, system-ui, sans-serif;
-  letter-spacing: .06em; cursor: pointer; touch-action: manipulation;
-  transition: transform .12s ease, background .12s ease;
+/* The ready screen never starts a mode until a trusted click or key activation. */
+#loading-screen.boot-play-ready .loading-card,#boot-mode-picker[hidden],#boot-mode-status[hidden]{display:none!important}
+#loading-screen.boot-play-ready{background:#151629;overflow:hidden}
+#loading-screen.boot-play-ready::before,#loading-screen.boot-play-ready::after{display:none}
+.boot-mode-scenery{display:none;position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.boot-play-ready .boot-mode-scenery{display:block;background:#171a37}
+.boot-mode-scenery::before,.boot-mode-scenery::after{content:"";position:absolute;inset:-7%;pointer-events:none}
+.boot-play-ready .boot-mode-scenery::before{
+  background:linear-gradient(#0d11202b,#0d112063),url("assets/mode-cards/canyon.webp") center/cover no-repeat;
+  animation:boot-canyon-drift 23s ease-in-out infinite alternate;
 }
-#boot-play-btn:hover { background: linear-gradient(180deg, #a1f1ff, #53d4eb); }
-#boot-play-btn:active { transform: translateY(4px); }
-#boot-play-btn:focus-visible { outline: 3px solid #ffe09c; outline-offset: 8px; }
-#loading-screen.boot-play-ready .loader-spinner,
-#loading-screen.boot-play-ready #loading-text,
-#loading-screen.boot-play-ready #loading-subtext,
-#loading-screen.boot-play-ready #loading-hint,
-#loading-screen.boot-play-ready #loading-percent,
-#loading-screen.boot-play-ready #loading-bar-container { display: none !important; }
-#loading-screen.boot-play-ready .loading-card { padding-top: 40px; padding-bottom: 42px; }
-@media (max-height: 450px) {
-  #loading-screen.boot-play-ready .loading-card { padding-top: 24px; padding-bottom: 30px; }
-  #boot-play-btn { min-height: 82px; margin-top: 12px; }
+.boot-play-ready .boot-mode-scenery::after{
+  background:radial-gradient(ellipse at 19% 78%,#78c5fb42,transparent 36%),radial-gradient(ellipse at 81% 23%,#f593d538,transparent 37%);
+  animation:boot-canyon-haze 17s ease-in-out infinite alternate;
+}
+@keyframes boot-canyon-drift{from{transform:translate3d(-2.4%,1.8%,0) scale(1.02)}to{transform:translate3d(3%,-2.2%,0) scale(1.1)}}
+@keyframes boot-canyon-haze{from{transform:translate3d(-6%,2%,0);opacity:.56}to{transform:translate3d(7%,-4%,0);opacity:1}}
+#boot-mode-picker{
+  position:relative;z-index:1;box-sizing:border-box;width:min(100%,1800px);
+  max-height:100%;overflow:auto;overscroll-behavior:contain;touch-action:pan-y;
+  padding:max(8px,env(safe-area-inset-top)) max(12px,3vw,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,3vw,env(safe-area-inset-left));
+  text-align:center;color:#fff;scrollbar-width:thin;
+  --mode-gap:clamp(8px,1.25vmin,16px);
+}
+#boot-mode-grid{
+  display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));
+  gap:var(--mode-gap);height:clamp(204px,calc(100dvh - 72px),1120px);padding:4px
+}
+#boot-mode-grid>.boot-mode{grid-column:span 2}
+#boot-mode-grid>.boot-mode:nth-child(5){grid-column:2/span 2}
+#boot-mode-picker button{
+  box-sizing:border-box;margin:0;min-width:0;color:#fff;cursor:pointer;touch-action:manipulation;
+  font:850 clamp(16px,2.7vw,36px)/1.04 Rajdhani,system-ui,sans-serif;
+}
+#boot-mode-picker .boot-mode{
+  position:relative;isolation:isolate;display:flex;align-items:flex-end;justify-content:center;
+  padding:0 clamp(6px,1.1vw,16px) clamp(9px,2.1vh,28px);overflow:hidden;
+  border:clamp(4px,.58vmin,8px) solid #fff;border-radius:clamp(9px,1.6vmin,18px);
+  background:#1a293b;box-shadow:0 7px 20px #0508198c;
+  transition:transform .18s ease,opacity .18s ease,box-shadow .18s ease;
+}
+#boot-mode-picker .boot-mode[data-mode="troll"]{border-color:#ff394b;box-shadow:0 0 18px #ff294779,0 7px 20px #0508198c}
+.boot-mode-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;transition:transform .35s ease}
+.boot-mode[data-mode="runner2d"] .boot-mode-photo{object-position:19% center}
+.boot-mode[data-mode="flappy"] .boot-mode-photo{object-position:27% top}
+.boot-mode::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(0deg,#070b19f5, #070b1988 23%,transparent 55%)}
+.boot-mode-name{position:relative;z-index:1;overflow-wrap:anywhere;text-shadow:0 2px 5px #000,0 5px 14px #000}
+.boot-mode-new{
+  position:absolute;z-index:1;top:clamp(5px,1.2vmin,12px);inset-inline-end:clamp(5px,1.2vmin,12px);padding:.35em .65em;
+  border-radius:5px;background:#ff394b;color:#fff;font:900 clamp(10px,1.6vmin,17px)/1 system-ui,sans-serif;
+  letter-spacing:.06em;box-shadow:0 3px 9px #16040799
+}
+#boot-mode-picker button:focus-visible{outline:2px solid #ffdc7d;outline-offset:2px}
+@media(hover:hover){
+  #boot-mode-picker .boot-mode:not(:disabled):hover{z-index:2;transform:translateY(-2px);box-shadow:0 10px 24px #020513bf}
+  #boot-mode-picker .boot-mode:not(:disabled):hover .boot-mode-photo{transform:scale(1.06)}
+}
+#boot-mode-picker .boot-mode:active{transform:translateY(2px)}
+.boot-mode-footer{position:relative;display:grid;justify-items:center;align-items:center;margin-top:4px;min-height:40px}
+#boot-mode-picker #boot-play-btn{display:grid;place-items:center;width:44px;height:40px;padding:7px;border-radius:9px;background:#132036eb;border:1px solid #e7eff3b0}
+#boot-mode-picker #boot-play-btn svg{width:22px;height:22px}
+#boot-mode-picker[aria-busy="true"] button{opacity:.48;cursor:wait}
+#boot-mode-picker[aria-busy="true"] #boot-play-btn{visibility:hidden}
+#boot-mode-status{position:absolute;margin:0;color:#ffe0a1;font:750 15px/1.2 Rajdhani,system-ui,sans-serif}
+#boot-mode-picker.has-error #boot-mode-status{position:static;color:#ffc3be;margin-top:8px}
+@media(orientation:portrait){
+  #boot-mode-grid{grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));height:clamp(310px,calc(100dvh - 72px),1120px)}
+  #boot-mode-grid>.boot-mode:nth-child(n+4){grid-column:span 3}
+}
+@media(max-height:450px) and (orientation:landscape){
+  #boot-mode-grid{height:clamp(196px,calc(100dvh - 64px),390px)}
+  #boot-mode-picker #boot-play-btn{height:34px}
+  .boot-mode-footer{min-height:34px}
+}
+@media(prefers-reduced-motion:reduce){
+  .boot-play-ready .boot-mode-scenery::before,.boot-play-ready .boot-mode-scenery::after{animation:none}
+  #boot-mode-picker .boot-mode,.boot-mode-photo{transition:none}
+  #boot-mode-picker .boot-mode:not(:disabled):hover,#boot-mode-picker .boot-mode:hover .boot-mode-photo{transform:none}
 }
 
 .browser-demo-ad {
@@ -2168,6 +2221,7 @@ body.rewarded-death-delay::after {
   cursor: wait;
 }
 #campaign-level-loading.is-visible { display: grid; }
+#campaign-level-loading[data-kind="level"],#campaign-level-loading[data-kind="tutorial"]{z-index:22000}
 .campaign-level-loading-card {
   width: min(440px, calc(100vw - 30px));
   padding: clamp(20px, 4vmin, 34px);
